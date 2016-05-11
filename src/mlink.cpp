@@ -48,6 +48,8 @@ void mlink::getSysID_thisLink()
 
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
+
+    std::cout << "Received heartbeat from: " << (int)sysID << std::endl;
     bool exists = false;
     uint8_t indexIfExists;
 

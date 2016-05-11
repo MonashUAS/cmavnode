@@ -177,33 +177,38 @@ void runMainLoop(){
             int16_t compIDmsg = 0;
             get_targets(&msg, sysIDmsg, compIDmsg);
             //we have got a message, work out where to send it
-            std::cout << "message received" << std::endl;
+            std::cout << "Message received from sysID: " << (int)msg.sysid << std::endl;
 
 
             if(sysIDmsg == 0 || sysIDmsg == -1){
             //Then message is broadcast, iterate through links
                 for(int n = 0; n < links.size(); n++){
+
                     bool sysOnThisLink = false;
+                    //For each link, iterate through its routing table
                     for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
+                        //if the system that sent this message is on the list,
+                        //dont send down this link
                         if(msg.sysid == links.at(n)->sysIDpub.at(k)){
                             sysOnThisLink = true;
                         }
+                    }
 
-                        if(!sysOnThisLink){
-                            links.at(n)->qAddOutgoing(msg);
-                            std::cout << "broadcast message sent" << std::endl;
-                        }
+                    //If this link doesn't point to the system that sent the message, send here
+                    if(!sysOnThisLink){
+                        links.at(n)->qAddOutgoing(msg);
+                        std::cout << "Broadcast message sent from: "<< (int)msg.sysid << std::endl;
                     }
                 }
             } else {
-                //msg is targetd
+                //msg is targeted
                 for(int n = 0; n < links.size(); n++){
-                    bool sysOnThisLink = false;
+                    //iterate routing table, if target is there, send
                     for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
                         if(sysIDmsg == links.at(n)->sysIDpub.at(k)){
                         //then forward down this link
                         links.at(n)->qAddOutgoing(msg);
-                        std::cout << "targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
+                        std::cout << "Targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
                         }
                     }
                 }
@@ -258,6 +263,7 @@ void runPeriodicFunctions(){
 
 void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 {
+    /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
     // unfortunately the targets are not in a consistent position in
     // the packets, so we need a switch. Using the single element
     // extraction functions (which are inline) makes this a bit faster
