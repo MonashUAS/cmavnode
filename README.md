@@ -10,15 +10,15 @@ Supports UDP, and Serial is being worked on.
 
 - Update Git submodules 
 
-    git submodule update --init
+                      git submodule update --init
 
 - Install dependencies
                             
-    sudo pacman -S boost
-    sudo apt-get install libboost-all-dev
+                          sudo pacman -S boost
+                          sudo apt-get install libboost-all-dev
 * Build cmavnode
 
-    mkdir bin && make
+                              mkdir bin && make
 
 ## Usage
 
