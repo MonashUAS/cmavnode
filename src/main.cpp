@@ -191,9 +191,8 @@ void runMainLoop(){
             int16_t compIDmsg = 0;
             get_targets(&msg, sysIDmsg, compIDmsg);
             //we have got a message, work out where to send it
-            std::cout << "Message received from sysID: " << (int)msg.sysid << std::endl;
-
-
+            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid;
+            bool wasForwarded = false;
             if(sysIDmsg == 0 || sysIDmsg == -1){
             //Then message is broadcast, iterate through links
                 for(int n = 0; n < links.size(); n++){
@@ -211,7 +210,8 @@ void runMainLoop(){
                     //If this link doesn't point to the system that sent the message, send here
                     if(!sysOnThisLink){
                         links.at(n)->qAddOutgoing(msg);
-                        std::cout << "Broadcast message sent from: "<< (int)msg.sysid << std::endl;
+                        wasForwarded = true;
+                        LOG(DEBUG) << "Broadcast message sent from: "<< (int)msg.sysid;
                     }
                 }
             } else {
@@ -222,47 +222,16 @@ void runMainLoop(){
                         if(sysIDmsg == links.at(n)->sysIDpub.at(k)){
                         //then forward down this link
                         links.at(n)->qAddOutgoing(msg);
-                        std::cout << "Targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
+                        wasForwarded = true;
+                        LOG(DEBUG) << "Targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k);
                         }
                     }
                 }
             }
-                        
 
-            //for(int n = 0; n < links.size(); n++){
-            //    if(sysIDmsg == 0 || sysIDmsg == -1){
-            //        //broadcast
-            //        //send down any link that doesnt contain this sysid
-
-            //        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-            //            //if the messsage sysID is on this link, add to this links queue 
-            //            if(n != i){
-            //                if(msg.sysid != links.at(n)->sysIDpub.at(k)){
-            //                //then forward down this link
-            //                links.at(n)->qAddOutgoing(msg);
-            //                std::cout << "targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
-            //                }
-            //            }
-            //        }
-
-            //       // if(n != i){
-            //       //     links.at(n)->qAddOutgoing(msg);
-            //       //     std::cout << "broadcast message forwarded" << std::endl;
-            //       // }
-            //    } else{
-            //        //we need to find target
-            //        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-            //            //if the messsage sysID is on this link, add to this links queue 
-            //            if(n != i){
-            //                if(sysIDmsg == links.at(n)->sysIDpub.at(k)){
-            //                //then forward down this link
-            //                links.at(n)->qAddOutgoing(msg);
-            //                std::cout << "targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
+            if(!wasForwarded){
+                LOG(DEBUG) << "Packet dropped from system ID: " << (int)msg.sysid;
+            }
         }
     }
 }
