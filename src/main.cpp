@@ -191,7 +191,7 @@ void runMainLoop(){
             int16_t compIDmsg = 0;
             get_targets(&msg, sysIDmsg, compIDmsg);
             //we have got a message, work out where to send it
-            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid;
+            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
             bool wasForwarded = false;
             if(sysIDmsg == 0 || sysIDmsg == -1){
             //Then message is broadcast, iterate through links
@@ -211,7 +211,6 @@ void runMainLoop(){
                     if(!sysOnThisLink){
                         links.at(n)->qAddOutgoing(msg);
                         wasForwarded = true;
-                        LOG(DEBUG) << "Broadcast message sent from: "<< (int)msg.sysid;
                     }
                 }
             } else {
@@ -223,14 +222,13 @@ void runMainLoop(){
                         //then forward down this link
                         links.at(n)->qAddOutgoing(msg);
                         wasForwarded = true;
-                        LOG(DEBUG) << "Targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k);
                         }
                     }
                 }
             }
 
             if(!wasForwarded){
-                LOG(DEBUG) << "Packet dropped from system ID: " << (int)msg.sysid;
+                LOG(DEBUG) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
             }
         }
     }
