@@ -7,10 +7,10 @@ CC_FLAGS := -std=c++14 -ggdb -DELPP_NO_DEFAULT_LOG_FILE -DELPP_STACKTRACE_ON_CRA
 all: $(BIN)
 
 $(BIN): $(OBJ_FILES)
-	g++ $(LD_FLAGS) -o $@ $^
+	g++ -o $@ $^ $(LD_FLAGS)
 
 obj/%.o: src/%.cpp
-	g++ $(CC_FLAGS) -c -o $@ $<
+	g++ -c -o $@ $< $(CC_FLAGS)
 
 clean:
 	rm -f $(BIN) $(OBJ_FILES) 
