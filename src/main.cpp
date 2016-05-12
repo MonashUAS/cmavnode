@@ -7,13 +7,13 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <ardupilotmega/mavlink.h>
+#include "../include/mavlink/ardupilotmega/mavlink.h"
+#include "../include/logging/src/easylogging++.h"
 
 #include "mlink.h"
 #include "asyncsocket.h"
 #include "serial.h"
 #include "exception.h"
-
 
 std::vector<std::unique_ptr<mlink>> links;
 
@@ -41,8 +41,12 @@ namespace
  
 } // namespace 
 
+INITIALIZE_EASYLOGGINGPP
+
 int main(int argc, char** argv)
 {
+START_EASYLOGGINGPP(argc, argv);
+el::Loggers::configureFromGlobal("../conf/log.conf");
 try 
 { 
     /** Define and parse the program options 
@@ -91,9 +95,12 @@ try
     } 
     /*--------------END COMMAND LINE PARSING------------------*/
 
+    LOG(INFO) << "Command line arguments parsed succesfully";
+
     //Set up the links
     links = setupLinks(socketInitList, serialInitList); 
 
+    LOG(INFO) << "Links Initialized";
 
     while(1)
     {
