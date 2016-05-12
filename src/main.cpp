@@ -72,6 +72,15 @@ try
             return SUCCESS; 
         } 
 
+        boost::program_options::notify(vm); // throws on error, so do after help in case 
+        // there are any problems 
+
+        if( !vm.count("socket") && !vm.count("serial") ){
+            LOG(ERROR) << "Program cannot be run without arguments.";
+            std::cerr << desc << std::endl;
+            return ERROR_IN_COMMAND_LINE;
+        }
+        
         //store link strings
         if ( vm.count("socket"))
         {
@@ -83,13 +92,11 @@ try
                 serialInitList = vm["serial"].as<std::vector<std::string>>();
         }
 
-        boost::program_options::notify(vm); // throws on error, so do after help in case 
-        // there are any problems 
 
     } 
     catch(boost::program_options::error& e) 
     { 
-        std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
+        LOG(ERROR) << "ERROR: " << e.what(); 
         std::cerr << desc << std::endl; 
         return ERROR_IN_COMMAND_LINE; 
     } 
@@ -111,8 +118,8 @@ try
 } 
 catch(std::exception& e) 
 { 
-    std::cerr << "Unhandled Exception reached the top of main: " 
-    << e.what() << ", application will now exit" << std::endl; 
+    LOG(FATAL) << "Unhandled Exception reached the top of main: " 
+    << e.what() << ", application will now exit"; 
     return ERROR_UNHANDLED_EXCEPTION; 
 
 } 
