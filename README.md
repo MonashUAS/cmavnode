@@ -20,6 +20,8 @@ Supports UDP, and Serial is being worked on.
 
          mkdir bin && make
 
+(Note: On ubuntu 14.04 and other operating systems with old versions of g++ it will be nescasary to change the "-stdc++14" flag in the makefile to "-stdc++1y")
+
 ## Usage
 
     bin/cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
