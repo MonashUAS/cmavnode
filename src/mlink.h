@@ -13,7 +13,7 @@
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
-#include <ardupilotmega/mavlink.h>
+#include "../include/mavlink/ardupilotmega/mavlink.h"
 #include <iostream>
 #include <tuple>
 

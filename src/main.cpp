@@ -7,13 +7,13 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <ardupilotmega/mavlink.h>
+#include "../include/mavlink/ardupilotmega/mavlink.h"
+#include "../include/logging/src/easylogging++.h"
 
 #include "mlink.h"
 #include "asyncsocket.h"
 #include "serial.h"
 #include "exception.h"
-
 
 std::vector<std::unique_ptr<mlink>> links;
 
@@ -41,8 +41,12 @@ namespace
  
 } // namespace 
 
+INITIALIZE_EASYLOGGINGPP
+
 int main(int argc, char** argv)
 {
+START_EASYLOGGINGPP(argc, argv);
+el::Loggers::configureFromGlobal("../conf/log.conf");
 try 
 { 
     /** Define and parse the program options 
@@ -68,6 +72,15 @@ try
             return SUCCESS; 
         } 
 
+        boost::program_options::notify(vm); // throws on error, so do after help in case 
+        // there are any problems 
+
+        if( !vm.count("socket") && !vm.count("serial") ){
+            LOG(ERROR) << "Program cannot be run without arguments.";
+            std::cerr << desc << std::endl;
+            return ERROR_IN_COMMAND_LINE;
+        }
+        
         //store link strings
         if ( vm.count("socket"))
         {
@@ -79,21 +92,22 @@ try
                 serialInitList = vm["serial"].as<std::vector<std::string>>();
         }
 
-        boost::program_options::notify(vm); // throws on error, so do after help in case 
-        // there are any problems 
 
     } 
     catch(boost::program_options::error& e) 
     { 
-        std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
+        LOG(ERROR) << "ERROR: " << e.what(); 
         std::cerr << desc << std::endl; 
         return ERROR_IN_COMMAND_LINE; 
     } 
     /*--------------END COMMAND LINE PARSING------------------*/
 
+    LOG(INFO) << "Command line arguments parsed succesfully";
+
     //Set up the links
     links = setupLinks(socketInitList, serialInitList); 
 
+    LOG(INFO) << "Links Initialized";
 
     while(1)
     {
@@ -104,8 +118,8 @@ try
 } 
 catch(std::exception& e) 
 { 
-    std::cerr << "Unhandled Exception reached the top of main: " 
-    << e.what() << ", application will now exit" << std::endl; 
+    LOG(FATAL) << "Unhandled Exception reached the top of main: " 
+    << e.what() << ", application will now exit"; 
     return ERROR_UNHANDLED_EXCEPTION; 
 
 } 
@@ -177,9 +191,8 @@ void runMainLoop(){
             int16_t compIDmsg = 0;
             get_targets(&msg, sysIDmsg, compIDmsg);
             //we have got a message, work out where to send it
-            std::cout << "Message received from sysID: " << (int)msg.sysid << std::endl;
-
-
+            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+            bool wasForwarded = false;
             if(sysIDmsg == 0 || sysIDmsg == -1){
             //Then message is broadcast, iterate through links
                 for(int n = 0; n < links.size(); n++){
@@ -197,7 +210,7 @@ void runMainLoop(){
                     //If this link doesn't point to the system that sent the message, send here
                     if(!sysOnThisLink){
                         links.at(n)->qAddOutgoing(msg);
-                        std::cout << "Broadcast message sent from: "<< (int)msg.sysid << std::endl;
+                        wasForwarded = true;
                     }
                 }
             } else {
@@ -208,47 +221,15 @@ void runMainLoop(){
                         if(sysIDmsg == links.at(n)->sysIDpub.at(k)){
                         //then forward down this link
                         links.at(n)->qAddOutgoing(msg);
-                        std::cout << "Targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
+                        wasForwarded = true;
                         }
                     }
                 }
             }
-                        
 
-            //for(int n = 0; n < links.size(); n++){
-            //    if(sysIDmsg == 0 || sysIDmsg == -1){
-            //        //broadcast
-            //        //send down any link that doesnt contain this sysid
-
-            //        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-            //            //if the messsage sysID is on this link, add to this links queue 
-            //            if(n != i){
-            //                if(msg.sysid != links.at(n)->sysIDpub.at(k)){
-            //                //then forward down this link
-            //                links.at(n)->qAddOutgoing(msg);
-            //                std::cout << "targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
-            //                }
-            //            }
-            //        }
-
-            //       // if(n != i){
-            //       //     links.at(n)->qAddOutgoing(msg);
-            //       //     std::cout << "broadcast message forwarded" << std::endl;
-            //       // }
-            //    } else{
-            //        //we need to find target
-            //        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-            //            //if the messsage sysID is on this link, add to this links queue 
-            //            if(n != i){
-            //                if(sysIDmsg == links.at(n)->sysIDpub.at(k)){
-            //                //then forward down this link
-            //                links.at(n)->qAddOutgoing(msg);
-            //                std::cout << "targeted message forwarded from "<< (int)msg.sysid << " to " << (int)links.at(n)->sysIDpub.at(k) << std::endl;
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
+            if(!wasForwarded){
+                LOG(DEBUG) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+            }
         }
     }
 }

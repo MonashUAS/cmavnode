@@ -1,3 +1,6 @@
 [submodule "include/mavlink"]
 	path = include/mavlink
 	url = https://github.com/mavlink/c_library
+[submodule "include/logging"]
+	path = include/logging
+	url = https://github.com/easylogging/easyloggingpp
