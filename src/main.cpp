@@ -19,11 +19,11 @@ std::vector<std::unique_ptr<mlink>> links;
 
 std::vector<uint8_t> sysIDgMap;
 
-std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
+std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
-std::string socketGetHost(std::string s);
-std::string socketGetHostPort(std::string s);
-std::string socketGetListenPort(std::string s);
+std::string argGetFirst(std::string s);
+std::string argGetSecond(std::string s);
+std::string argGetThird(std::string s);
 
 void runMainLoop();
 void runPeriodicFunctions();
@@ -105,7 +105,7 @@ try
     LOG(INFO) << "Command line arguments parsed succesfully";
 
     //Set up the links
-    links = setupLinks(socketInitList, serialInitList); 
+    links = linkFactory(socketInitList, serialInitList); 
 
     LOG(INFO) << "Links Initialized";
 
@@ -125,7 +125,7 @@ catch(std::exception& e)
 } 
 } //main
 
-std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
+std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
 {
     // this function reads the strings passed in by the user, and creates the mlink objects
     // returns vector of all comms links
@@ -134,18 +134,28 @@ std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketIn
 
     for(int i = 0; i < socketInitList.size(); i++){
         //parse the raw connection string
-        std::string hostip = socketGetHost(socketInitList.at(i));
-        std::string hostport = socketGetHostPort(socketInitList.at(i));
-        std::string listenport = socketGetListenPort(socketInitList.at(i));
+        std::string hostip = argGetFirst(socketInitList.at(i));
+        std::string hostport = argGetSecond(socketInitList.at(i));
+        std::string listenport = argGetThird(socketInitList.at(i));
 
         //create on the heap and add a pointer
         links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport)));
     }
 
+    for(int i = 0; i < serialInitList.size(); i++){
+        //parse the raw connection string
+        std::string port = argGetFirst(serialInitList.at(i));
+        std::string baudrate = argGetSecond(serialInitList.at(i));
+        std::string parity = argGetThird(serialInitList.at(i));
+
+        //create on the heap and add a pointer
+        links.push_back(std::unique_ptr<mlink>(new serial(port,baudrate)));
+    }
+
     return links;
 }
 
-std::string socketGetHost(std::string s){
+std::string argGetFirst(std::string s){
     std::string::size_type pos = s.find(':');
     if (pos != std::string::npos)
     {
@@ -155,7 +165,7 @@ std::string socketGetHost(std::string s){
     }
 }
 
-std::string socketGetHostPort(std::string s){
+std::string argGetSecond(std::string s){
     std::string::size_type pos = s.find(':');
     std::string::size_type pos2 = s.find(':', pos + 1);
     if (pos2!= std::string::npos)
@@ -166,7 +176,7 @@ std::string socketGetHostPort(std::string s){
     }
 }
 
-std::string socketGetListenPort(std::string s){
+std::string argGetThird(std::string s){
     std::string::size_type pos = s.find(':');
     std::string::size_type pos2 = s.find(':', pos + 1);
     if (pos2!= std::string::npos)
