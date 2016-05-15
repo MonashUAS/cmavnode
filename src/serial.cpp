@@ -6,7 +6,6 @@
  */
 
 #include "serial.h"
-#include "../include/logging/src/easylogging++.h"
 
 serial::serial(const std::string& port, 
         const std::string& baudrate,
@@ -142,16 +141,24 @@ void serial::handle_receive_from(const boost::system::error_code& error,
                     boost::bind(&serial::handle_receive_from, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
-    } else
+    } else if(bytes_recvd == 0)
     {
-        //work out why this is throwing errors
-        //nothing received or there was an error
+        //Sleep a little bit to keep the cpu cool
+        boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
         port_.async_read_some(
                 boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
                     boost::bind(&serial::handle_receive_from, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
-       // throw Exception("Serial: Error in handle_receive_from");
+    } else
+    { //we have an error
+        //need to look into what is causing these but for now just pretend it didn't happen
+        boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
+        port_.async_read_some(
+                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
+                    boost::bind(&serial::handle_receive_from, this,
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred));
     }
 }
 

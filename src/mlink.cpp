@@ -24,7 +24,7 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
     bool returnCheck = qMavOut.push(msg);
     
     if(!returnCheck){//Then the queue is full
-        throw Exception("The outgoing queue is full");
+        LOG(ERROR) << "MLINK: The outgoing queue is full";
     }
 }
 
@@ -38,6 +38,7 @@ bool mlink::qReadIncoming(mavlink_message_t *msg)
 void mlink::getSysID_thisLink()
 {
     //iterate through internal mapping and return sysID's
+    checkForDeadSysID();
     std::vector<uint8_t> mapping;
     for(int i = 0; i < sysID_thisLink.size(); i++){
         mapping.push_back(std::get<0>(sysID_thisLink.at(i)));
@@ -62,6 +63,7 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
         //add it to the mapping
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
         sysID_thisLink.push_back(std::make_tuple(sysID, nowTime));
+        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping.";
     } else {
         //just update the last heartbeat time
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
@@ -81,10 +83,11 @@ void mlink::checkForDeadSysID()
     for(int i = 0; i < sysID_thisLink.size(); i++){
 
         //tuple syntax is gross
-        boost::posix_time::time_duration dur = std::get<1>(sysID_thisLink.at(i)) - nowTime;
+        boost::posix_time::time_duration dur = nowTime - std::get<1>(sysID_thisLink.at(i));
         long milliseconds = dur.total_milliseconds();
         
         if(milliseconds > MAV_HEARTBEAT_TIMEOUT_MS){
+            LOG(INFO) << "Removing sysID: " << (int)std::get<0>(sysID_thisLink.at(i)) << " from the mapping.";
             sysID_thisLink.erase(sysID_thisLink.begin() + i);
 
             //decrement i so we dont miss a sysID

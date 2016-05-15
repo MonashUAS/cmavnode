@@ -9,8 +9,11 @@
 
 #include <string>
 #include <boost/asio.hpp>
+#include "../include/logging/src/easylogging++.h"
 
 #include "mlink.h"
+
+#define SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED 2
 
 class serial: public mlink
 {

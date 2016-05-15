@@ -149,7 +149,7 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
         std::string listenport = argGetThird(socketInitList.at(i));
 
         //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport)));
+        links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport, i, socketInitList.at(i))));
     }
 
     for(int i = 0; i < serialInitList.size(); i++){

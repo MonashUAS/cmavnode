@@ -14,6 +14,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
 #include "../include/mavlink/ardupilotmega/mavlink.h"
+#include "../include/logging/src/easylogging++.h"
 #include <iostream>
 #include <tuple>
 
@@ -23,7 +24,7 @@
 #define MAV_OUTGOING_LENGTH 1000
 #define OUT_QUEUE_EMPTY_SLEEP 50
 #define MAV_INCOMING_BUFFER_LENGTH 2041
-#define MAV_HEARTBEAT_TIMEOUT_MS 1000
+#define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
 class mlink
 {
