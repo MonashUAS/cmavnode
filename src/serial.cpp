@@ -6,14 +6,21 @@
  */
 
 #include "serial.h"
+#include "../include/logging/src/easylogging++.h"
 
 serial::serial(const std::string& port, 
-        const std::string& baudrate):
+        const std::string& baudrate,
+        int id,
+        const std::string& raw):
     io_service_(), port_(io_service_){
 
-            std::cout << "Attempting to open serial - port " <<
-                port << " baudrate " << baudrate  << std::endl;
 
+        //store link info into the base class
+        linkID = id;
+        rawString = raw;
+
+        LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
+        
         try{
             //open the port with connection string
             port_.open(port);
@@ -34,6 +41,7 @@ serial::serial(const std::string& port,
                         boost::asio::serial_port_base::stop_bits::one));
 
         } catch (boost::system::system_error &error) {
+            LOG(ERROR) << "Error opening Serial Port: " << port;
             throw Exception("Error opening serial port");
         }
 
@@ -101,7 +109,7 @@ void serial::handle_send_to(const boost::system::error_code& error,
 void serial::handle_receive_from(const boost::system::error_code& error,
     size_t bytes_recvd)
 {
-    if (!error)
+    if (!error & bytes_recvd > 0)
     {
         //message received
         //do something
@@ -136,6 +144,7 @@ void serial::handle_receive_from(const boost::system::error_code& error,
                         boost::asio::placeholders::bytes_transferred));
     } else
     {
+        //work out why this is throwing errors
         //nothing received or there was an error
         port_.async_read_some(
                 boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 

@@ -17,12 +17,15 @@ class serial: public mlink
     public:
         //construct and destruct
         serial(const std::string& port,
-                const std::string& baudrate);
+                const std::string& baudrate,
+                int id,
+                const std::string &raw);
         ~serial();
 
         //override virtuals from mlink
         void runWriteThread();
         void runReadThread();
+
     private:
         //Callbacks for async send/recv
         void handle_receive_from(const boost::system::error_code& error,

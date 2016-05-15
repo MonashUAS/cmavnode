@@ -53,6 +53,11 @@ class mlink
         virtual void runWriteThread(){};
         virtual void runReadThread(){};
 
+        
+        //To identify links for debugging. string stores the raw string the port was opened with.
+        int linkID;
+        std::string rawString;
+
     protected:
         //Keep track of system ID's on this link and the last heartbeat time
         std::vector<std::tuple<uint8_t, boost::posix_time::ptime>> sysID_thisLink;

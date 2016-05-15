@@ -17,8 +17,8 @@ asyncsocket::asyncsocket(
             boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
             boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
             endpoint_ = *iter;
-            std::cout << "asyncsocket opened - Target IP: " <<
-                host << " Target Port: " << hostport << " Listening Port: " << listenport << std::endl;
+
+            LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
 
             //Start the read and write threads
             write_thread = boost::thread(&asyncsocket::runWriteThread, this);

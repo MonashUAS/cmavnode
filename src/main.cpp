@@ -6,7 +6,10 @@
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <memory>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp> 
 #include "../include/mavlink/ardupilotmega/mavlink.h"
 #include "../include/logging/src/easylogging++.h"
 
@@ -25,6 +28,11 @@ std::string argGetFirst(std::string s);
 std::string argGetSecond(std::string s);
 std::string argGetThird(std::string s);
 
+long now_ms = 0;
+long last_update_sysid_ms = 0;
+
+long myclock();
+
 void runMainLoop();
 void runPeriodicFunctions();
 
@@ -32,6 +40,8 @@ void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
 std::vector<std::string> socketInitList;
 std::vector<std::string> serialInitList;
+
+#define UPDATE_SYSID_INTERVAL_MS 10000 //10sec
 
 namespace 
 { 
@@ -149,7 +159,7 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
         std::string parity = argGetThird(serialInitList.at(i));
 
         //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new serial(port,baudrate)));
+        links.push_back(std::unique_ptr<mlink>(new serial(port,baudrate,socketInitList.size() + i ,serialInitList.at(i))));
     }
 
     return links;
@@ -208,12 +218,15 @@ void runMainLoop(){
                 for(int n = 0; n < links.size(); n++){
 
                     bool sysOnThisLink = false;
-                    //For each link, iterate through its routing table
-                    for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-                        //if the system that sent this message is on the list,
-                        //dont send down this link
-                        if(msg.sysid == links.at(n)->sysIDpub.at(k)){
-                            sysOnThisLink = true;
+                    //if the packet came from this link, dont bother
+                    if(n == i) sysOnThisLink = true;
+                    else{ //check the routing table to see if the system is on this link
+                        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
+                            //if the system that sent this message is on the list,
+                            //dont send down this link
+                            if(msg.sysid == links.at(n)->sysIDpub.at(k)){
+                                sysOnThisLink = true;
+                            }
                         }
                     }
 
@@ -238,17 +251,26 @@ void runMainLoop(){
             }
 
             if(!wasForwarded){
-                LOG(DEBUG) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+                LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
             }
         }
     }
+
+
+    boost::this_thread::sleep(boost::posix_time::milliseconds(50));
 }
 
 void runPeriodicFunctions(){
 
-    for(int i = 0; i < links.size(); i++)
-    {
-        links.at(i)->getSysID_thisLink();
+    now_ms = myclock();
+
+    if(now_ms - last_update_sysid_ms > UPDATE_SYSID_INTERVAL_MS){
+
+        last_update_sysid_ms = myclock();
+        for(int i = 0; i < links.size(); i++)
+        {
+            links.at(i)->getSysID_thisLink();
+        }
     }
 }
 
@@ -464,4 +486,14 @@ void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
         compid = mavlink_msg_remote_log_block_status_get_target_component(msg);
         break;
     }
+}
+
+long myclock()
+{
+    typedef std::chrono::high_resolution_clock clock;
+    typedef std::chrono::duration<float, std::milli> duration;
+
+    static clock::time_point start = clock::now();
+    duration elapsed = clock::now() - start;
+    return elapsed.count();
 }
