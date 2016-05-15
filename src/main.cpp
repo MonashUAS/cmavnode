@@ -6,7 +6,10 @@
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <memory>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp> 
 #include "../include/mavlink/ardupilotmega/mavlink.h"
 #include "../include/logging/src/easylogging++.h"
 
@@ -19,11 +22,16 @@ std::vector<std::unique_ptr<mlink>> links;
 
 std::vector<uint8_t> sysIDgMap;
 
-std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
+std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
-std::string socketGetHost(std::string s);
-std::string socketGetHostPort(std::string s);
-std::string socketGetListenPort(std::string s);
+std::string argGetFirst(std::string s);
+std::string argGetSecond(std::string s);
+std::string argGetThird(std::string s);
+
+long now_ms = 0;
+long last_update_sysid_ms = 0;
+
+long myclock();
 
 void runMainLoop();
 void runPeriodicFunctions();
@@ -32,6 +40,8 @@ void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
 std::vector<std::string> socketInitList;
 std::vector<std::string> serialInitList;
+
+#define UPDATE_SYSID_INTERVAL_MS 10000 //10sec
 
 namespace 
 { 
@@ -105,7 +115,7 @@ try
     LOG(INFO) << "Command line arguments parsed succesfully";
 
     //Set up the links
-    links = setupLinks(socketInitList, serialInitList); 
+    links = linkFactory(socketInitList, serialInitList); 
 
     LOG(INFO) << "Links Initialized";
 
@@ -125,7 +135,7 @@ catch(std::exception& e)
 } 
 } //main
 
-std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
+std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
 {
     // this function reads the strings passed in by the user, and creates the mlink objects
     // returns vector of all comms links
@@ -134,18 +144,28 @@ std::vector<std::unique_ptr<mlink>> setupLinks(std::vector<std::string> socketIn
 
     for(int i = 0; i < socketInitList.size(); i++){
         //parse the raw connection string
-        std::string hostip = socketGetHost(socketInitList.at(i));
-        std::string hostport = socketGetHostPort(socketInitList.at(i));
-        std::string listenport = socketGetListenPort(socketInitList.at(i));
+        std::string hostip = argGetFirst(socketInitList.at(i));
+        std::string hostport = argGetSecond(socketInitList.at(i));
+        std::string listenport = argGetThird(socketInitList.at(i));
 
         //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport)));
+        links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport, i, socketInitList.at(i))));
+    }
+
+    for(int i = 0; i < serialInitList.size(); i++){
+        //parse the raw connection string
+        std::string port = argGetFirst(serialInitList.at(i));
+        std::string baudrate = argGetSecond(serialInitList.at(i));
+        std::string parity = argGetThird(serialInitList.at(i));
+
+        //create on the heap and add a pointer
+        links.push_back(std::unique_ptr<mlink>(new serial(port,baudrate,socketInitList.size() + i ,serialInitList.at(i))));
     }
 
     return links;
 }
 
-std::string socketGetHost(std::string s){
+std::string argGetFirst(std::string s){
     std::string::size_type pos = s.find(':');
     if (pos != std::string::npos)
     {
@@ -155,7 +175,7 @@ std::string socketGetHost(std::string s){
     }
 }
 
-std::string socketGetHostPort(std::string s){
+std::string argGetSecond(std::string s){
     std::string::size_type pos = s.find(':');
     std::string::size_type pos2 = s.find(':', pos + 1);
     if (pos2!= std::string::npos)
@@ -166,7 +186,7 @@ std::string socketGetHostPort(std::string s){
     }
 }
 
-std::string socketGetListenPort(std::string s){
+std::string argGetThird(std::string s){
     std::string::size_type pos = s.find(':');
     std::string::size_type pos2 = s.find(':', pos + 1);
     if (pos2!= std::string::npos)
@@ -198,12 +218,15 @@ void runMainLoop(){
                 for(int n = 0; n < links.size(); n++){
 
                     bool sysOnThisLink = false;
-                    //For each link, iterate through its routing table
-                    for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
-                        //if the system that sent this message is on the list,
-                        //dont send down this link
-                        if(msg.sysid == links.at(n)->sysIDpub.at(k)){
-                            sysOnThisLink = true;
+                    //if the packet came from this link, dont bother
+                    if(n == i) sysOnThisLink = true;
+                    else{ //check the routing table to see if the system is on this link
+                        for(int k = 0; k < links.at(n)->sysIDpub.size(); k++){
+                            //if the system that sent this message is on the list,
+                            //dont send down this link
+                            if(msg.sysid == links.at(n)->sysIDpub.at(k)){
+                                sysOnThisLink = true;
+                            }
                         }
                     }
 
@@ -228,17 +251,26 @@ void runMainLoop(){
             }
 
             if(!wasForwarded){
-                LOG(DEBUG) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+                LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
             }
         }
     }
+
+
+    boost::this_thread::sleep(boost::posix_time::milliseconds(50));
 }
 
 void runPeriodicFunctions(){
 
-    for(int i = 0; i < links.size(); i++)
-    {
-        links.at(i)->getSysID_thisLink();
+    now_ms = myclock();
+
+    if(now_ms - last_update_sysid_ms > UPDATE_SYSID_INTERVAL_MS){
+
+        last_update_sysid_ms = myclock();
+        for(int i = 0; i < links.size(); i++)
+        {
+            links.at(i)->getSysID_thisLink();
+        }
     }
 }
 
@@ -454,4 +486,14 @@ void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
         compid = mavlink_msg_remote_log_block_status_get_target_component(msg);
         break;
     }
+}
+
+long myclock()
+{
+    typedef std::chrono::high_resolution_clock clock;
+    typedef std::chrono::duration<float, std::milli> duration;
+
+    static clock::time_point start = clock::now();
+    duration elapsed = clock::now() - start;
+    return elapsed.count();
 }
