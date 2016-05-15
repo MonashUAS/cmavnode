@@ -11,25 +11,31 @@ serial::serial(const std::string& port,
         const std::string& baudrate):
     io_service_(), port_(io_service_){
 
+            std::cout << "Attempting to open serial - port " <<
+                port << " baudrate " << baudrate  << std::endl;
 
-        //open the port with connection string
-        port_.open(port);
+        try{
+            //open the port with connection string
+            port_.open(port);
 
-        if(!port_.is_open()){
-            //do something fancy
+
+            //configure the port
+            port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
+
+            port_.set_option(boost::asio::serial_port_base::character_size(8));
+
+            port_.set_option(boost::asio::serial_port_base::flow_control(
+                        boost::asio::serial_port_base::flow_control::none));
+
+            port_.set_option(boost::asio::serial_port_base::parity(
+                        boost::asio::serial_port_base::parity::none));
+
+            port_.set_option(boost::asio::serial_port_base::stop_bits(
+                        boost::asio::serial_port_base::stop_bits::one));
+
+        } catch (boost::system::system_error &error) {
+            throw Exception("Error opening serial port");
         }
-
-        std::cout << "serial opened - port " <<
-            port << " baudrate " << baudrate  << std::endl;
-
-        //configure the port
-        port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
-        port_.set_option(boost::asio::serial_port_base::flow_control(
-                    boost::asio::serial_port_base::flow_control::none));
-        port_.set_option(boost::asio::serial_port_base::parity(
-                    boost::asio::serial_port_base::parity::none));
-        port_.set_option(boost::asio::serial_port_base::stop_bits(
-                    boost::asio::serial_port_base::stop_bits::one));
 
         //Start the read and write threads
         write_thread = boost::thread(&serial::runWriteThread, this);
@@ -95,7 +101,7 @@ void serial::handle_send_to(const boost::system::error_code& error,
 void serial::handle_receive_from(const boost::system::error_code& error,
     size_t bytes_recvd)
 {
-    if (!error && bytes_recvd > 0)
+    if (!error)
     {
         //message received
         //do something
@@ -131,7 +137,12 @@ void serial::handle_receive_from(const boost::system::error_code& error,
     } else
     {
         //nothing received or there was an error
-        throw Exception("Serial: Error in handle_receive_from");
+        port_.async_read_some(
+                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
+                    boost::bind(&serial::handle_receive_from, this,
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred));
+       // throw Exception("Serial: Error in handle_receive_from");
     }
 }
 
