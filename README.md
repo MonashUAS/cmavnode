@@ -26,11 +26,11 @@ For verbose logging of all mavlink messages, and debugger flags in executable:
 
 ## Usage
 
-    bin/cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
+    ./cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
 
 For example, typical usage on a companion computer would be to have a serial port connecting to the autopilot, a socket forwarding packets to the ground, and a socket forwarding packets to other companion computer software. (e.g. dronekit) This would be done as follows
 
-    bin/cmavnode --socket=192.168.1.10:14550:14555 --socket=0.0.0.0:14551:14552 --serial=/dev/ttyAMA0:57600
+    ./cmavnode --socket=192.168.1.10:14550:14555 --socket=0.0.0.0:14551:14552 --serial=/dev/ttyAMA0:57600
 
 ## Routing Logic
 
