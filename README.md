@@ -14,13 +14,15 @@ Supports UDP, and Serial is being worked on.
 
 - Install dependencies
                            
-         sudo pacman -S boost
-         sudo apt-get install libboost-all-dev
+         Arch Linux: sudo pacman -S boost
+         Ubuntu: sudo apt-get install libboost-all-dev
 * Build cmavnode
 
-         mkdir bin && make
+         make
 
-(Note: On ubuntu 14.04 and other operating systems with old versions of g++ it will be nescasary to change the "-stdc++14" flag in the makefile to "-stdc++1y")
+For verbose logging of all mavlink messages, and debugger flags in executable:
+
+         make debug
 
 ## Usage
 
