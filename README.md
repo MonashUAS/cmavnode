@@ -14,21 +14,23 @@ Supports UDP, and Serial is being worked on.
 
 - Install dependencies
                            
-         sudo pacman -S boost
-         sudo apt-get install libboost-all-dev
+         Arch Linux: sudo pacman -S boost
+         Ubuntu: sudo apt-get install libboost-all-dev
 * Build cmavnode
 
-         mkdir bin && make
+         make
 
-(Note: On ubuntu 14.04 and other operating systems with old versions of g++ it will be nescasary to change the "-stdc++14" flag in the makefile to "-stdc++1y")
+For verbose logging of all mavlink messages, and debugger flags in executable:
+
+         make debug
 
 ## Usage
 
-    bin/cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
+    ./cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
 
 For example, typical usage on a companion computer would be to have a serial port connecting to the autopilot, a socket forwarding packets to the ground, and a socket forwarding packets to other companion computer software. (e.g. dronekit) This would be done as follows
 
-    bin/cmavnode --socket=192.168.1.10:14550:14555 --socket=0.0.0.0:14551:14552 --serial=/dev/ttyAMA0:57600
+    ./cmavnode --socket=192.168.1.10:14550:14555 --socket=0.0.0.0:14551:14552 --serial=/dev/ttyAMA0:57600
 
 ## Routing Logic
 
