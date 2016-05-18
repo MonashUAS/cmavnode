@@ -4,6 +4,8 @@
 
 #include <iostream>
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -18,29 +20,27 @@
 #include "serial.h"
 #include "exception.h"
 
+//global object holds pointers to the links
 std::vector<std::unique_ptr<mlink>> links;
 
-std::vector<uint8_t> sysIDgMap;
-
+//factory to build the links
 std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
-std::string argGetFirst(std::string s);
-std::string argGetSecond(std::string s);
-std::string argGetThird(std::string s);
-
+//timing stuff, not happy with this implementation
 long now_ms = 0;
 long last_update_sysid_ms = 0;
-
 long myclock();
 
 void runMainLoop();
 void runPeriodicFunctions();
 
+//Helper function to find targets in all the message types
 void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
 std::vector<std::string> socketInitList;
 std::vector<std::string> serialInitList;
 
+//Periodic function timings
 #define UPDATE_SYSID_INTERVAL_MS 10000 //10sec
 
 namespace 
@@ -143,60 +143,29 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
     std::vector<std::unique_ptr<mlink>> links;
 
     for(int i = 0; i < socketInitList.size(); i++){
-        //parse the raw connection string
-        std::string hostip = argGetFirst(socketInitList.at(i));
-        std::string hostport = argGetSecond(socketInitList.at(i));
-        std::string listenport = argGetThird(socketInitList.at(i));
+        std::vector<std::string> thisLinkArgs;
+        boost::split(thisLinkArgs, socketInitList.at(i), boost::is_any_of(":"));
 
+        if(thisLinkArgs.size() != 3){
+            throw Exception("Socket connection string not valid, exiting");
+        }
         //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new asyncsocket(hostip,hostport,listenport, i, socketInitList.at(i))));
+        links.push_back(std::unique_ptr<mlink>(new asyncsocket(thisLinkArgs.at(0),thisLinkArgs.at(1),thisLinkArgs.at(2), i, socketInitList.at(i))));
     }
 
     for(int i = 0; i < serialInitList.size(); i++){
-        //parse the raw connection string
-        std::string port = argGetFirst(serialInitList.at(i));
-        std::string baudrate = argGetSecond(serialInitList.at(i));
-        std::string parity = argGetThird(serialInitList.at(i));
+        std::vector<std::string> thisLinkArgs;
+        boost::split(thisLinkArgs, serialInitList.at(i), boost::is_any_of(":"));
 
+        if(thisLinkArgs.size() != 2){
+            throw Exception("Serial connection string not valid, exiting");
+        }
         //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new serial(port,baudrate,socketInitList.size() + i ,serialInitList.at(i))));
+        links.push_back(std::unique_ptr<mlink>(new serial(thisLinkArgs.at(0),thisLinkArgs.at(1),socketInitList.size() + i ,serialInitList.at(i))));
     }
 
     return links;
 }
-
-std::string argGetFirst(std::string s){
-    std::string::size_type pos = s.find(':');
-    if (pos != std::string::npos)
-    {
-        return s.substr(0, pos);
-    } else {
-        //error handling
-    }
-}
-
-std::string argGetSecond(std::string s){
-    std::string::size_type pos = s.find(':');
-    std::string::size_type pos2 = s.find(':', pos + 1);
-    if (pos2!= std::string::npos)
-    {
-        return s.substr(pos + 1, pos2 - (pos+1));
-    } else {
-        //error handling
-    }
-}
-
-std::string argGetThird(std::string s){
-    std::string::size_type pos = s.find(':');
-    std::string::size_type pos2 = s.find(':', pos + 1);
-    if (pos2!= std::string::npos)
-    {
-        return s.substr(pos2 + 1);
-    } else {
-        //error handling
-    }
-}
-
 
 void runMainLoop(){
 //Gets run in a while loop once links are setup
