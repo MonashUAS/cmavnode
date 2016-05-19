@@ -42,6 +42,7 @@ std::vector<std::string> serialInitList;
 
 //Periodic function timings
 #define UPDATE_SYSID_INTERVAL_MS 10000 //10sec
+#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10 
 
 namespace 
 { 
@@ -64,8 +65,8 @@ try
     boost::program_options::options_description desc("Options"); 
     desc.add_options() 
     ("help", "Print help messages") 
-    ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link")
-    ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link");
+    ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link, usage: --socket=<targetip>:<targetport>:<listeningport>")
+    ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link, usage: --serial=<port>:<baudrate");
 
     boost::program_options::variables_map vm; 
     try 
@@ -147,7 +148,7 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
         boost::split(thisLinkArgs, socketInitList.at(i), boost::is_any_of(":"));
 
         if(thisLinkArgs.size() != 3){
-            throw Exception("Socket connection string not valid, exiting");
+            throw Exception("Socket connection string not valid");
         }
         //create on the heap and add a pointer
         links.push_back(std::unique_ptr<mlink>(new asyncsocket(thisLinkArgs.at(0),thisLinkArgs.at(1),thisLinkArgs.at(2), i, socketInitList.at(i))));
@@ -158,7 +159,7 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
         boost::split(thisLinkArgs, serialInitList.at(i), boost::is_any_of(":"));
 
         if(thisLinkArgs.size() != 2){
-            throw Exception("Serial connection string not valid, exiting");
+            throw Exception("Serial connection string not valid");
         }
         //create on the heap and add a pointer
         links.push_back(std::unique_ptr<mlink>(new serial(thisLinkArgs.at(0),thisLinkArgs.at(1),socketInitList.size() + i ,serialInitList.at(i))));
@@ -179,8 +180,10 @@ void runMainLoop(){
             int16_t sysIDmsg = 0;
             int16_t compIDmsg = 0;
             get_targets(&msg, sysIDmsg, compIDmsg);
+
             //we have got a message, work out where to send it
             LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+
             bool wasForwarded = false;
             if(sysIDmsg == 0 || sysIDmsg == -1){
             //Then message is broadcast, iterate through links
@@ -205,7 +208,8 @@ void runMainLoop(){
                         wasForwarded = true;
                     }
                 }
-            } else {
+            } //end broadcast block
+            else {
                 //msg is targeted
                 for(int n = 0; n < links.size(); n++){
                     //iterate routing table, if target is there, send
@@ -217,7 +221,7 @@ void runMainLoop(){
                         }
                     }
                 }
-            }
+            } //end targeted block
 
             if(!wasForwarded){
                 LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
@@ -226,7 +230,7 @@ void runMainLoop(){
     }
 
 
-    boost::this_thread::sleep(boost::posix_time::milliseconds(50));
+    boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
 }
 
 void runPeriodicFunctions(){
