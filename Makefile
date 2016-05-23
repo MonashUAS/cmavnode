@@ -8,7 +8,7 @@ all: CC_FLAGS += -DNDEBUG
 all: target = master
 all: $(BIN)
 
-muasmav: target = mavlink2
+muasmav: target = muasmav
 muasmav: CC_FLAGS+= -DNDEBUG
 muasmav: $(BIN)
 
