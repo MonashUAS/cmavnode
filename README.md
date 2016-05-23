@@ -24,6 +24,9 @@ For verbose logging of all mavlink messages, and debugger flags in executable:
 
          make debug
 
+To build with Monash UAS patched mavlink library:
+
+        make muasmav
 ## Usage
 
     ./cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
