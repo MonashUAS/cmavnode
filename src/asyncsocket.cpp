@@ -49,8 +49,8 @@ asyncsocket::~asyncsocket()
     write_thread.join();
 
     //Debind
-    std::cout << "UDPClient: Socket Closed" << std::endl;
     socket_.close();
+    LOG(INFO) << "Link " << linkID << " - closing, connection string: " << rawString;
 }
 
 void asyncsocket::send(uint8_t *buf, std::size_t buf_size) {

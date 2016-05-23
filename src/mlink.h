@@ -29,8 +29,8 @@
 class mlink
 {
     public:
-        mlink();
-        ~mlink();
+        mlink(){};
+        virtual ~mlink(){};
 
         //Send or read mavlink messages
         void qAddOutgoing(mavlink_message_t msg);

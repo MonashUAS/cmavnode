@@ -9,16 +9,6 @@
 
 #include "mlink.h"
 
-mlink::mlink()
-{
-    //constructor for base class?
-}
-
-mlink::~mlink()
-{
-    //destructor for base class?
-}
-
 void mlink::qAddOutgoing(mavlink_message_t msg)
 {
     bool returnCheck = qMavOut.push(msg);

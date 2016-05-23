@@ -68,7 +68,7 @@ serial::~serial()
     write_thread.join();
 
     //Debind
-    std::cout << "Serial: Socket Closed" << std::endl;
+    LOG(INFO) << "Link " << linkID << " - closing, connection string: " << rawString;
     port_.close();
 }
 
