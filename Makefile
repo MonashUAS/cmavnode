@@ -4,6 +4,9 @@ OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
 LD_FLAGS := -std=c++11  -lboost_program_options -lpthread -lboost_thread -lboost_system
 CC_FLAGS := -std=c++11  -DELPP_NO_DEFAULT_LOG_FILE -DELPP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE
 
+
+update:
+	git --git-dir=include/mavlink/.git --work-tree=include/mavlink/ fetch origin
 all: CC_FLAGS += -DNDEBUG
 all: target = master
 all: $(BIN)
@@ -18,7 +21,7 @@ debug: LD_FLAGS += -ggdb
 debug: $(BIN)
 
 pre-build:
-	git --git-dir=include/mavlink/.git --work-tree=include/mavlink/ checkout $(target)
+	git --git-dir=include/mavlink/.git --work-tree=include/mavlink/ checkout origin/$(target)
 
 $(BIN): $(OBJ_FILES)
 	g++ -o $@ $^ $(LD_FLAGS)
