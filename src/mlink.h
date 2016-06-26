@@ -26,6 +26,10 @@
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
+#ifndef HACK_SYS_ID_TARGET
+#define HACK_SYS_ID_TARGET 255
+#endif
+
 class mlink
 {
     public:
@@ -44,7 +48,11 @@ class mlink
         
 
         void onHeartbeatRecv(uint8_t sysID);
+        void onMessageRecv(mavlink_message_t *msg);
 
+#ifdef MUASMAV
+        void hackSysID(mavlink_message_t *msg);
+#endif
 
         //Public system ID mapping
         std::vector<uint8_t> sysIDpub;

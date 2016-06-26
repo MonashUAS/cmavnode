@@ -121,12 +121,7 @@ void serial::handle_receive_from(const boost::system::error_code& error,
                 temp = data_in_[i];
                 if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
                 {
-                    // Packet received
-                    // if the above condition is true the packet must be complete
-                    if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT){
-                        //if this is a heartbeat, update the mapping
-                        onHeartbeatRecv(msg.sysid);
-                    }
+                    onMessageRecv(&msg);
                     //Try to push it onto the queue
                     bool returnCheck = qMavIn.push(msg);
                     if(!returnCheck) { //then the queue is full
