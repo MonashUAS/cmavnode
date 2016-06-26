@@ -278,6 +278,12 @@ void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
     
     switch (msg->msgid) {
         // these messages only have a target system
+    
+#ifdef MUASMAV
+    case MAVLINK_MSG_ID_MUAS_OBC_INFO:
+        sysid = mavlink_msg_muas_obc_info_get_target_system(msg);
+        compid = mavlink_msg_muas_obc_info_get_target_component(msg);
+#endif
     case MAVLINK_MSG_ID_CAMERA_FEEDBACK:
         sysid = mavlink_msg_camera_feedback_get_target_system(msg);
         break;

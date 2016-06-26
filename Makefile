@@ -9,7 +9,7 @@ all: target = master
 all: $(BIN)
 
 muasmav: target = muasmav
-muasmav: CC_FLAGS+= -DNDEBUG
+muasmav: CC_FLAGS+= -DNDEBUG -DMUASMAV
 muasmav: $(BIN)
 
 debug: target = master
