@@ -14,23 +14,14 @@ Supports UDP, and Serial is being worked on.
 
 - Install dependencies
                            
-         Arch Linux: sudo pacman -S boost
-         Ubuntu: sudo apt-get install libboost-all-dev
+         Arch Linux: sudo pacman -S boost cmake
+         Ubuntu: sudo apt-get install libboost-all-dev cmake
 * Build cmavnode
 
+         mkdir build && cd build
+         cmake ..
          make
 
-For verbose logging of all mavlink messages, and debugger flags in executable:
-
-         make debug
-
-To build with Monash UAS patched mavlink library:
-
-        make muasmav
-
-To fetch the submodule update to other branches (needed for the patched mavlink)
-
-        make update
 ## Usage
 
     ./cmavnode --socket=<targetip>:<targetport:listenport --serial=<port>:<baudrate>
