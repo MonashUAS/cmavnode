@@ -13,5 +13,5 @@ file(GLOB cmavnode_SRC
 #actual executable
 add_executable(cmavnode ${cmavnode_SRC})
 
-target_compile_options(cmavnode PRIVATE -ggdb -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
+target_compile_options(cmavnode PRIVATE -std=c++11 -ggdb -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
 TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} -lpthread )
