@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 project("cmavnode" C CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "Choose the type of build, options are: Debug, Release."
+        FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
+
+set(Boost_USE_STATIC_LIBS ON)
 find_package( Boost 1.40 COMPONENTS program_options thread system REQUIRED )
 find_package( Threads )
 
@@ -12,6 +19,8 @@ file(GLOB cmavnode_SRC
 
 #actual executable
 add_executable(cmavnode ${cmavnode_SRC})
+set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
 
-target_compile_options(cmavnode PRIVATE -std=c++11 -ggdb -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
+target_compile_options(cmavnode PRIVATE -std=c++11 -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
 TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} -lpthread )

@@ -21,6 +21,11 @@ Supports UDP, and Serial is being worked on.
          mkdir build && cd build
          cmake ..
          make
+- OPTIONAL: Build cmavnode for debuging:
+         (All messages will be printed to stdout and logged)
+         mkdir debug && cd debug
+         cmake .. -DCMAKE_BUILD_TYPE=Debug
+         make
 
 ## Usage
 

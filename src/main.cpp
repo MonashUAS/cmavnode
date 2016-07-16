@@ -43,7 +43,7 @@ std::vector<std::string> socketInitList;
 std::vector<std::string> serialInitList;
 
 //Periodic function timings
-#define UPDATE_SYSID_INTERVAL_MS 10000 //10sec
+#define UPDATE_SYSID_INTERVAL_MS 10 
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10 
 
 void exitGracefully(int a)
