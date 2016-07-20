@@ -43,22 +43,24 @@ void mlink::onMessageRecv(mavlink_message_t *msg){
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
             onHeartbeatRecv(msg->sysid);
 #ifdef MUASMAV
-    if(msg->msgid == MAVLINK_MSG_ID_MUAS_OBC_INFO)
+    if(msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG){
+        int cmd = mavlink_msg_command_long_get_command(msg);
+        if(MAV_CMD_OBC_CMD_ACK == cmd || MAV_CMD_OBC_LANDING_STATUS == cmd){
             hackSysID(msg);
+        }
+    }
 #endif
 }
 
 #ifdef MUASMAV
 void mlink::hackSysID(mavlink_message_t *msg){
-    mavlink_muas_obc_info_t msgstruct;
-    mavlink_msg_muas_obc_info_decode(msg, &msgstruct);
+    mavlink_command_long_t msgstruct;
+    mavlink_msg_command_long_decode(msg, &msgstruct);
 
     msgstruct.target_system = HACK_SYS_ID_TARGET;
     
     mavlink_message_t tempmsg;
-    mavlink_msg_muas_obc_info_pack(msg->sysid, msg->compid, &tempmsg, msgstruct.target_system, 
-            msgstruct.target_component, msgstruct.message_code);
-
+    mavlink_msg_command_long_encode(msg->sysid, msg->compid, &tempmsg, &msgstruct);
     *msg = tempmsg;
 }
 #endif
