@@ -54,6 +54,11 @@ Commands to setup the Monash UAS OBC MAVLink Network:
 **On the ground node computer**
 
         ./cmavnode --serial=<rfdserialport>:57600 --socket=<companionip>:14551:14550 --socket=127.0.0.1:14555:15554 --socket=127.0.0.1:14560:14559
+        
+## SITL Usage
+
+         ./cmavnode --socket=127.0.0.1:14552:14550 --socket=127.0.0.1:14556:14555 --socket=127.0.0.1:14553:14554
+
 
 ### Explanation
 
