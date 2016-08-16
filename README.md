@@ -57,7 +57,7 @@ Commands to setup the Monash UAS OBC MAVLink Network:
         
 ## SITL Usage
 
-         ./cmavnode --socket=127.0.0.1:14552:14550 --socket=127.0.0.1:14556:14555 --socket=127.0.0.1:14553:14554
+         ./cmavnode --socket=127.0.0.1:14552:14550 --socket=127.0.0.1:14556:14555 --socket=127.0.0.1:14553:14554 --socket=127.0.0.1:14561:14560
 
 
 ### Explanation
