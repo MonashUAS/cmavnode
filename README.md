@@ -57,7 +57,12 @@ Commands to setup the Monash UAS OBC MAVLink Network:
         
 ## SITL Usage
 
-         ./cmavnode --socket=127.0.0.1:14552:14550 --socket=127.0.0.1:14556:14555 --socket=127.0.0.1:14553:14554 --socket=127.0.0.1:14561:14560
+         ./cmavnode --socket=127.0.0.1:14552:14550 --socket=127.0.0.1:14556:14555 --socket=127.0.0.1:14553:14554 --socket=127.0.0.1:14560:14561 --socket=127.0.0.1:14558:14557
+
+mavproxy Loopback:         ports: 14552,14550
+muas.py:                   ports: 14556,14555
+ezmlink :                  ports: 14558:14557
+qgroundcontrol:            ports: 14560:14561
 
 
 ### Explanation
