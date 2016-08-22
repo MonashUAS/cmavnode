@@ -22,5 +22,5 @@ add_executable(cmavnode ${cmavnode_SRC})
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
 
-target_compile_options(cmavnode PRIVATE -std=c++11 -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
+target_compile_options(cmavnode PRIVATE -std=c++11 -DMUASMAV -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
 TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} -lpthread )
