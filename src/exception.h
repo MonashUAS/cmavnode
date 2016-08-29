@@ -6,16 +6,16 @@
 
 class Exception : public std::exception
 {
-    public:
-        Exception(const char* errorMsg):errorMsg_(errorMsg){};
+public:
+    Exception(const char* errorMsg):errorMsg_(errorMsg) {};
 
-        virtual const char* what() const throw()
-        {
-            return errorMsg_;
-        }
+    virtual const char* what() const throw()
+    {
+        return errorMsg_;
+    }
 
-    private:
-        const char* errorMsg_;
+private:
+    const char* errorMsg_;
 };
 
 #endif

@@ -7,54 +7,58 @@
 
 #include "serial.h"
 
-serial::serial(const std::string& port, 
-        const std::string& baudrate,
-        int id,
-        const std::string& raw):
-    io_service_(), port_(io_service_){
+serial::serial(const std::string& port,
+               const std::string& baudrate,
+               int id,
+               const std::string& raw):
+    io_service_(), port_(io_service_)
+{
 
 
-        //store link info into the base class
-        linkID = id;
-        rawString = raw;
+    //store link info into the base class
+    linkID = id;
+    rawString = raw;
 
-        LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
-        
-        try{
-            //open the port with connection string
-            port_.open(port);
+    LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
+
+    try
+    {
+        //open the port with connection string
+        port_.open(port);
 
 
-            //configure the port
-            port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
+        //configure the port
+        port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
 
-            port_.set_option(boost::asio::serial_port_base::character_size(8));
+        port_.set_option(boost::asio::serial_port_base::character_size(8));
 
-            port_.set_option(boost::asio::serial_port_base::flow_control(
-                        boost::asio::serial_port_base::flow_control::none));
+        port_.set_option(boost::asio::serial_port_base::flow_control(
+                             boost::asio::serial_port_base::flow_control::none));
 
-            port_.set_option(boost::asio::serial_port_base::parity(
-                        boost::asio::serial_port_base::parity::none));
+        port_.set_option(boost::asio::serial_port_base::parity(
+                             boost::asio::serial_port_base::parity::none));
 
-            port_.set_option(boost::asio::serial_port_base::stop_bits(
-                        boost::asio::serial_port_base::stop_bits::one));
+        port_.set_option(boost::asio::serial_port_base::stop_bits(
+                             boost::asio::serial_port_base::stop_bits::one));
 
-        } catch (boost::system::system_error &error) {
-            LOG(ERROR) << "Error opening Serial Port: " << port;
-            throw Exception("Error opening serial port");
-        }
+    }
+    catch (boost::system::system_error &error)
+    {
+        LOG(ERROR) << "Error opening Serial Port: " << port;
+        throw Exception("Error opening serial port");
+    }
 
-        //Start the read and write threads
-        write_thread = boost::thread(&serial::runWriteThread, this);
+    //Start the read and write threads
+    write_thread = boost::thread(&serial::runWriteThread, this);
 
-        //Start the receive
-        port_.async_read_some(
-                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
-                    boost::bind(&serial::handle_receive_from, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+    //Start the receive
+    port_.async_read_some(
+        boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+        boost::bind(&serial::handle_receive_from, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred));
 
-        read_thread = boost::thread(&serial::runReadThread, this);
+    read_thread = boost::thread(&serial::runReadThread, this);
 }
 
 serial::~serial()
@@ -72,12 +76,13 @@ serial::~serial()
     port_.close();
 }
 
-void serial::send(uint8_t *buf, std::size_t buf_size) {
-            port_.async_write_some(
-                    boost::asio::buffer(buf, buf_size),
-                    boost::bind(&serial::handle_send_to, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+void serial::send(uint8_t *buf, std::size_t buf_size)
+{
+    port_.async_write_some(
+        boost::asio::buffer(buf, buf_size),
+        boost::bind(&serial::handle_send_to, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred));
 }
 
 void serial::processAndSend(mavlink_message_t *msgToConvert)
@@ -92,12 +97,13 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
 
 //Async post send callback
 void serial::handle_send_to(const boost::system::error_code& error,
-    size_t bytes_recvd)
+                            size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
         //Everything was ok
-    } else
+    }
+    else
     {
         //There was an error
         throw Exception("Serial: Error in handle_send_to");
@@ -106,7 +112,7 @@ void serial::handle_send_to(const boost::system::error_code& error,
 
 //Async callback receiver
 void serial::handle_receive_from(const boost::system::error_code& error,
-    size_t bytes_recvd)
+                                 size_t bytes_recvd)
 {
     if (!error & bytes_recvd > 0)
     {
@@ -118,40 +124,44 @@ void serial::handle_receive_from(const boost::system::error_code& error,
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-                temp = data_in_[i];
-                if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
+            temp = data_in_[i];
+            if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
+            {
+                onMessageRecv(&msg);
+                //Try to push it onto the queue
+                bool returnCheck = qMavIn.push(msg);
+                if(!returnCheck)   //then the queue is full
                 {
-                    onMessageRecv(&msg);
-                    //Try to push it onto the queue
-                    bool returnCheck = qMavIn.push(msg);
-                    if(!returnCheck) { //then the queue is full
-                       throw Exception("Serial: The incoming message queue is full"); 
-                    }
+                    throw Exception("Serial: The incoming message queue is full");
                 }
+            }
         }
 
         //And start reading again
         port_.async_read_some(
-                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
-                    boost::bind(&serial::handle_receive_from, this,
+            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+            boost::bind(&serial::handle_receive_from, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
-    } else if(bytes_recvd == 0)
+    }
+    else if(bytes_recvd == 0)
     {
         //Sleep a little bit to keep the cpu cool
         boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
         port_.async_read_some(
-                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
-                    boost::bind(&serial::handle_receive_from, this,
+            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+            boost::bind(&serial::handle_receive_from, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
-    } else
-    { //we have an error
+    }
+    else
+    {
+        //we have an error
         //need to look into what is causing these but for now just pretend it didn't happen
         boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
         port_.async_read_some(
-                boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), 
-                    boost::bind(&serial::handle_receive_from, this,
+            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+            boost::bind(&serial::handle_receive_from, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
     }
@@ -178,10 +188,13 @@ void serial::runWriteThread()
         {
             processAndSend(&tmpMsg);
             //keep going
-            while(qMavOut.pop(tmpMsg)){
-                    processAndSend(&tmpMsg);
+            while(qMavOut.pop(tmpMsg))
+            {
+                processAndSend(&tmpMsg);
             }
-        } else {
+        }
+        else
+        {
             //queue is empty sleep the write thread
             boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
         }

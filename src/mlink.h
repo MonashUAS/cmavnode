@@ -3,7 +3,7 @@
  *
  * LINK CLASS
  * This is a virtual class which will be extended by various types of links
- * All methods which need to be accessed from the main thread 
+ * All methods which need to be accessed from the main thread
  * need to be declared here and overwritten
  */
 #ifndef MLINK_H
@@ -20,7 +20,7 @@
 
 #include "exception.h"
 
-#define MAV_INCOMING_LENGTH 1000 
+#define MAV_INCOMING_LENGTH 1000
 #define MAV_OUTGOING_LENGTH 1000
 #define OUT_QUEUE_EMPTY_SLEEP 50
 #define MAV_INCOMING_BUFFER_LENGTH 2041
@@ -32,55 +32,55 @@
 
 class mlink
 {
-    public:
-        mlink(){};
-        virtual ~mlink(){};
+public:
+    mlink() {};
+    virtual ~mlink() {};
 
-        //Send or read mavlink messages
-        void qAddOutgoing(mavlink_message_t msg);
-        bool qReadIncoming(mavlink_message_t *msg);
+    //Send or read mavlink messages
+    void qAddOutgoing(mavlink_message_t msg);
+    bool qReadIncoming(mavlink_message_t *msg);
 
-        //update the public mapping based on private one
-        void getSysID_thisLink();
+    //update the public mapping based on private one
+    void getSysID_thisLink();
 
-        //remove dead systems from private mapping
-        void checkForDeadSysID();
-        
+    //remove dead systems from private mapping
+    void checkForDeadSysID();
 
-        void onHeartbeatRecv(uint8_t sysID);
-        void onMessageRecv(mavlink_message_t *msg);
+
+    void onHeartbeatRecv(uint8_t sysID);
+    void onMessageRecv(mavlink_message_t *msg);
 
 #ifdef MUASMAV
-        void hackSysID(mavlink_message_t *msg);
+    void hackSysID(mavlink_message_t *msg);
 #endif
 
-        //Public system ID mapping
-        std::vector<uint8_t> sysIDpub;
-       
-        //Read and write thread functions. Read thread will call ioservice.run and block
-        //Write thread will be in an infinate busy wait loop
-        virtual void runWriteThread(){};
-        virtual void runReadThread(){};
+    //Public system ID mapping
+    std::vector<uint8_t> sysIDpub;
 
-        
-        //To identify links for debugging. string stores the raw string the port was opened with.
-        int linkID;
-        std::string rawString;
+    //Read and write thread functions. Read thread will call ioservice.run and block
+    //Write thread will be in an infinate busy wait loop
+    virtual void runWriteThread() {};
+    virtual void runReadThread() {};
 
-    protected:
-        //Keep track of system ID's on this link and the last heartbeat time
-        std::vector<std::tuple<uint8_t, boost::posix_time::ptime>> sysID_thisLink;
 
-        boost::lockfree::spsc_queue<mavlink_message_t> qMavIn{MAV_INCOMING_LENGTH};
-        boost::lockfree::spsc_queue<mavlink_message_t> qMavOut{MAV_OUTGOING_LENGTH};
+    //To identify links for debugging. string stores the raw string the port was opened with.
+    int linkID;
+    std::string rawString;
 
-        boost::thread read_thread;
-        boost::thread write_thread;
+protected:
+    //Keep track of system ID's on this link and the last heartbeat time
+    std::vector<std::tuple<uint8_t, boost::posix_time::ptime>> sysID_thisLink;
 
-        bool exitFlag = false;
+    boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
+    boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
 
-        uint8_t data_in_[MAV_INCOMING_BUFFER_LENGTH];
-        uint8_t data_out_[MAV_INCOMING_BUFFER_LENGTH];
+    boost::thread read_thread;
+    boost::thread write_thread;
+
+    bool exitFlag = false;
+
+    uint8_t data_in_[MAV_INCOMING_BUFFER_LENGTH];
+    uint8_t data_out_[MAV_INCOMING_BUFFER_LENGTH];
 };
 
 #endif
