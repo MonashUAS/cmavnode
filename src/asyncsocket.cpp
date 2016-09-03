@@ -32,7 +32,7 @@ asyncsocket::asyncsocket(
     //Start the receive
     socket_.async_receive_from(
         boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
-        boost::bind(&asyncsocket::handle_receive_from, this,
+        boost::bind(&asyncsocket::handleReceiveFrom, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
 
@@ -58,7 +58,7 @@ void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 {
     socket_.async_send_to(
         boost::asio::buffer(buf, buf_size), endpoint_,
-        boost::bind(&asyncsocket::handle_send_to, this,
+        boost::bind(&asyncsocket::handleSendTo, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
 }
@@ -76,7 +76,7 @@ void asyncsocket::processAndSend(mavlink_message_t *msgToConvert)
 
 
 //Async callback receiver
-void asyncsocket::handle_receive_from(const boost::system::error_code& error,
+void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
                                       size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
@@ -105,7 +105,7 @@ void asyncsocket::handle_receive_from(const boost::system::error_code& error,
         //And start reading again
         socket_.async_receive_from(
             boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
-            boost::bind(&asyncsocket::handle_receive_from, this,
+            boost::bind(&asyncsocket::handleReceiveFrom, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
     }
@@ -117,7 +117,7 @@ void asyncsocket::handle_receive_from(const boost::system::error_code& error,
 }
 
 //Async post send callback
-void asyncsocket::handle_send_to(const boost::system::error_code& error,
+void asyncsocket::handleSendTo(const boost::system::error_code& error,
                                  size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
@@ -142,7 +142,7 @@ void asyncsocket::runWriteThread()
 {
     //block so we dont send before the socket is initialized
     boost::this_thread::sleep(boost::posix_time::milliseconds(50));
-    //busy wait on the spsc_queue
+    //busy wait on the spsc_queueo
     mavlink_message_t tmpMsg;
 
     //thread loop

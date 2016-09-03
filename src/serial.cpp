@@ -54,7 +54,7 @@ serial::serial(const std::string& port,
     //Start the receive
     port_.async_read_some(
         boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-        boost::bind(&serial::handle_receive_from, this,
+        boost::bind(&serial::handleReceiveFrom, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
 
@@ -80,7 +80,7 @@ void serial::send(uint8_t *buf, std::size_t buf_size)
 {
     port_.async_write_some(
         boost::asio::buffer(buf, buf_size),
-        boost::bind(&serial::handle_send_to, this,
+        boost::bind(&serial::handleSendTo, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
 }
@@ -96,7 +96,7 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
 }
 
 //Async post send callback
-void serial::handle_send_to(const boost::system::error_code& error,
+void serial::handleSendTo(const boost::system::error_code& error,
                             size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
@@ -111,7 +111,7 @@ void serial::handle_send_to(const boost::system::error_code& error,
 }
 
 //Async callback receiver
-void serial::handle_receive_from(const boost::system::error_code& error,
+void serial::handleReceiveFrom(const boost::system::error_code& error,
                                  size_t bytes_recvd)
 {
     if (!error & bytes_recvd > 0)
@@ -140,7 +140,7 @@ void serial::handle_receive_from(const boost::system::error_code& error,
         //And start reading again
         port_.async_read_some(
             boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-            boost::bind(&serial::handle_receive_from, this,
+            boost::bind(&serial::handleReceiveFrom, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
     }
@@ -150,7 +150,7 @@ void serial::handle_receive_from(const boost::system::error_code& error,
         boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
         port_.async_read_some(
             boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-            boost::bind(&serial::handle_receive_from, this,
+            boost::bind(&serial::handleReceiveFrom, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
     }
@@ -161,7 +161,7 @@ void serial::handle_receive_from(const boost::system::error_code& error,
         boost::this_thread::sleep(boost::posix_time::milliseconds(SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED));
         port_.async_read_some(
             boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-            boost::bind(&serial::handle_receive_from, this,
+            boost::bind(&serial::handleReceiveFrom, this,
                         boost::asio::placeholders::error,
                         boost::asio::placeholders::bytes_transferred));
     }

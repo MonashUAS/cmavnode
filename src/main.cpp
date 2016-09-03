@@ -40,7 +40,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links);
 void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links);
 
 //Helper function to find targets in all the message types
-void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
+void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
 std::vector<std::string> socketInitList;
 std::vector<std::string> serialInitList;
@@ -228,7 +228,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
         {
             int16_t sysIDmsg = 0;
             int16_t compIDmsg = 0;
-            get_targets(&msg, sysIDmsg, compIDmsg);
+            getTargets(&msg, sysIDmsg, compIDmsg);
 
             //we have got a message, work out where to send it
             LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
@@ -309,7 +309,7 @@ void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links)
     }
 }
 
-void get_targets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
+void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 {
     /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
     // unfortunately the targets are not in a consistent position in

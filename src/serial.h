@@ -31,9 +31,9 @@ public:
 
 private:
     //Callbacks for async send/recv
-    void handle_receive_from(const boost::system::error_code& error,
+    void handleReceiveFrom(const boost::system::error_code& error,
                              size_t bytes_recvd);
-    void handle_send_to(const boost::system::error_code& error,
+    void handleSendTo(const boost::system::error_code& error,
                         size_t bytes_recvd);
 
     mavlink_message_t getMavMsg();
