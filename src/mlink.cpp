@@ -8,6 +8,10 @@
  */
 
 #include "mlink.h"
+mlink::mlink(link_info info_)
+{
+    info = info_;
+}
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
 {

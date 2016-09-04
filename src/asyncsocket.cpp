@@ -11,8 +11,7 @@ asyncsocket::asyncsocket(
     const std::string& host,
     const std::string& hostport,
     const std::string& listenport,
-    int id,
-    const std::string& raw) : io_service_(),
+    link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
 {
 
@@ -21,10 +20,7 @@ asyncsocket::asyncsocket(
     boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
     endpoint_ = *iter;
 
-    linkID = id;
-    rawString = raw;
 
-    LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
@@ -51,7 +47,6 @@ asyncsocket::~asyncsocket()
 
     //Debind
     socket_.close();
-    LOG(INFO) << "Link " << linkID << " - closing, connection string: " << rawString;
 }
 
 void asyncsocket::send(uint8_t *buf, std::size_t buf_size)

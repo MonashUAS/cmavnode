@@ -21,8 +21,7 @@ public:
     //construct and destruct
     serial(const std::string& port,
            const std::string& baudrate,
-           int id,
-           const std::string &raw);
+           link_info info_);
     ~serial();
 
     //override virtuals from mlink

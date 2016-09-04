@@ -9,17 +9,11 @@
 
 serial::serial(const std::string& port,
                const std::string& baudrate,
-               int id,
-               const std::string& raw):
-    io_service_(), port_(io_service_)
+               link_info info_):
+    io_service_(), port_(io_service_), mlink(info_)
 {
 
 
-    //store link info into the base class
-    linkID = id;
-    rawString = raw;
-
-    LOG(INFO) << "Link " << linkID << " - opening with connection string: " << rawString;
 
     try
     {
@@ -72,7 +66,6 @@ serial::~serial()
     write_thread.join();
 
     //Debind
-    LOG(INFO) << "Link " << linkID << " - closing, connection string: " << rawString;
     port_.close();
 }
 

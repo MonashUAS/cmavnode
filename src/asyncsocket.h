@@ -23,8 +23,7 @@ public:
         const std::string& host,
         const std::string& hostport,
         const std::string& listenport,
-        int id,
-        const std::string& raw);
+        link_info info_);
 
     ~asyncsocket();
 

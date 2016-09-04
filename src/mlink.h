@@ -30,10 +30,15 @@
 #define HACK_SYS_ID_TARGET 255
 #endif
 
+typedef struct link_info_{
+    std::string link_name;
+    int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+} link_info;
+
 class mlink
 {
 public:
-    mlink() {};
+    mlink(link_info info_);
     virtual ~mlink() {};
 
     //Send or read mavlink messages
@@ -62,10 +67,7 @@ public:
     virtual void runWriteThread() {};
     virtual void runReadThread() {};
 
-
-    //To identify links for debugging. string stores the raw string the port was opened with.
-    int linkID;
-    std::string rawString;
+    link_info info;
 
 protected:
     //Keep track of system ID's on this link and the last heartbeat time

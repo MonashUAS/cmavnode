@@ -27,7 +27,7 @@ using namespace libconfig;
 
 
 //factory to build the links
-std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
+//std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
 bool exitMainLoop = false;
 
@@ -70,6 +70,7 @@ int main(int argc, char** argv)
     START_EASYLOGGINGPP(argc, argv);
     el::Loggers::configureFromGlobal("../conf/log.conf");
     signal(SIGINT, exitGracefully);
+    std::vector<std::unique_ptr<mlink>> links;
     try
     {
         /** Define and parse the program options
@@ -127,18 +128,23 @@ int main(int argc, char** argv)
 
             try
             {
-                const Setting &links = root["links"];
-                int numlinks = links.getLength();
+                const Setting &linksconfig = root["links"];
+                int numlinks = linksconfig.getLength();
 
                 LOG(INFO) << "Config file parsed, " << numlinks << " links found.";
 
                 for(int i = 0; i < numlinks; ++i)
                 {
                     bool valid = false;
-                    const Setting &link = links[i];
+                    bool issocket = false;
+                    const Setting &link = linksconfig[i];
 
                     std::string link_name;
                     int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+                    std::string port;
+                    int baud;
+                    std::string target_ip;
+                    int target_port, receive_port;
 
                     if(!(link.lookupValue("link_name", link_name)
                                 && link.lookupValue("receive_from", receive_from)
@@ -153,14 +159,13 @@ int main(int argc, char** argv)
                     try
                     {
                         const Setting &socket = link["socket"];
-                        std::string target_ip;
-                        int target_port, receive_port;
 
                         if((socket.lookupValue("target_ip",target_ip)
                                     && socket.lookupValue("target_port",target_port)
                                     && socket.lookupValue("receive_port",receive_port)))
                         {
                             valid = true;
+                            issocket = true;
                         }
                         else
                         {
@@ -174,8 +179,6 @@ int main(int argc, char** argv)
                         try
                         {
                         const Setting &serial = link["serial"];
-                        std::string port;
-                        int baud;
 
                         if((serial.lookupValue("port",port)
                                     && serial.lookupValue("baud",baud)))
@@ -193,6 +196,26 @@ int main(int argc, char** argv)
                         }
                     }
                     if(valid) LOG(INFO) << "Valid link found";
+
+                    link_info infoloc;
+                    infoloc.link_name = link_name;
+                    infoloc.receive_from = receive_from;
+                    infoloc.output_to = output_to;
+                    infoloc.output_only_from = output_only_from;
+                    infoloc.output_only_heartbeat_from = output_only_heartbeat_from;
+
+                    if(issocket){
+                        links.push_back(std::unique_ptr<mlink>(new asyncsocket(target_ip
+                                        ,std::to_string(target_port)
+                                        ,std::to_string(receive_port)
+                                        ,infoloc)));
+                    }
+                    else //is serial
+                    {
+                        links.push_back(std::unique_ptr<mlink>(new serial(port
+                                        ,std::to_string(baud)
+                                        ,infoloc)));
+                    }
                 }
 
             }
@@ -226,10 +249,9 @@ int main(int argc, char** argv)
         LOG(INFO) << "Command line arguments parsed succesfully";
 
         //local object holds pointers to the links
-        std::vector<std::unique_ptr<mlink>> links;
 
         //Set up the links
-        links = linkFactory(socketInitList, serialInitList);
+//        links = linkFactory(socketInitList, serialInitList);
 
         LOG(INFO) << "Links Initialized";
 
@@ -251,6 +273,7 @@ int main(int argc, char** argv)
     return SUCCESS;
 } //main
 
+/*
 std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
 {
     // this function reads the strings passed in by the user, and creates the mlink objects
@@ -286,6 +309,7 @@ std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketI
 
     return links;
 }
+*/
 
 void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
 {
