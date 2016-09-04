@@ -26,6 +26,7 @@ using namespace libconfig;
 #include "exception.h"
 
 
+std::string filename;
 //factory to build the links
 //std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
@@ -68,7 +69,7 @@ INITIALIZE_EASYLOGGINGPP
 int main(int argc, char** argv)
 {
     START_EASYLOGGINGPP(argc, argv);
-    el::Loggers::configureFromGlobal("../conf/log.conf");
+    el::Loggers::configureFromGlobal("log.conf");
     signal(SIGINT, exitGracefully);
     std::vector<std::unique_ptr<mlink>> links;
     try
@@ -78,7 +79,7 @@ int main(int argc, char** argv)
         boost::program_options::options_description desc("Options");
         desc.add_options()
         ("help", "Print help messages")
-        ("file", boost::program_options::value<std::vector<std::string>>(), "configuration file, usage: --file=path/to/file.conf")
+        ("file", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
         ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link, usage: --socket=<targetip>:<targetport>:<listeningport>")
         ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link, usage: --serial=<port>:<baudrate");
 
@@ -111,7 +112,8 @@ int main(int argc, char** argv)
 
             try
             {
-                cfg.readFile("cmavnode.cfg");
+                LOG(INFO) << "Reading config file: " << filename;
+                cfg.readFile(filename.c_str());
             }
             catch(const FileIOException &fioex)
             {
