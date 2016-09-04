@@ -114,20 +114,93 @@ int main(int argc, char** argv)
             }
             catch(const FileIOException &fioex)
             {
+                LOG(ERROR) << "Cannot open config file";
                 return ERROR_IN_COMMAND_LINE;
             }
             catch(const ParseException &pex)
             {
+                LOG(ERROR) << "Cannot parse config file";
                 return ERROR_IN_COMMAND_LINE;
             }
+
+            const Setting& root = cfg.getRoot();
+
             try
             {
-                std::string test = cfg.lookup("test");
-                std::cout << test << std::endl;
+                const Setting &links = root["links"];
+                int numlinks = links.getLength();
+
+                LOG(INFO) << "Config file parsed, " << numlinks << " links found.";
+
+                for(int i = 0; i < numlinks; ++i)
+                {
+                    bool valid = false;
+                    const Setting &link = links[i];
+
+                    std::string link_name;
+                    int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+
+                    if(!(link.lookupValue("link_name", link_name)
+                                && link.lookupValue("receive_from", receive_from)
+                                && link.lookupValue("output_to", output_to)
+                                && link.lookupValue("output_only_from", output_only_from)
+                                && link.lookupValue("output_only_heartbeat_from", output_only_heartbeat_from)))
+                    {
+                        LOG(ERROR) << "Invalid link, ignoring";
+                        continue;
+                    }
+
+                    try
+                    {
+                        const Setting &socket = link["socket"];
+                        std::string target_ip;
+                        int target_port, receive_port;
+
+                        if((socket.lookupValue("target_ip",target_ip)
+                                    && socket.lookupValue("target_port",target_port)
+                                    && socket.lookupValue("receive_port",receive_port)))
+                        {
+                            valid = true;
+                        }
+                        else
+                        {
+                            LOG(ERROR) << "Invalid link, ignoring";
+                            continue;
+                        }
+                            
+                    }
+                    catch(const SettingNotFoundException &nfex)
+                    {
+                        try
+                        {
+                        const Setting &serial = link["serial"];
+                        std::string port;
+                        int baud;
+
+                        if((serial.lookupValue("port",port)
+                                    && serial.lookupValue("baud",baud)))
+                            valid = true;
+                        else
+                        {
+                            LOG(ERROR) << "Invalid link, ignoring";
+                            continue;
+                        }
+                        }
+                        catch(const SettingNotFoundException &nfex)
+                        {
+                            LOG(ERROR) << "Invalid link, ignoring";
+                            continue;
+                        }
+                    }
+                    if(valid) LOG(INFO) << "Valid link found";
+                }
+
             }
             catch(const SettingNotFoundException &nfex)
             {
-                std::cerr << "No 'name' setting " << std::endl;
+                LOG(ERROR) << "Cannot find links in config file";
+                return ERROR_IN_COMMAND_LINE;
+
             }
 
             //store link strings
