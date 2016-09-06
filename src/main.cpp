@@ -338,7 +338,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                 //Then message is broadcast, iterate through links
                 for(int n = 0; n < links->size(); n++)
                 {
-
+                    bool dontSendOnThisLink = false;
                     bool sysOnThisLink = false;
                     //if the packet came from this link, dont bother
                     if(n == i) sysOnThisLink = true;
@@ -354,9 +354,13 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                             }
                         }
                     }
+                    if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
+                    { //Then this link has been deliberatly isolated from the incoming message
+                        dontSendOnThisLink = true;
+                    }
 
                     //If this link doesn't point to the system that sent the message, send here
-                    if(!sysOnThisLink)
+                    if(!sysOnThisLink && !dontSendOnThisLink)
                     {
                         links->at(n)->qAddOutgoing(msg);
                         wasForwarded = true;
@@ -368,14 +372,24 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                 //msg is targeted
                 for(int n = 0; n < links->size(); n++)
                 {
+                    bool dontSendOnThisLink = false;
+
+                    if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
+                    { //Then this link has been deliberatly isolated from the incoming message
+                        dontSendOnThisLink = true; 
+                    }
+
                     //iterate routing table, if target is there, send
                     for(int k = 0; k < links->at(n)->sysIDpub.size(); k++)
                     {
                         if(sysIDmsg == links->at(n)->sysIDpub.at(k))
                         {
-                            //then forward down this link
-                            links->at(n)->qAddOutgoing(msg);
-                            wasForwarded = true;
+                            if(!dontSendOnThisLink)
+                            {
+                                //then forward down this link
+                                links->at(n)->qAddOutgoing(msg);
+                                wasForwarded = true;
+                            }
                         }
                     }
                 }
