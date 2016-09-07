@@ -358,6 +358,13 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                     { //Then this link has been deliberatly isolated from the incoming message
                         dontSendOnThisLink = true;
                     }
+                    if(links->at(n)->info.output_only_heartbeat_from != 0)
+                    {
+                        if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
+                        {
+                            dontSendOnThisLink = true;
+                        }
+                    }
 
                     //If this link doesn't point to the system that sent the message, send here
                     if(!sysOnThisLink && !dontSendOnThisLink)
@@ -377,6 +384,13 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                     if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
                     { //Then this link has been deliberatly isolated from the incoming message
                         dontSendOnThisLink = true; 
+                    }
+                    if(links->at(n)->info.output_only_heartbeat_from != 0)
+                    {
+                        if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
+                        {
+                            dontSendOnThisLink = true;
+                        }
                     }
 
                     //iterate routing table, if target is there, send
