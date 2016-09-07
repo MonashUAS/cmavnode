@@ -17,35 +17,34 @@
 
 class serial: public mlink
 {
-    public:
-        //construct and destruct
-        serial(const std::string& port,
-                const std::string& baudrate,
-                int id,
-                const std::string &raw);
-        ~serial();
+public:
+    //construct and destruct
+    serial(const std::string& port,
+           const std::string& baudrate,
+           link_info info_);
+    ~serial();
 
-        //override virtuals from mlink
-        void runWriteThread();
-        void runReadThread();
+    //override virtuals from mlink
+    void runWriteThread();
+    void runReadThread();
 
-    private:
-        //Callbacks for async send/recv
-        void handle_receive_from(const boost::system::error_code& error,
-                size_t bytes_recvd);
-        void handle_send_to(const boost::system::error_code& error,
-            size_t bytes_recvd);
+private:
+    //Callbacks for async send/recv
+    void handleReceiveFrom(const boost::system::error_code& error,
+                             size_t bytes_recvd);
+    void handleSendTo(const boost::system::error_code& error,
+                        size_t bytes_recvd);
 
-        mavlink_message_t getMavMsg();
+    mavlink_message_t getMavMsg();
 
-	boost::asio::io_service io_service_;
-        boost::asio::serial_port port_;
+    boost::asio::io_service io_service_;
+    boost::asio::serial_port port_;
 
-        //takes message, puts onto buff and calls send
-        void processAndSend(mavlink_message_t *msgToConvert);
+    //takes message, puts onto buff and calls send
+    void processAndSend(mavlink_message_t *msgToConvert);
 
-        //Actually sends
-        void send(uint8_t *buf, std::size_t buf_size);
+    //Actually sends
+    void send(uint8_t *buf, std::size_t buf_size);
 
 };
 

@@ -17,39 +17,38 @@
 
 class asyncsocket: public mlink
 {
-    public:
-        //Construct
-        asyncsocket(
-                const std::string& host,
-                const std::string& hostport,
-                const std::string& listenport,
-                int id,
-                const std::string& raw);
+public:
+    //Construct
+    asyncsocket(
+        const std::string& host,
+        const std::string& hostport,
+        const std::string& listenport,
+        link_info info_);
 
-        ~asyncsocket();
+    ~asyncsocket();
 
-        //override virtuals from link
-        void runWriteThread();
-        void runReadThread();
+    //override virtuals from link
+    void runWriteThread();
+    void runReadThread();
 
 
-    private:
-        //Callbacks for async send/recv
-        void handle_receive_from(const boost::system::error_code& error,
-                size_t bytes_recvd);
-        void handle_send_to(const boost::system::error_code& error,
-            size_t bytes_recvd);
+private:
+    //Callbacks for async send/recv
+    void handleReceiveFrom(const boost::system::error_code& error,
+                             size_t bytes_recvd);
+    void handleSendTo(const boost::system::error_code& error,
+                        size_t bytes_recvd);
 
-        //UDP Stuff
-	boost::asio::io_service io_service_;
-        boost::asio::ip::udp::socket socket_;
-        boost::asio::ip::udp::endpoint endpoint_;
+    //UDP Stuff
+    boost::asio::io_service io_service_;
+    boost::asio::ip::udp::socket socket_;
+    boost::asio::ip::udp::endpoint endpoint_;
 
-        //takes message, puts onto buff and calls send
-        void processAndSend(mavlink_message_t *msgToConvert);
+    //takes message, puts onto buff and calls send
+    void processAndSend(mavlink_message_t *msgToConvert);
 
-        //Actually sends
-        void send(uint8_t *buf, std::size_t buf_size);
+    //Actually sends
+    void send(uint8_t *buf, std::size_t buf_size);
 };
 
 #endif
