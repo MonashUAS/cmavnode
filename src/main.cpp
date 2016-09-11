@@ -411,7 +411,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
 
             if(!wasForwarded)
             {
-                LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+                LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg << " link name: " << links->at(i)->info.link_name;
             }
         }
     }
