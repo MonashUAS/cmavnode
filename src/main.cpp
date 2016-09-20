@@ -317,7 +317,10 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
 {
 //Gets run in a while loop once links are setup
 
-    runPeriodicFunctions(links);
+        for(int i = 0; i < links->size(); i++)
+        {
+            links->at(i)->getSysID_thisLink();
+        }
 
     for(int i = 0; i < links->size(); i++)
     {
@@ -338,6 +341,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                 //Then message is broadcast, iterate through links
                 for(int n = 0; n < links->size(); n++)
                 {
+
                     bool dontSendOnThisLink = false;
                     bool sysOnThisLink = false;
                     //if the packet came from this link, dont bother
@@ -425,15 +429,15 @@ void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links)
 
     now_ms = myclock();
 
-    if(now_ms - last_update_sysid_ms > UPDATE_SYSID_INTERVAL_MS)
-    {
+  //  if(now_ms - last_update_sysid_ms > UPDATE_SYSID_INTERVAL_MS)
+   // {
 
         last_update_sysid_ms = myclock();
         for(int i = 0; i < links->size(); i++)
         {
             links->at(i)->getSysID_thisLink();
         }
-    }
+    //}
 }
 
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)

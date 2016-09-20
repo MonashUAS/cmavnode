@@ -38,6 +38,7 @@ void mlink::getSysID_thisLink()
     for(int i = 0; i < sysID_thisLink.size(); i++)
     {
         mapping.push_back(std::get<0>(sysID_thisLink.at(i)));
+        LOG(INFO) << "Adding sysid " << std::get<0>(sysID_thisLink.at(i)) << "to public mapping";
     }
 
     sysIDpub = mapping;
@@ -102,6 +103,7 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
         std::get<1>(sysID_thisLink.at(indexIfExists)) = nowTime;
     }
+
 }
 
 
