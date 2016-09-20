@@ -68,7 +68,8 @@ void mlink::hackSysID(mavlink_message_t *msg)
     mavlink_command_long_t msgstruct;
     mavlink_msg_command_long_decode(msg, &msgstruct);
 
-    msgstruct.target_system = HACK_SYS_ID_TARGET;
+   // msgstruct.target_system = HACK_SYS_ID_TARGET;
+    msgstruct.target_system = 0;
 
     mavlink_message_t tempmsg;
     mavlink_msg_command_long_encode(msg->sysid, msg->compid, &tempmsg, &msgstruct);
