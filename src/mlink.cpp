@@ -38,7 +38,7 @@ void mlink::getSysID_thisLink()
     for(int i = 0; i < sysID_thisLink.size(); i++)
     {
         mapping.push_back(std::get<0>(sysID_thisLink.at(i)));
-        LOG(INFO) << "Adding sysid " << std::get<0>(sysID_thisLink.at(i)) << "to public mapping";
+        //LOG(INFO) << "Adding sysid " << std::get<0>(sysID_thisLink.at(i)) << "to public mapping";
     }
 
     sysIDpub = mapping;
