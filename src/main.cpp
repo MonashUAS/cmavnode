@@ -37,6 +37,8 @@ long now_ms = 0;
 long last_update_sysid_ms = 0;
 long myclock();
 
+bool dumbBroadcast = false;
+
 void runMainLoop(std::vector<std::unique_ptr<mlink>> *links);
 void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links);
 
@@ -80,6 +82,7 @@ int main(int argc, char** argv)
         desc.add_options()
         ("help", "Print help messages")
         ("file", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
+        ("dumbbroadcast", boost::program_options::bool_switch(&dumbBroadcast), "dont take sysid mapping into account")
         ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link, usage: --socket=<targetip>:<targetport>:<listeningport>")
         ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link, usage: --serial=<port>:<baudrate");
 
@@ -336,9 +339,8 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
             LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
 
             bool wasForwarded = false;
-            if(sysIDmsg == 0 || sysIDmsg == -1)
+            if(dumbBroadcast)
             {
-                //Then message is broadcast, iterate through links
                 for(int n = 0; n < links->size(); n++)
                 {
 
@@ -346,18 +348,6 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                     bool sysOnThisLink = false;
                     //if the packet came from this link, dont bother
                     if(n == i) sysOnThisLink = true;
-                    else   //check the routing table to see if the system is on this link
-                    {
-                        for(int k = 0; k < links->at(n)->sysIDpub.size(); k++)
-                        {
-                            //if the system that sent this message is on the list,
-                            //dont send down this link
-                            if(msg.sysid == links->at(n)->sysIDpub.at(k))
-                            {
-                                sysOnThisLink = true;
-                            }
-                        }
-                    }
                     if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
                     { //Then this link has been deliberatly isolated from the incoming message
                         dontSendOnThisLink = true;
@@ -377,41 +367,86 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                         wasForwarded = true;
                     }
                 }
-            } //end broadcast block
-            else
-            {
-                //msg is targeted
-                for(int n = 0; n < links->size(); n++)
-                {
-                    bool dontSendOnThisLink = false;
+            }
+            else{
 
-                    if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
-                    { //Then this link has been deliberatly isolated from the incoming message
-                        dontSendOnThisLink = true; 
-                    }
-                    if(links->at(n)->info.output_only_heartbeat_from != 0)
+                if(sysIDmsg == 0 || sysIDmsg == -1)
+                {
+                    //Then message is broadcast, iterate through links
+                    for(int n = 0; n < links->size(); n++)
                     {
-                        if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
+
+                        bool dontSendOnThisLink = false;
+                        bool sysOnThisLink = false;
+                        //if the packet came from this link, dont bother
+                        if(n == i) sysOnThisLink = true;
+                        else   //check the routing table to see if the system is on this link
                         {
+                            for(int k = 0; k < links->at(n)->sysIDpub.size(); k++)
+                            {
+                                //if the system that sent this message is on the list,
+                                //dont send down this link
+                                if(msg.sysid == links->at(n)->sysIDpub.at(k))
+                                {
+                                    sysOnThisLink = true;
+                                }
+                            }
+                        }
+                        if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
+                        { //Then this link has been deliberatly isolated from the incoming message
                             dontSendOnThisLink = true;
                         }
-                    }
-
-                    //iterate routing table, if target is there, send
-                    for(int k = 0; k < links->at(n)->sysIDpub.size(); k++)
-                    {
-                        if(sysIDmsg == links->at(n)->sysIDpub.at(k))
+                        if(links->at(n)->info.output_only_heartbeat_from != 0)
                         {
-                            if(!dontSendOnThisLink)
+                            if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
                             {
-                                //then forward down this link
-                                links->at(n)->qAddOutgoing(msg);
-                                wasForwarded = true;
+                                dontSendOnThisLink = true;
+                            }
+                        }
+
+                        //If this link doesn't point to the system that sent the message, send here
+                        if(!sysOnThisLink && !dontSendOnThisLink)
+                        {
+                            links->at(n)->qAddOutgoing(msg);
+                            wasForwarded = true;
+                        }
+                    }
+                } //end broadcast block
+                else
+                {
+                    //msg is targeted
+                    for(int n = 0; n < links->size(); n++)
+                    {
+                        bool dontSendOnThisLink = false;
+
+                        if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
+                        { //Then this link has been deliberatly isolated from the incoming message
+                            dontSendOnThisLink = true; 
+                        }
+                        if(links->at(n)->info.output_only_heartbeat_from != 0)
+                        {
+                            if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
+                            {
+                                dontSendOnThisLink = true;
+                            }
+                        }
+
+                        //iterate routing table, if target is there, send
+                        for(int k = 0; k < links->at(n)->sysIDpub.size(); k++)
+                        {
+                            if(sysIDmsg == links->at(n)->sysIDpub.at(k))
+                            {
+                                if(!dontSendOnThisLink)
+                                {
+                                    //then forward down this link
+                                    links->at(n)->qAddOutgoing(msg);
+                                    wasForwarded = true;
+                                }
                             }
                         }
                     }
-                }
-            } //end targeted block
+                } //end targeted block
+            }
 
             if(!wasForwarded)
             {
