@@ -32,7 +32,8 @@
 
 typedef struct link_info_{
     std::string link_name;
-    int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+    int receive_from, output_to, output_only_heartbeat_from;
+    std::vector<int> output_only_from;
 } link_info;
 
 class mlink

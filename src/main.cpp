@@ -81,8 +81,8 @@ int main(int argc, char** argv)
         boost::program_options::options_description desc("Options");
         desc.add_options()
         ("help", "Print help messages")
-        ("file", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
-        ("dumbbroadcast", boost::program_options::bool_switch(&dumbBroadcast), "dont take sysid mapping into account")
+        ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
+        ("dumbbroadcast,d", boost::program_options::bool_switch(&dumbBroadcast), "dont take sysid mapping into account")
         ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link, usage: --socket=<targetip>:<targetport>:<listeningport>")
         ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link, usage: --serial=<port>:<baudrate");
 
@@ -111,6 +111,9 @@ int main(int argc, char** argv)
                 return ERROR_IN_COMMAND_LINE;
             }
 
+
+            if(dumbBroadcast)
+            LOG(INFO) << "WARNING: cmavnode is operating in dumb broadcast mode, all packets are treated as broadcast, and heartbeats are not used to determine routing rules. Hardcoded routing rules still apply.\n USE WITH CARE, RISK OF CIRCULAR ROUTING AND LINK SATURATION";
             Config cfg;
 
             try
@@ -145,8 +148,9 @@ int main(int argc, char** argv)
                     const Setting &link = linksconfig[i];
 
                     std::string link_name;
-                    int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+                    int receive_from, output_to, output_only_heartbeat_from;
                     std::string port;
+                    std::string output_only_from_raw;
                     int baud;
                     std::string target_ip;
                     int target_port, receive_port;
@@ -154,13 +158,24 @@ int main(int argc, char** argv)
                     if(!(link.lookupValue("link_name", link_name)
                                 && link.lookupValue("receive_from", receive_from)
                                 && link.lookupValue("output_to", output_to)
-                                && link.lookupValue("output_only_from", output_only_from)
+                                && link.lookupValue("output_only_from", output_only_from_raw)
                                 && link.lookupValue("output_only_heartbeat_from", output_only_heartbeat_from)))
                     {
                         LOG(ERROR) << "Invalid link, ignoring";
                         continue;
                     }
 
+                    std::vector<std::string> thisLinkoutputfroms;
+                    boost::split(thisLinkoutputfroms, output_only_from_raw, boost::is_any_of(","));
+                    std::vector<int> output_only_from;
+                    LOG(INFO) << "Link " << link_name << " will output from:";
+                    for(int i = 0; i<thisLinkoutputfroms.size(); i++){
+                        int tmpint = atoi(thisLinkoutputfroms.at(i).c_str());
+                        output_only_from.push_back(tmpint);
+                        LOG(INFO) << tmpint;
+                    }
+
+                    
                     try
                     {
                         const Setting &socket = link["socket"];
@@ -344,14 +359,18 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                 for(int n = 0; n < links->size(); n++)
                 {
 
-                    bool dontSendOnThisLink = false;
+                    bool dontSendOnThisLink = true;
                     bool sysOnThisLink = false;
                     //if the packet came from this link, dont bother
                     if(n == i) sysOnThisLink = true;
-                    if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
-                    { //Then this link has been deliberatly isolated from the incoming message
-                        dontSendOnThisLink = true;
-                    }
+                    if(links->at(n)->info.output_only_from.at(0) != 0)
+                    {
+                        for(int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
+                        {
+                            if(msg.sysid == links->at(n)->info.output_only_from.at(z))
+                            dontSendOnThisLink = false;
+                        }
+                    } else dontSendOnThisLink = true;
                     if(links->at(n)->info.output_only_heartbeat_from != 0)
                     {
                         if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
@@ -376,7 +395,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                     for(int n = 0; n < links->size(); n++)
                     {
 
-                        bool dontSendOnThisLink = false;
+                        bool dontSendOnThisLink = true;
                         bool sysOnThisLink = false;
                         //if the packet came from this link, dont bother
                         if(n == i) sysOnThisLink = true;
@@ -392,10 +411,14 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                                 }
                             }
                         }
-                        if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
-                        { //Then this link has been deliberatly isolated from the incoming message
-                            dontSendOnThisLink = true;
+                    if(links->at(n)->info.output_only_from.at(0) != 0)
+                    {
+                        for(int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
+                        {
+                            if(msg.sysid == links->at(n)->info.output_only_from.at(z))
+                            dontSendOnThisLink = false;
                         }
+                    } else dontSendOnThisLink = false;
                         if(links->at(n)->info.output_only_heartbeat_from != 0)
                         {
                             if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
@@ -417,12 +440,16 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                     //msg is targeted
                     for(int n = 0; n < links->size(); n++)
                     {
-                        bool dontSendOnThisLink = false;
+                        bool dontSendOnThisLink = true;
 
-                        if(links->at(n)->info.output_only_from != 0 && links->at(n)->info.output_only_from != msg.sysid)
-                        { //Then this link has been deliberatly isolated from the incoming message
-                            dontSendOnThisLink = true; 
+                    if(links->at(n)->info.output_only_from.at(0) != 0)
+                    {
+                        for(int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
+                        {
+                            if(msg.sysid == links->at(n)->info.output_only_from.at(z))
+                            dontSendOnThisLink = false;
                         }
+                    } else dontSendOnThisLink = true;
                         if(links->at(n)->info.output_only_heartbeat_from != 0)
                         {
                             if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
