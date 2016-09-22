@@ -16,6 +16,7 @@ mlink::mlink(link_info info_)
 void mlink::qAddOutgoing(mavlink_message_t msg)
 {
     bool returnCheck = qMavOut.push(msg);
+    recentPacketSent++;
 
     if(!returnCheck) //Then the queue is full
     {
@@ -47,6 +48,8 @@ void mlink::getSysID_thisLink()
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
     //Check if this message needs special handling based on content
+    
+    recentPacketCount++;
 
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
         onHeartbeatRecv(msg->sysid);
