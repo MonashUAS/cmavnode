@@ -99,7 +99,7 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
         //add it to the mapping
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
         sysID_thisLink.push_back(std::make_tuple(sysID, nowTime));
-        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping.";
+        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
     }
     else
     {
@@ -128,7 +128,7 @@ void mlink::checkForDeadSysID()
 
         if(milliseconds > MAV_HEARTBEAT_TIMEOUT_MS)
         {
-            LOG(INFO) << "Removing sysID: " << (int)std::get<0>(sysID_thisLink.at(i)) << " from the mapping.";
+            LOG(INFO) << "Removing sysID: " << (int)std::get<0>(sysID_thisLink.at(i)) << " from the mapping on link: " << info.link_name;
             sysID_thisLink.erase(sysID_thisLink.begin() + i);
 
             //decrement i so we dont miss a sysID
