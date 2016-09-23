@@ -27,17 +27,17 @@ using namespace libconfig;
 
 
 std::string filename;
-//factory to build the links
-//std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList);
 
 bool exitMainLoop = false;
 
 //timing stuff, not happy with this implementation
 long now_ms = 0;
 long last_update_sysid_ms = 0;
+long lastPrintLinkStatsMs = 0;
 long myclock();
 
 bool dumbBroadcast = false;
+bool verbose = false;
 
 void runMainLoop(std::vector<std::unique_ptr<mlink>> *links);
 void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links);
@@ -45,12 +45,11 @@ void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links);
 //Helper function to find targets in all the message types
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
-std::vector<std::string> socketInitList;
-std::vector<std::string> serialInitList;
 
 //Periodic function timings
 #define UPDATE_SYSID_INTERVAL_MS 10
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
+#define PRINT_LINK_STATS_MS 10000 
 
 void exitGracefully(int a)
 {
@@ -83,8 +82,7 @@ int main(int argc, char** argv)
         ("help", "Print help messages")
         ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
         ("dumbbroadcast,d", boost::program_options::bool_switch(&dumbBroadcast), "dont take sysid mapping into account")
-        ("socket", boost::program_options::value<std::vector<std::string>>(),"UDP Link, usage: --socket=<targetip>:<targetport>:<listeningport>")
-        ("serial", boost::program_options::value<std::vector<std::string>>(),"Serial Link, usage: --serial=<port>:<baudrate");
+        ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
 
         boost::program_options::variables_map vm;
         try
@@ -246,17 +244,6 @@ int main(int argc, char** argv)
 
             }
 
-            //store link strings
-            if ( vm.count("socket"))
-            {
-                socketInitList = vm["socket"].as<std::vector<std::string>>();
-            }
-
-            if ( vm.count("serial"))
-            {
-                serialInitList = vm["serial"].as<std::vector<std::string>>();
-            }
-
         }
         catch(boost::program_options::error& e)
         {
@@ -268,16 +255,12 @@ int main(int argc, char** argv)
 
         LOG(INFO) << "Command line arguments parsed succesfully";
 
-        //local object holds pointers to the links
-
-        //Set up the links
-//        links = linkFactory(socketInitList, serialInitList);
-
-        LOG(INFO) << "Links Initialized";
+        LOG(INFO) << "Links Initialized, routing loop starting";
 
         while(!exitMainLoop)
         {
             runMainLoop(&links);
+            runPeriodicFunctions(&links);
         }
 
         /*----------------END MAIN CODE------------------*/
@@ -293,52 +276,15 @@ int main(int argc, char** argv)
     return SUCCESS;
 } //main
 
-/*
-std::vector<std::unique_ptr<mlink>> linkFactory(std::vector<std::string> socketInitList, std::vector<std::string> serialInitList)
-{
-    // this function reads the strings passed in by the user, and creates the mlink objects
-    // returns vector of all comms links
-
-    std::vector<std::unique_ptr<mlink>> links;
-
-    for(int i = 0; i < socketInitList.size(); i++)
-    {
-        std::vector<std::string> thisLinkArgs;
-        boost::split(thisLinkArgs, socketInitList.at(i), boost::is_any_of(":"));
-
-        if(thisLinkArgs.size() != 3)
-        {
-            throw Exception("Socket connection string not valid");
-        }
-        //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new asyncsocket(thisLinkArgs.at(0),thisLinkArgs.at(1),thisLinkArgs.at(2), i, socketInitList.at(i))));
-    }
-
-    for(int i = 0; i < serialInitList.size(); i++)
-    {
-        std::vector<std::string> thisLinkArgs;
-        boost::split(thisLinkArgs, serialInitList.at(i), boost::is_any_of(":"));
-
-        if(thisLinkArgs.size() != 2)
-        {
-            throw Exception("Serial connection string not valid");
-        }
-        //create on the heap and add a pointer
-        links.push_back(std::unique_ptr<mlink>(new serial(thisLinkArgs.at(0),thisLinkArgs.at(1),socketInitList.size() + i ,serialInitList.at(i))));
-    }
-
-    return links;
-}
-*/
 
 void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
 {
 //Gets run in a while loop once links are setup
 
-        for(int i = 0; i < links->size(); i++)
-        {
-            links->at(i)->getSysID_thisLink();
-        }
+    for(int i = 0; i < links->size(); i++)
+    {
+        links->at(i)->getSysID_thisLink();
+    }
 
     for(int i = 0; i < links->size(); i++)
     {
@@ -370,7 +316,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                             if(msg.sysid == links->at(n)->info.output_only_from.at(z))
                             dontSendOnThisLink = false;
                         }
-                    } else dontSendOnThisLink = true;
+                    } else dontSendOnThisLink = false;
                     if(links->at(n)->info.output_only_heartbeat_from != 0)
                     {
                         if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
@@ -449,7 +395,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                             if(msg.sysid == links->at(n)->info.output_only_from.at(z))
                             dontSendOnThisLink = false;
                         }
-                    } else dontSendOnThisLink = true;
+                    } else dontSendOnThisLink = false;
                         if(links->at(n)->info.output_only_heartbeat_from != 0)
                         {
                             if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
@@ -475,7 +421,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
                 } //end targeted block
             }
 
-            if(!wasForwarded)
+            if(!wasForwarded && verbose)
             {
                 LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg << " link name: " << links->at(i)->info.link_name;
             }
@@ -490,6 +436,33 @@ void runPeriodicFunctions(std::vector<std::unique_ptr<mlink>> *links)
 {
 
     now_ms = myclock();
+
+    //print linkstats
+    if(now_ms - lastPrintLinkStatsMs > PRINT_LINK_STATS_MS)
+    {
+        lastPrintLinkStatsMs = myclock();
+
+        LOG(INFO) << "=====================================";
+        for(int i = 0; i < links->size(); i++)
+        {
+            std::ostringstream buffer;
+
+            buffer << "Link: " << links->at(i)->info.link_name << " Received: " << links->at(i)->recentPacketCount << " Sent: " <<
+                links->at(i)->recentPacketSent << " Systems on link: ";
+            
+                        if(links->at(i)->sysIDpub.size() != 0){
+                        for(int k = 0; k < links->at(i)->sysIDpub.size(); k++)
+                        {
+                            buffer << (int)links->at(i)->sysIDpub.at(k) << " ";
+                        }
+                        } else buffer << "none";
+
+                links->at(i)->recentPacketCount = 0;
+                links->at(i)->recentPacketSent = 0;
+            LOG(INFO) << buffer.str();
+        }
+        LOG(INFO) << "+++++++++++++++++++++++++++++++++++++";
+    }
 
   //  if(now_ms - last_update_sysid_ms > UPDATE_SYSID_INTERVAL_MS)
    // {

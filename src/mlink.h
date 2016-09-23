@@ -70,6 +70,9 @@ public:
 
     link_info info;
 
+    long recentPacketCount = 0;
+    long recentPacketSent = 0;
+
 protected:
     //Keep track of system ID's on this link and the last heartbeat time
     std::vector<std::tuple<uint8_t, boost::posix_time::ptime>> sysID_thisLink;
