@@ -27,7 +27,7 @@
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
 #ifndef HACK_SYS_ID_TARGET
-#define HACK_SYS_ID_TARGET 255
+#define HACK_SYS_ID_TARGET 0
 #endif
 
 typedef struct link_info_{
