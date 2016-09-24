@@ -26,9 +26,6 @@
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
-#ifndef HACK_SYS_ID_TARGET
-#define HACK_SYS_ID_TARGET 0
-#endif
 
 typedef struct link_info_{
     std::string link_name;
@@ -50,6 +47,8 @@ public:
     void qAddOutgoing(mavlink_message_t msg);
     bool qReadIncoming(mavlink_message_t *msg);
 
+    void printHeartbeatStats();
+
     //update the public mapping based on private one
     void getSysID_thisLink();
 
@@ -66,6 +65,8 @@ public:
 
     //Public system ID mapping
     std::vector<uint8_t> sysIDpub;
+
+    std::vector<std::pair<uint8_t, int>> heartbeattracker;
 
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop

@@ -43,11 +43,11 @@ long myclock();
 bool dumbBroadcast = false;
 bool verbose = false;
 
-std::vector<std::unique_ptr<mlink>> links;
+std::vector<std::shared_ptr<mlink>> links;
 
-void runMainLoop(std::vector<std::unique_ptr<mlink>> *links);
+void runMainLoop(std::vector<std::shared_ptr<mlink>> *links);
 
-void printLinkStats(std::vector<std::unique_ptr<mlink>> *links);
+void printLinkStats(std::vector<std::shared_ptr<mlink>> *links);
 //Helper function to find targets in all the message types
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 
@@ -234,14 +234,14 @@ int main(int argc, char** argv)
                     infoloc.output_only_heartbeat_from = output_only_heartbeat_from;
 
                     if(issocket){
-                        links.push_back(std::unique_ptr<mlink>(new asyncsocket(target_ip
+                        links.push_back(std::shared_ptr<mlink>(new asyncsocket(target_ip
                                         ,std::to_string(target_port)
                                         ,std::to_string(receive_port)
                                         ,infoloc)));
                     }
                     else //is serial
                     {
-                        links.push_back(std::unique_ptr<mlink>(new serial(port
+                        links.push_back(std::shared_ptr<mlink>(new serial(port
                                         ,std::to_string(baud)
                                         ,infoloc)));
                     }
@@ -303,7 +303,7 @@ int main(int argc, char** argv)
 } //main
 
 
-void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
+void runMainLoop(std::vector<std::shared_ptr<mlink>> *links)
 {
 //Gets run in a while loop once links are setup
 
@@ -368,7 +368,7 @@ void runMainLoop(std::vector<std::unique_ptr<mlink>> *links)
     boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
 }
 
-void printLinkStats(std::vector<std::unique_ptr<mlink>> *links)
+void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
 {
 
 

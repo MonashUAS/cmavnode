@@ -9,8 +9,9 @@
 #include <readline/history.h>
 void runShell(void);
 void executeLine(char * line);
-void printLinkStats(std::vector<std::unique_ptr<mlink>> *links);
+void printLinkStats(std::vector<std::shared_ptr<mlink>> *links);
+int findlink(std::string link_string, std::shared_ptr<mlink>* prt);
 
-extern std::vector<std::unique_ptr<mlink>> links;
+extern std::vector<std::shared_ptr<mlink>> links;
 extern bool exitMainLoop;
 #endif

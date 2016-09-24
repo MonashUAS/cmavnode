@@ -32,51 +32,13 @@ void executeLine(char * line)
         {
             std::string link_to_do = linestring.substr(5,std::string::npos);
 
+            std::shared_ptr<mlink> linkfound;
 
-            int numberlink;
-            bool isnumber = true;
-            bool found = false;
-            try
-            {
-                numberlink = stoi(link_to_do);
+            if(findlink(link_to_do, &linkfound)){
+
+                linkfound->up = false;
+                std::cout << "Link " << link_to_do << " DOWN" << std::endl;
             }
-            catch(std::invalid_argument& e)
-            {
-
-                isnumber = false;
-            }
-            catch(std::out_of_range& e)
-            {
-                isnumber = false;
-            }
-
-            if(isnumber) // this is bad it assumes less than 10 links
-            {
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(numberlink == links.at(i)->link_id)
-                    {
-                        links.at(i)->up = false;
-                        found = true;
-                    }
-                }
-            }
-            else //not number
-            {
-
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(!link_to_do.compare(links.at(i)->info.link_name))
-                    {
-                        links.at(i)->up = false;
-                        found = true;
-                    }
-                }
-
-
-            }
-
-            if(found) std::cout << "Link " << link_to_do << " DOWN" << std::endl;
             else std::cout << "Link " << link_to_do << " not found" << std::endl;
 
         }
@@ -84,7 +46,6 @@ void executeLine(char * line)
         {
             std::cout << "down requires parameters" << std::endl;
         }
-
     }
     else if(!linestring.compare(0,2,"up"))
     {
@@ -92,50 +53,13 @@ void executeLine(char * line)
         {
             std::string link_to_do = linestring.substr(3,std::string::npos);
 
-            int numberlink;
-            bool isnumber = true;
-            bool found = false;
-            try
-            {
-                numberlink = stoi(link_to_do);
+            std::shared_ptr<mlink> linkfound;
+
+            if(findlink(link_to_do, &linkfound)){
+
+                linkfound->up = true;
+                std::cout << "Link " << link_to_do << " UP" << std::endl;
             }
-            catch(std::invalid_argument& e)
-            {
-
-                isnumber = false;
-            }
-            catch(std::out_of_range& e)
-            {
-                isnumber = false;
-            }
-
-            if(isnumber) // this is bad it assumes less than 10 links
-            {
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(numberlink == links.at(i)->link_id)
-                    {
-                        links.at(i)->up = true;
-                        found = true;
-                    }
-                }
-            }
-            else //not number
-            {
-
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(!link_to_do.compare(links.at(i)->info.link_name))
-                    {
-                        links.at(i)->up = true;
-                        found = true;
-                    }
-                }
-
-
-            }
-
-            if(found) std::cout << "Link " << link_to_do << " UP" << std::endl;
             else std::cout << "Link " << link_to_do << " not found" << std::endl;
 
         }
@@ -145,4 +69,72 @@ void executeLine(char * line)
         }
 
     }
+    else if(!linestring.compare(0,5,"heart"))
+    {
+        if(linestring.size() >= 7)
+        {
+            std::string link_to_do = linestring.substr(6,std::string::npos);
+
+            std::shared_ptr<mlink> linkfound;
+
+            if(findlink(link_to_do, &linkfound)){
+
+                linkfound->printHeartbeatStats();
+            }
+            else std::cout << "Link " << link_to_do << " not found" << std::endl;
+
+        }
+        else
+        {
+            std::cout << "heart requires parameters" << std::endl;
+        }
+
+    }
+}
+
+int findlink(std::string link_string, std::shared_ptr<mlink>* prt){
+
+            int numberlink;
+            bool isnumber = true;
+            bool found = false;
+            try
+            {
+                numberlink = stoi(link_string);
+            }
+            catch(std::invalid_argument& e)
+            {
+
+                isnumber = false;
+            }
+            catch(std::out_of_range& e)
+            {
+                isnumber = false;
+            }
+
+            if(isnumber) // this is bad it assumes less than 10 links
+            {
+                for(int i = 0; i < links.size(); i++)
+                {
+                    if(numberlink == links.at(i)->link_id)
+                    {
+                       *prt = links.at(i); 
+                       return 1;
+                    }
+                }
+            }
+            else //not number
+            {
+
+                for(int i = 0; i < links.size(); i++)
+                {
+                    if(!link_string.compare(links.at(i)->info.link_name))
+                    {
+                       *prt = links.at(i); 
+                       return 1;
+                    }
+                }
+
+
+            }
+            return 0;
 }

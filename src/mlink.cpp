@@ -53,35 +53,36 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
         onHeartbeatRecv(msg->sysid);
-#ifdef MUASMAV
-    if(msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG)
+}
+
+void mlink::printHeartbeatStats(){
+    std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
+
+    for(int i = 0; i < heartbeattracker.size();i++)
     {
-        int cmd = mavlink_msg_command_long_get_command(msg);
-        if(MAV_CMD_OBC_CMD_ACK == cmd || MAV_CMD_OBC_LANDING_STATUS == cmd)
-        {
-            hackSysID(msg);
-        }
+        std::cout << "sysID: " << (int)heartbeattracker.at(i).first 
+            << " # heartbeats: " << heartbeattracker.at(i).second << std::endl;
     }
-#endif
 }
-
-#ifdef MUASMAV
-void mlink::hackSysID(mavlink_message_t *msg)
-{
-    mavlink_command_long_t msgstruct;
-    mavlink_msg_command_long_decode(msg, &msgstruct);
-
-   // msgstruct.target_system = HACK_SYS_ID_TARGET;
-    msgstruct.target_system = 0;
-
-    mavlink_message_t tempmsg;
-    mavlink_msg_command_long_encode(msg->sysid, msg->compid, &tempmsg, &msgstruct);
-    *msg = tempmsg;
-}
-#endif
 
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
+    //heartbeat tracker
+    
+    bool heartbeatexists = false;
+    for(int i = 0; i < heartbeattracker.size();i++)
+    {
+        if(heartbeattracker.at(i).first == sysID){
+            heartbeatexists = true;
+            heartbeattracker.at(i).second++;
+        }
+    }
+    if(!heartbeatexists){
+        std::pair<uint8_t, int> tmp(sysID,1);
+        heartbeattracker.push_back(tmp);
+    }
+
+
     bool exists = false;
     uint8_t indexIfExists;
 
