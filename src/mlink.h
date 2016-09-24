@@ -27,12 +27,13 @@
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
 #ifndef HACK_SYS_ID_TARGET
-#define HACK_SYS_ID_TARGET 255
+#define HACK_SYS_ID_TARGET 0
 #endif
 
 typedef struct link_info_{
     std::string link_name;
-    int receive_from, output_to, output_only_from, output_only_heartbeat_from;
+    int receive_from, output_to, output_only_heartbeat_from;
+    std::vector<int> output_only_from;
 } link_info;
 
 class mlink
@@ -68,6 +69,9 @@ public:
     virtual void runReadThread() {};
 
     link_info info;
+
+    long recentPacketCount = 0;
+    long recentPacketSent = 0;
 
 protected:
     //Keep track of system ID's on this link and the last heartbeat time
