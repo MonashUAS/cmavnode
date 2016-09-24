@@ -42,6 +42,10 @@ public:
     mlink(link_info info_);
     virtual ~mlink() {};
 
+    int link_id;
+
+    bool up = true;
+
     //Send or read mavlink messages
     void qAddOutgoing(mavlink_message_t msg);
     bool qReadIncoming(mavlink_message_t *msg);
