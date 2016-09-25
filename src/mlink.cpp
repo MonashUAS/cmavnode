@@ -15,12 +15,14 @@ mlink::mlink(link_info info_)
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
 {
+    if(!is_kill){
     bool returnCheck = qMavOut.push(msg);
     recentPacketSent++;
 
     if(!returnCheck) //Then the queue is full
     {
         LOG(ERROR) << "MLINK: The outgoing queue is full";
+    }
     }
 }
 

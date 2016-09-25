@@ -99,7 +99,9 @@ void serial::handleSendTo(const boost::system::error_code& error,
     else
     {
         //There was an error
-        throw Exception("Serial: Error in handle_send_to");
+        
+        if(errorcount++ > SERIAL_PORT_MAX_ERROR_BEFORE_KILL)
+            is_kill = true;
     }
 }
 

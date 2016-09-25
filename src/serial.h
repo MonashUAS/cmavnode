@@ -14,6 +14,7 @@
 #include "mlink.h"
 
 #define SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED 2
+#define SERIAL_PORT_MAX_ERROR_BEFORE_KILL 20
 
 class serial: public mlink
 {
@@ -39,6 +40,8 @@ private:
 
     boost::asio::io_service io_service_;
     boost::asio::serial_port port_;
+    
+    int errorcount = 0;
 
     //takes message, puts onto buff and calls send
     void processAndSend(mavlink_message_t *msgToConvert);

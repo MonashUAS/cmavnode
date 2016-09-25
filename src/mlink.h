@@ -75,6 +75,7 @@ public:
 
     link_info info;
 
+    bool is_kill = false;
     long recentPacketCount = 0;
     long recentPacketSent = 0;
 

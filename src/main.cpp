@@ -379,7 +379,8 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
             std::ostringstream buffer;
 
             buffer << "Link: " << links->at(i)->link_id << " " << links->at(i)->info.link_name;
-            if(links->at(i)->up) buffer << " UP ";
+            if(links->at(i)->is_kill) buffer << " DEAD ";
+            else if(links->at(i)->up) buffer << " UP ";
             else buffer << " DOWN ";
 
             buffer << " Received: " << links->at(i)->recentPacketCount << " Sent: " <<
