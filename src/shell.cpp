@@ -25,7 +25,14 @@ void executeLine(char * line)
     else if(!linestring.compare("quit"))
         exitMainLoop = true;
     else if(!linestring.compare("help"))
-        std::cout << "work it out yourself" << std::endl;
+	{
+		std::cout << "Supported commands:" <<std::endl;
+		std::cout << "stat		give link stats and system ids on each line" <<std::endl;
+		std::cout << "heart <link>	list heartbeat count for the link" <<std::endl;
+		std::cout << "down <link>	stop sending on this link" <<std::endl;
+		std::cout << "up <link>		start sending on this link" <<std::endl;
+		std::cout << "quit" <<std::endl;
+	}
     else if(!linestring.compare(0,4,"down"))
     {
         if(linestring.size() >= 6)

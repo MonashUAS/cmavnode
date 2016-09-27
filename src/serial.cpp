@@ -101,7 +101,10 @@ void serial::handleSendTo(const boost::system::error_code& error,
         //There was an error
         
         if(errorcount++ > SERIAL_PORT_MAX_ERROR_BEFORE_KILL)
+	{
             is_kill = true;
+	    LOG(INFO) << "Link " << info.link_name << " is dead";
+	}
     }
 }
 
