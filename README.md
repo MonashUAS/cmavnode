@@ -2,7 +2,7 @@
 MAVLink forwarding node written in C++
 
 This program can forward packets between an arbitrary number of MAVLink connections.
-Supports UDP, and Serial is being worked on.
+Supports UDP, and Serial.
 
 ## Installing
 
@@ -13,9 +13,8 @@ Supports UDP, and Serial is being worked on.
          git submodule update --init
 
 - Install dependencies
-                           
-         Arch Linux: sudo pacman -S boost cmake libconfig
-         Ubuntu: sudo apt-get install libboost-all-dev cmake libconfig++
+
+         Ubuntu: sudo apt-get install libboost-all-dev cmake libconfig++ libreadline-dev
 * Build cmavnode
 
          mkdir build && cd build
@@ -32,14 +31,8 @@ Supports UDP, and Serial is being worked on.
 
 ## Usage
 
-    ./cmavnode --file configfilepath
+    ./cmavnode -f <pathtoconfigfile>
 
-cmavnode is configured by a config file. This config file specifies the links you want (socket or serial) and allows you to dictate routing rules. Please see example.cfg for how this works.
+cmavnode is configured by a config file. This config file specifies the links you want (socket or serial) and allows you to dictate routing rules. Please see examples to see how this works.
 
-## Routing Logic
-
-cmavnode listens for heartbeats on all links. Based on heartbeats received, it maintains internal routing tables to forward mavlink packets to the correct link.
-
-Packets that have no target system, or have a target system set to 0 or -1, are broadcast messages. Broadcast messages are forwarded on all links which ***do not*** point to the system the packet came from.
-
-Packets that have a target system field will be forwarded on all links which point to the target system.
+Use -i to get an interactive shell, type help to list commands.
