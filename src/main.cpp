@@ -55,10 +55,11 @@ void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 //Periodic function timings
 #define UPDATE_SYSID_INTERVAL_MS 10
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
-#define PRINT_LINK_STATS_MS 10000 
+#define PRINT_LINK_STATS_MS 10000
 
 void exitGracefully(int a)
 {
+  std::cout << "Exit code " << a << std::endl;
     if(shellen)
     std::cout << "SIGINT blocked. to exit type 'quit'" << std::endl;
     else
@@ -178,13 +179,12 @@ int main(int argc, char** argv)
                     boost::split(thisLinkoutputfroms, output_only_from_raw, boost::is_any_of(","));
                     std::vector<int> output_only_from;
                     LOG(INFO) << "Link " << link_name << " will output from:";
-                    for(int i = 0; i<thisLinkoutputfroms.size(); i++){
+                    for(unsigned int i = 0; i<thisLinkoutputfroms.size(); i++){
                         int tmpint = atoi(thisLinkoutputfroms.at(i).c_str());
                         output_only_from.push_back(tmpint);
                         LOG(INFO) << tmpint;
                     }
 
-                    
                     try
                     {
                         const Setting &socket = link["socket"];
@@ -269,8 +269,8 @@ int main(int argc, char** argv)
         LOG(INFO) << "Links Initialized, routing loop starting";
 
         int counter = 0;
-        
-        for(int i = 0; i < links.size(); i++)
+
+        for(unsigned int i = 0; i < links.size(); i++)
         {
             links.at(i)->link_id = counter++;
         }
@@ -307,12 +307,12 @@ void runMainLoop(std::vector<std::shared_ptr<mlink>> *links)
 {
 //Gets run in a while loop once links are setup
 
-    for(int i = 0; i < links->size(); i++)
+    for(unsigned int i = 0; i < links->size(); i++)
     {
         links->at(i)->getSysID_thisLink();
     }
 
-    for(int i = 0; i < links->size(); i++)
+    for(unsigned int i = 0; i < links->size(); i++)
     {
         mavlink_message_t msg;
         //while reading off buffer for link i
@@ -326,7 +326,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink>> *links)
             LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
 
             bool wasForwarded = false;
-            for(int n = 0; n < links->size(); n++)
+            for(unsigned int n = 0; n < links->size(); n++)
             {
 
                 bool dontSendOnThisLink = true;
@@ -335,7 +335,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink>> *links)
                 if(n == i) sysOnThisLink = true;
                 if(links->at(n)->info.output_only_from.at(0) != 0)
                 {
-                    for(int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
+                    for(unsigned int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
                     {
                         if(msg.sysid == links->at(n)->info.output_only_from.at(z))
                         dontSendOnThisLink = false;
@@ -374,7 +374,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
 
 
         LOG(INFO) << "=====================================";
-        for(int i = 0; i < links->size(); i++)
+        for(unsigned int i = 0; i < links->size(); i++)
         {
             std::ostringstream buffer;
 
@@ -385,9 +385,9 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
 
             buffer << " Received: " << links->at(i)->recentPacketCount << " Sent: " <<
                 links->at(i)->recentPacketSent << " Systems on link: ";
-            
+
                         if(links->at(i)->sysIDpub.size() != 0){
-                        for(int k = 0; k < links->at(i)->sysIDpub.size(); k++)
+                        for(unsigned int k = 0; k < links->at(i)->sysIDpub.size(); k++)
                         {
                             buffer << (int)links->at(i)->sysIDpub.at(k) << " ";
                         }
