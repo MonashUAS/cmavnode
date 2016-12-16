@@ -38,11 +38,11 @@ void mlink::getSysID_thisLink()
     //iterate through internal mapping and return sysID's
     checkForDeadSysID();
     // Empty the vector of system IDs
-    sysIDpub.clear()
+    sysIDpub.clear();
 
     // Iterate through the system ID stats map and put all of the sys IDs into
     // sysIDpub
-    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
       sysIDpub.push_back(iter->first);
@@ -62,7 +62,7 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 void mlink::printHeartbeatStats(){
     std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
 
-    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
       std::cout << "sysID: " << iter->first
@@ -74,16 +74,22 @@ void mlink::printHeartbeatStats(){
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
     // Search for the given system ID
-    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
+    std::pair<std::map<uint8_t, heartbeat_stats>::iterator, bool> ret;
     // If the system ID is new, add it to the map. Return the position of the new or existing element
-    iter = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
+    ret = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
+    iter = ret.first;
 
     // Record when the heartbeat was received
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Update the map for this system ID
-    iter->second.heartbeats_received++;
+    iter->second.num_heartbeats_received++;
     iter->second.last_heartbeat_time = nowTime;
+
+    // Check whether the system ID is new and log if it is
+    if (ret.second == true)
+      LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
 }
 
 
@@ -96,7 +102,7 @@ void mlink::checkForDeadSysID()
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Iterating through the map
-    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
       boost::posix_time::time_duration dur = nowTime - iter->second.last_heartbeat_time;
