@@ -84,7 +84,6 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-            temp = data_in_[i];
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
                 onMessageRecv(&msg);
@@ -140,22 +139,13 @@ void asyncsocket::runWriteThread()
     //busy wait on the spsc_queueo
     mavlink_message_t tmpMsg;
 
-    //thread loop
-    while(!exitFlag)
+    // Thread loop
+    while (!exitFlag)
     {
-        if(qMavOut.pop(tmpMsg))
-        {
-            processAndSend(&tmpMsg);
-            //keep going
-            while(qMavOut.pop(tmpMsg))
-            {
-                processAndSend(&tmpMsg);
-            }
-        }
-        else
-        {
-            //queue is empty sleep the write thread
-            boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
-        }
+      while (qMavOut.pop(tmpMsg))
+      {
+        processAndSend(&tmpMsg);
+      }
+      boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
 }
