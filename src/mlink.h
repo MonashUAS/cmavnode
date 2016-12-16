@@ -26,12 +26,11 @@
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
-
-typedef struct link_info_{
+struct link_info{
     std::string link_name;
     int receive_from, output_to, output_only_heartbeat_from;
     std::vector<int> output_only_from;
-} link_info;
+};
 
 class mlink
 {
