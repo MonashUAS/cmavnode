@@ -78,7 +78,7 @@ public:
     long recentPacketSent = 0;
 
 protected:
-    struct heartbeat_stats
+    struct heartbeat_stats {
       int num_heartbeats_received = 0;  // Perhaps make this long type?
       boost::posix_time::ptime last_heartbeat_time;
     };
