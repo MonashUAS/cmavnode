@@ -66,8 +66,6 @@ public:
     //Public system ID mapping
     std::vector<uint8_t> sysIDpub;
 
-    std::vector<std::pair<uint8_t, int>> heartbeattracker;
-
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop
     virtual void runWriteThread() {};
@@ -80,8 +78,12 @@ public:
     long recentPacketSent = 0;
 
 protected:
-    //Keep track of system ID's on this link and the last heartbeat time
-    std::vector<std::tuple<uint8_t, boost::posix_time::ptime>> sysID_thisLink;
+    struct heartbeat_stats
+      int num_heartbeats_received = 0;  // Perhaps make this long type?
+      boost::posix_time::ptime last_heartbeat_time;
+    };
+    // Track heartbeat stats for each system ID.
+    std::map<uint8_t, heartbeat_stats> sysID_stats;
 
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
