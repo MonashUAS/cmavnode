@@ -37,20 +37,22 @@ void mlink::getSysID_thisLink()
 {
     //iterate through internal mapping and return sysID's
     checkForDeadSysID();
-    std::vector<uint8_t> mapping;
-    for(int i = 0; i < sysID_thisLink.size(); i++)
-    {
-        mapping.push_back(std::get<0>(sysID_thisLink.at(i)));
-        //LOG(INFO) << "Adding sysid " << std::get<0>(sysID_thisLink.at(i)) << "to public mapping";
-    }
+    // Empty the vector of system IDs
+    sysIDpub.clear()
 
-    sysIDpub = mapping;
+    // Iterate through the system ID stats map and put all of the sys IDs into
+    // sysIDpub
+    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
+    {
+      sysIDpub.push_back(iter->first);
+    }
 }
 
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
     //Check if this message needs special handling based on content
-    
+
     recentPacketCount++;
 
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
@@ -60,57 +62,28 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 void mlink::printHeartbeatStats(){
     std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
 
-    for(int i = 0; i < heartbeattracker.size();i++)
+    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-        std::cout << "sysID: " << (int)heartbeattracker.at(i).first 
-            << " # heartbeats: " << heartbeattracker.at(i).second << std::endl;
+      std::cout << "sysID: " << iter->first
+                << " # heartbeats: " << iter->second.num_heartbeats_received
+                << std::endl;
     }
 }
 
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
-    //heartbeat tracker
-    
-    bool heartbeatexists = false;
-    for(int i = 0; i < heartbeattracker.size();i++)
-    {
-        if(heartbeattracker.at(i).first == sysID){
-            heartbeatexists = true;
-            heartbeattracker.at(i).second++;
-        }
-    }
-    if(!heartbeatexists){
-        std::pair<uint8_t, int> tmp(sysID,1);
-        heartbeattracker.push_back(tmp);
-    }
+    // Search for the given system ID
+    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    // If the system ID is new, add it to the map. Return the position of the new or existing element
+    iter = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
 
+    // Record when the heartbeat was received
+    boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
-    bool exists = false;
-    uint8_t indexIfExists;
-
-    for(int i = 0; i < sysID_thisLink.size(); i++)
-    {
-        if(std::get<0>(sysID_thisLink.at(i)) == sysID)
-        {
-            exists = true;
-            indexIfExists = i;
-        }
-    }
-
-    if(!exists)
-    {
-        //add it to the mapping
-        boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        sysID_thisLink.push_back(std::make_tuple(sysID, nowTime));
-        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
-    }
-    else
-    {
-        //just update the last heartbeat time
-        boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        std::get<1>(sysID_thisLink.at(indexIfExists)) = nowTime;
-    }
-
+    // Update the map for this system ID
+    iter->second.heartbeats_received++;
+    iter->second.last_heartbeat_time = nowTime;
 }
 
 
@@ -122,21 +95,18 @@ void mlink::checkForDeadSysID()
     //get the time now
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
-    for(int i = 0; i < sysID_thisLink.size(); i++)
+    // Iterating through the map
+    std::map<uint8_t, heartbeat_stats>::iterater iter;
+    for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
+      boost::posix_time::time_duration dur = nowTime - iter->second.last_heartbeat_time;
+      long time_between_heartbeats = dur.total_milliseconds();
 
-        //tuple syntax is gross
-        boost::posix_time::time_duration dur = nowTime - std::get<1>(sysID_thisLink.at(i));
-        long milliseconds = dur.total_milliseconds();
-
-        if(milliseconds > MAV_HEARTBEAT_TIMEOUT_MS)
-        {
-            LOG(INFO) << "Removing sysID: " << (int)std::get<0>(sysID_thisLink.at(i)) << " from the mapping on link: " << info.link_name;
-            sysID_thisLink.erase(sysID_thisLink.begin() + i);
-
-            //decrement i so we dont miss a sysID
-            i--;
-        }
+      if(time_between_heartbeats > MAV_HEARTBEAT_TIMEOUT_MS)  // Check for timeout
+      {
+        // Log then erase
+        LOG(INFO) << "Removing sysID: " << iter->first << " from the mapping on link: " << info.link_name;
+        sysID_stats.erase(iter);
+      }
     }
-
 }
