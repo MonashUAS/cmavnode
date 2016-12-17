@@ -201,7 +201,7 @@ int main(int argc, char** argv)
                             LOG(ERROR) << "Invalid link, ignoring";
                             continue;
                         }
-                            
+
                     }
                     catch(const SettingNotFoundException &nfex)
                     {
@@ -392,7 +392,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
                             buffer << (int)links->at(i)->sysIDpub.at(k) << " ";
                         }
                         } else buffer << "none";
-          
+
             // Also display radio link status
             auto iter = links->at(i)->sysID_stats.begin();
             while (iter != links->at(i)->sysID_stats.end())
@@ -404,8 +404,11 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
                       << "\n\t\tRemote Noise: " << iter->second.remote_noise
                       << "\tRX Errors: " << iter->second.rx_errors
                       << "\tCorrected Packets: " << iter->second.corrected_packets;
+              // Display link delay
+              buffer << "\n\t\tLink delay: " << iter->second.link_delay;
               ++iter;
             }
+
 
                 links->at(i)->recentPacketCount = 0;
                 links->at(i)->recentPacketSent = 0;
