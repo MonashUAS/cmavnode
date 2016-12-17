@@ -75,14 +75,22 @@ public:
     bool is_kill = false;
     long recentPacketCount = 0;
     long recentPacketSent = 0;
-
-protected:
-    struct heartbeat_stats {
+    
+    struct link_stats {
       int num_heartbeats_received = 0;  // Perhaps make this long type?
       boost::posix_time::ptime last_heartbeat_time;
+      int local_rssi = 0;
+      int remote_rssi = 0;
+      int tx_buffer = 0;
+      int local_noise = 0;
+      int remote_noise = 0;
+      int rx_errors = 0;
+      int corrected_packets = 0;
     };
     // Track heartbeat stats for each system ID.
-    std::map<uint8_t, heartbeat_stats> sysID_stats;
+    std::map<uint8_t, link_stats> sysID_stats;
+
+protected:
 
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
