@@ -86,6 +86,7 @@ public:
       int remote_noise = 0;
       int rx_errors = 0;
       int corrected_packets = 0;
+      std::string link_delay = "";
     };
     // Track heartbeat stats for each system ID.
     std::map<uint8_t, link_stats> sysID_stats;
