@@ -51,12 +51,26 @@ void mlink::getSysID_thisLink()
 
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    //Check if this message needs special handling based on content
+      //Check if this message needs special handling based on content
 
     recentPacketCount++;
 
+    // If the message was a heartbeat, update (or add) that system ID
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
         onHeartbeatRecv(msg->sysid);
+
+    // If the message is about the link - update the link stats
+    if (msg->msgid == 166)
+    {
+      std::map<uint8_t, link_stats>::iterator iter = sysID_stats.find(msg->sysid);
+      iter->second.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+      iter->second.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+      iter->second.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+      iter->second.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+      iter->second.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+      iter->second.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+      iter->second.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+    }
 }
 
 void mlink::printHeartbeatStats(){
