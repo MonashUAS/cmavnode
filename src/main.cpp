@@ -392,6 +392,20 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
                             buffer << (int)links->at(i)->sysIDpub.at(k) << " ";
                         }
                         } else buffer << "none";
+          
+            // Also display radio link status
+            auto iter = links->at(i)->sysID_stats.begin();
+            while (iter != links->at(i)->sysID_stats.end())
+            {
+              buffer << "\n\t\tLocal RSSI: " << iter->second.local_rssi
+                      << "\tRemote RSSI: " << iter->second.remote_rssi
+                      << "\tTX Buffer: " << iter->second.tx_buffer
+                      << "\tLocal Noise: " << iter->second.local_noise
+                      << "\n\t\tRemote Noise: " << iter->second.remote_noise
+                      << "\tRX Errors: " << iter->second.rx_errors
+                      << "\tCorrected Packets: " << iter->second.corrected_packets;
+              ++iter;
+            }
 
                 links->at(i)->recentPacketCount = 0;
                 links->at(i)->recentPacketSent = 0;
