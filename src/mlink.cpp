@@ -57,11 +57,12 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 
     // If the message was a heartbeat, update (or add) that system ID
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
-        onHeartbeatRecv(msg->sysid);
-
-    // If the message is about the link - update the link stats
-    if (msg->msgid == 166)
     {
+        onHeartbeatRecv(msg->sysid);
+    }
+    else if (msg->msgid == 166)  // If the message is about the link, update the link stats
+    {
+      // Select the appropriate system ID
       std::map<uint8_t, link_stats>::iterator iter = sysID_stats.find(msg->sysid);
       iter->second.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
       iter->second.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
@@ -70,6 +71,19 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
       iter->second.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
       iter->second.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
       iter->second.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+    }
+    else if (msg->msgid == 179) // If the message was a GPS timestamp, update the link stats
+    {
+      // Select the appropriate system ID
+      std::map<uint8_t, link_stats>::iterator iter = sysID_stats.find(msg->sysid);
+      // Time when packet was sent
+      boost::posix_time::time_duration mins_remote =  boost::posix_time::minutes(_MAV_RETURN_uint8_t(msg,  4));
+      boost::posix_time::time_duration secs_remote = boost::posix_time::seconds(_MAV_RETURN_uint8_t(msg,  5));
+      // Current time
+      boost::posix_time::ptime time_local = boost::posix_time::second_clock::universal_time();
+      //Calculate packet delay
+      iter->second.link_delay = to_simple_string(time_local - mins_remote
+                                                - secs_remote).substr(15,5);
     }
 }
 
