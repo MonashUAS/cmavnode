@@ -134,7 +134,8 @@ void mlink::checkForDeadSysID()
 
       if(time_between_heartbeats > MAV_HEARTBEAT_TIMEOUT_MS)  // Check for timeout
       {
-        std::cout << "sysID: " << (int)(iter->first) << " timed out after " << time_between_heartbeats << "." << std::endl; //TEST
+        // Clarify why links drop out due to timing out
+        LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_heartbeats/1000 << " s.";
         // Log then erase
         LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
         sysID_stats.erase(iter);
