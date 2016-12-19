@@ -18,6 +18,9 @@
 #include <iostream>
 #include <tuple>
 
+
+#include <list>
+
 #include "exception.h"
 
 #define MAV_INCOMING_LENGTH 1000
@@ -75,10 +78,16 @@ public:
     bool is_kill = false;
     long recentPacketCount = 0;
     long recentPacketSent = 0;
-    
-    struct link_stats {
-      int num_heartbeats_received = 0;  // Perhaps make this long type?
+
+    struct heartbeat_stats {
+      int num_heartbeats_received = 0;
       boost::posix_time::ptime last_heartbeat_time;
+    };
+    // Track heartbeat stats for each system ID.
+    std::map<uint8_t, heartbeat_stats> sysID_stats;
+
+    // Track link quality for the link
+    struct link_quality_stats {
       int local_rssi = 0;
       int remote_rssi = 0;
       int tx_buffer = 0;
@@ -88,11 +97,9 @@ public:
       int corrected_packets = 0;
       std::string link_delay = "";
     };
-    // Track heartbeat stats for each system ID.
-    std::map<uint8_t, link_stats> sysID_stats;
+    link_quality_stats link_quality;
 
 protected:
-
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
 
