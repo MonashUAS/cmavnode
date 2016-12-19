@@ -65,7 +65,7 @@ void mlink::printHeartbeatStats(){
     std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      std::cout << "sysID: " << iter->first
+      std::cout << "sysID: " << (int)iter->first
                 << " # heartbeats: " << iter->second.num_heartbeats_received
                 << std::endl;
     }
