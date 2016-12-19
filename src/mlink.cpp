@@ -42,7 +42,7 @@ void mlink::getSysID_thisLink()
 
     // Iterate through the system ID stats map and put all of the sys IDs into
     // sysIDpub
-    std::map<uint8_t, link_stats>::iterator iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
       sysIDpub.push_back(iter->first);
@@ -51,10 +51,9 @@ void mlink::getSysID_thisLink()
 
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
-      //Check if this message needs special handling based on content
+    //Check if this message needs special handling based on content
 
     recentPacketCount++;
-
     // If the message was a heartbeat, update (or add) that system ID
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
     {
@@ -62,27 +61,24 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
     }
     else if (msg->msgid == 166)  // If the message is about the link, update the link stats
     {
-      // Select the appropriate system ID
-      std::map<uint8_t, link_stats>::iterator iter = sysID_stats.find(msg->sysid);
-      iter->second.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
-      iter->second.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
-      iter->second.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
-      iter->second.local_noise = _MAV_RETURN_uint8_t(msg,  7);
-      iter->second.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
-      iter->second.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
-      iter->second.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+      // Update link quality stats for this link
+      link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+      link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+      link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+      link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+      link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+      link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+      link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
     }
     else if (msg->msgid == 179) // If the message was a GPS timestamp, update the link stats
     {
-      // Select the appropriate system ID
-      std::map<uint8_t, link_stats>::iterator iter = sysID_stats.find(msg->sysid);
       // Time when packet was sent
       boost::posix_time::time_duration mins_remote =  boost::posix_time::minutes(_MAV_RETURN_uint8_t(msg,  4));
       boost::posix_time::time_duration secs_remote = boost::posix_time::seconds(_MAV_RETURN_uint8_t(msg,  5));
       // Current time
       boost::posix_time::ptime time_local = boost::posix_time::second_clock::universal_time();
       //Calculate packet delay
-      iter->second.link_delay = to_simple_string(time_local - mins_remote
+      link_quality.link_delay = to_simple_string(time_local - mins_remote
                                                 - secs_remote).substr(15,5);
     }
 }
@@ -90,10 +86,10 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 void mlink::printHeartbeatStats(){
     std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
 
-    std::map<uint8_t, link_stats>::iterator iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      std::cout << "sysID: " << iter->first
+      std::cout << "sysID: " << (int)iter->first
                 << " # heartbeats: " << iter->second.num_heartbeats_received
                 << std::endl;
     }
@@ -102,10 +98,10 @@ void mlink::printHeartbeatStats(){
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
     // Search for the given system ID
-    std::map<uint8_t, link_stats>::iterator iter;
-    std::pair<std::map<uint8_t, link_stats>::iterator, bool> ret;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
+    std::pair<std::map<uint8_t, heartbeat_stats>::iterator, bool> ret;
     // If the system ID is new, add it to the map. Return the position of the new or existing element
-    ret = sysID_stats.insert(std::pair<uint8_t,link_stats>(sysID,link_stats()));
+    ret = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
     iter = ret.first;
 
     // Record when the heartbeat was received
@@ -130,7 +126,7 @@ void mlink::checkForDeadSysID()
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Iterating through the map
-    std::map<uint8_t, link_stats>::iterator iter;
+    std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
       boost::posix_time::time_duration dur = nowTime - iter->second.last_heartbeat_time;
@@ -138,6 +134,7 @@ void mlink::checkForDeadSysID()
 
       if(time_between_heartbeats > MAV_HEARTBEAT_TIMEOUT_MS)  // Check for timeout
       {
+        std::cout << "sysID: " << (int)(iter->first) << " timed out after " << time_between_heartbeats << "." << std::endl; //TEST
         // Log then erase
         LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
         sysID_stats.erase(iter);
