@@ -394,20 +394,16 @@ void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
                         } else buffer << "none";
 
             // Also display radio link status
-            auto iter = links->at(i)->sysID_stats.begin();
-            while (iter != links->at(i)->sysID_stats.end())
-            {
-              buffer << "\n\t\tLocal RSSI: " << iter->second.local_rssi
-                      << "\tRemote RSSI: " << iter->second.remote_rssi
-                      << "\tTX Buffer: " << iter->second.tx_buffer
-                      << "\tLocal Noise: " << iter->second.local_noise
-                      << "\n\t\tRemote Noise: " << iter->second.remote_noise
-                      << "\tRX Errors: " << iter->second.rx_errors
-                      << "\tCorrected Packets: " << iter->second.corrected_packets;
-              // Display link delay
-              buffer << "\n\t\tLink delay: " << iter->second.link_delay;
-              ++iter;
-            }
+            buffer << "\n\t\tLocal RSSI: " << links->at(i)->link_quality.local_rssi
+                    << "\tRemote RSSI: " << links->at(i)->link_quality.remote_rssi
+                    << "\tTX Buffer: " << links->at(i)->link_quality.tx_buffer
+                    << "\tLocal Noise: " << links->at(i)->link_quality.local_noise
+                    << "\n\t\tRemote Noise: " << links->at(i)->link_quality.remote_noise
+                    << "\tRX Errors: " << links->at(i)->link_quality.rx_errors
+                    << "\tCorrected Packets: " << links->at(i)->link_quality.corrected_packets;
+            // Display link delay
+            buffer << "\n\t\tLink delay: " << links->at(i)->link_quality.link_delay;
+
 
 
                 links->at(i)->recentPacketCount = 0;
