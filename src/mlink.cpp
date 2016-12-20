@@ -59,7 +59,7 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
     {
         onHeartbeatRecv(msg->sysid);
     }
-    else if (msg->msgid == 166)  // If the message is about the link, update the link stats
+    else if (msg->msgid == 109)  // If the message is about the link, update the link stats
     {
       // Update link quality stats for this link
       link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
