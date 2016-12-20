@@ -2,625 +2,579 @@
  * Monash UAS
  */
 
-#include <readline/readline.h>
-#include <readline/history.h>
-#include <iostream>
+// Leaving out dumbBroadcast since it was previously unused
+// Leaving out exitGracefully() and signal() as they appeared redundant
+// Leaving out myclock() and all other timing variables as they were unused
+
+#include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
-#include <stdio.h>
-#include <signal.h>
+#include <string>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
-#include <string>
 #include <vector>
-#include <chrono>
-#include <memory>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/thread.hpp>
-#include "../include/mavlink/ardupilotmega/mavlink.h"
-#include "../include/logging/src/easylogging++.h"
-#include <libconfig.h++>
+#include <algorithm>
+#include <ostream>
+#include <boost/bind.hpp>
+#include <boost/ref.hpp>
 
-using namespace libconfig;
-
+// CMAVNode headers
 #include "mlink.h"
 #include "asyncsocket.h"
 #include "serial.h"
 #include "exception.h"
 #include "shell.h"
-
-
-std::string filename;
-
-bool exitMainLoop = false;
-bool shellen = true;
-
-//timing stuff, not happy with this implementation
-long now_ms = 0;
-long last_update_sysid_ms = 0;
-long lastPrintLinkStatsMs = 0;
-long myclock();
-
-bool dumbBroadcast = false;
-bool verbose = false;
-
-std::vector<std::shared_ptr<mlink>> links;
-
-void runMainLoop(std::vector<std::shared_ptr<mlink>> *links);
-
-void printLinkStats(std::vector<std::shared_ptr<mlink>> *links);
-//Helper function to find targets in all the message types
-void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
-
+#include "ConfigFile.h"
 
 //Periodic function timings
-#define UPDATE_SYSID_INTERVAL_MS 10
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
-#define PRINT_LINK_STATS_MS 10000
 
-void exitGracefully(int a)
-{
-  std::cout << "Exit code " << a << std::endl;
-    if(shellen)
-    std::cout << "SIGINT blocked. to exit type 'quit'" << std::endl;
-    else
-    {
-    LOG(INFO) << "SIGINT caught, deconstructing links and exiting";
-    exitMainLoop = true;
-    }
-}
+// Functions in this file
+boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
+int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
+int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> > &links);
+void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
+void printLinkStats(std::vector<std::shared_ptr<mlink> > *links);
+void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
+void exitGracefully(int a);
 
-
-namespace
-{
-const size_t ERROR_IN_COMMAND_LINE = 1;
-const size_t SUCCESS = 0;
-const size_t ERROR_UNHANDLED_EXCEPTION = 2;
-
-} // namespace
+bool exitMainLoop = false;
 
 INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char** argv)
 {
+    signal(SIGINT, exitGracefully);
+    // Keep track of all known links
+    std::vector<std::shared_ptr<mlink> > links;
+    // Default mode selections
+    bool shellen = true;
+    bool verbose = false;
+
+    // Begin logging
     START_EASYLOGGINGPP(argc, argv);
     el::Loggers::configureFromGlobal("log.conf");
-    signal(SIGINT, exitGracefully);
+
+    std::string filename;
+    boost::program_options::options_description desc = add_program_options(filename, shellen, verbose);
+
+    int ret = try_user_options(argc, argv, desc);
+    if (ret == 1)
+        return 1; // Error
+    else if (ret == -1)
+        return 0; // Help option
+
+    ret = read_config_file(filename, links);
+    if (links.size() == 0)
+    {
+        LOG(ERROR) << "No Valid Links found";
+        return 1; // Catch other errors
+    }
+
+    LOG(INFO) << "Command line arguments parsed succesfully.";
+    LOG(INFO) << "Links Initialized, routing loop starting.";
+
+    // Number the links
+    for (int i = 0; i != links.size(); ++i)
+    {
+        links.at(i)->link_id = i;
+    }
+
+    // Run the shell thread
+    boost::thread shell;
+    if (shellen)
+    {
+        shell = boost::thread(runShell, boost::ref(exitMainLoop), boost::ref(links));
+        // The boost::thread constructor implicitly binds runShell to &exitMainLoop and &links
+    }
+
+    // Start the main loop
+    while (!exitMainLoop)
+    {
+        runMainLoop(&links, verbose);
+    }
+
+    // Once the main loop is done, rejoin the shell thread
+    if (shellen)
+        shell.join();
+
+    // Report successful exit from main()
+    LOG(INFO) << "Links deallocated, stack unwound, exiting.";
+    return 0;
+}
+
+boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose)
+{
+    boost::program_options::options_description desc("Options");
+    desc.add_options()
+    ("help", "Print help messages")
+    ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
+    ("interface,i", boost::program_options::bool_switch(&shellen), "start in interactive mode with cmav shell")
+    ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
+    return desc;
+}
+
+int try_user_options(int argc, char** argv, boost::program_options::options_description desc)
+{
+    // Respond to the initial input (if any) provided by the user
+    boost::program_options::variables_map vm;
     try
     {
-        /** Define and parse the program options
-        */
-        boost::program_options::options_description desc("Options");
-        desc.add_options()
-        ("help", "Print help messages")
-        ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
-        ("interface,i", boost::program_options::bool_switch(&shellen), "start in interactive mode with cmav shell")
-        ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
+        boost::program_options::store(
+            boost::program_options::parse_command_line(argc, argv, desc), vm);
+    }
+    catch (boost::program_options::error& e)
+    {
+        LOG(ERROR) << "ERROR: " << e.what();
+        std::cerr << desc << std::endl;
+        return 1; // Error in command line
+    }
 
-        boost::program_options::variables_map vm;
+    // --help option
+    if (vm.count("help"))
+    {
+        std::cout << "CMAVNode - Mavlink router" << std::endl
+                  << desc << std::endl;
+        return -1; // Help option selected
+    }
+
+    // Catch potential errors again
+    try
+    {
+        boost::program_options::notify(vm);
+    }
+    catch (boost::program_options::error& e)
+    {
+        LOG(ERROR) << "ERROR: " << e.what();
+        std::cerr << desc << std::endl;
+        return 1; // Error in command line
+    }
+
+    // If no known option were given, return an error
+    if( !vm.count("socket") && !vm.count("serial") && !vm.count("file") )
+    {
+        LOG(ERROR) << "Program cannot be run without arguments.";
+        std::cerr << desc << std::endl;
+        return 1; // Error in command line
+    }
+    return 0; // No errors or help option detected
+
+}
+
+int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> > &links)
+{
+    ConfigFile _configFile = ConfigFile(filename);
+
+    std::vector<std::string> sections = _configFile.GetSections();
+    LOG(INFO) << "Found " << sections.size() << " links";
+
+    for (int i = 0; i < sections.size(); i++)
+    {
+        std::string type;
+        bool isSerial = false;
+        bool isUDP = false;
+        std::cout<<"Link: " << sections.at(i) << std::endl;
         try
         {
-            boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc),
-                                          vm); // can throw
+            type = _configFile.Value(sections.at(i),"type");
+            std::cout<<"Type: " << type << std::endl;
+        }
+        catch(int e)
+        {
+            LOG(ERROR) << "Link has no type";
+            continue;
+        }
+        std::string serialport;
+        int baud;
+        std::string targetip;
+        int targetport, localport;
 
-            /** --help option
-            */
-            if ( vm.count("help")  )
-            {
-                std::cout << "Basic Command Line Parameter App" << std::endl
-                          << desc << std::endl;
-                return SUCCESS;
-            }
+        //hack for now to hardcode the link_info
+        std::vector<int> output_only_from;
+        output_only_from.push_back(0);
+        link_info infoloc;
+        infoloc.link_name = sections.at(i);
+        infoloc.output_only_from = output_only_from;
+        infoloc.output_only_heartbeat_from = 0;
 
-            boost::program_options::notify(vm); // throws on error, so do after help in case
-            // there are any problems
-
-            if( !vm.count("socket") && !vm.count("serial") && !vm.count("file") )
-            {
-                LOG(ERROR) << "Program cannot be run without arguments.";
-                std::cerr << desc << std::endl;
-                return ERROR_IN_COMMAND_LINE;
-            }
-
-
-            if(dumbBroadcast)
-            LOG(INFO) << "WARNING: cmavnode is operating in dumb broadcast mode, all packets are treated as broadcast, and heartbeats are not used to determine routing rules. Hardcoded routing rules still apply.\n USE WITH CARE, RISK OF CIRCULAR ROUTING AND LINK SATURATION";
-            Config cfg;
-
+        if( type.compare("serial") == 0)
+        {
             try
             {
-                LOG(INFO) << "Reading config file: " << filename;
-                cfg.readFile(filename.c_str());
+                serialport = _configFile.Value(sections.at(i), "port");
+                baud = _configFile.iValue(sections.at(i), "baud");
             }
-            catch(const FileIOException &fioex)
+            catch(int e)
             {
-                LOG(ERROR) << "Cannot open config file";
-                return ERROR_IN_COMMAND_LINE;
+                LOG(ERROR) << "Invalid serial link";
+                continue;
             }
-            catch(const ParseException &pex)
-            {
-                LOG(ERROR) << "Cannot parse config file";
-                return ERROR_IN_COMMAND_LINE;
-            }
-
-            const Setting& root = cfg.getRoot();
-
+            isSerial = true;
+            LOG(INFO) << "Valid Serial Link Found " << serialport << " " << baud;
+        }
+        else if(type.compare("udp") == 0)
+        {
             try
             {
-                const Setting &linksconfig = root["links"];
-                int numlinks = linksconfig.getLength();
+                targetip = _configFile.Value(sections.at(i), "targetip");
+                targetport = _configFile.iValue(sections.at(i), "targetport");
+                localport = _configFile.iValue(sections.at(i), "localport");
+            }
+            catch(int e)
+            {
+                LOG(ERROR) << "Invalid UDP link";
+                continue;
+            }
+            isUDP = true;
+            LOG(INFO) << "Valid UDP Link Found " << targetip << ":" << targetport << " -> " << localport;
+        }
+        else
+        {
+            LOG(ERROR) << "Invalid link type: " << type;
+            continue;
+        }
 
-                LOG(INFO) << "Config file parsed, " << numlinks << " links found.";
+        //if we made it this far without break we have a valid link of some sort
+        if(isSerial)
+        {
+            links.push_back(std::shared_ptr<mlink>(new serial(serialport
+                                                    ,std::to_string(baud)
+                                                    ,infoloc)));
+        }
+        else if (isUDP)
+        {
+            links.push_back(
+                std::shared_ptr<mlink>(new asyncsocket(targetip,
+                                       std::to_string(targetport)
+                                       ,std::to_string(localport)
+                                       ,infoloc)));
+        }
+    }
+    return 0;
+}
 
-                for(int i = 0; i < numlinks; ++i)
+    void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
+    {
+        // Gets run in a while loop once links are setup
+
+        // Iterate through each link
+        mavlink_message_t msg;
+        for (auto incoming_link = links->begin(); incoming_link != links->end(); ++incoming_link)
+        {
+            // Update the link's public system IDs
+            (*incoming_link)->getSysID_thisLink();
+
+            // Try to read from the buffer for this link
+            while ((*incoming_link)->qReadIncoming(&msg))
+            {
+                // Determine the correct target system ID for this message
+                int16_t sysIDmsg, compIDmsg;
+                getTargets(&msg, sysIDmsg, compIDmsg);
+
+                // Use the system ID to determine where to send the message
+                LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
+
+                // Iterate through each link to send to the correct target
+                for (auto outgoing_link = links->begin(); outgoing_link != links->end(); ++outgoing_link)
                 {
-                    bool valid = false;
-                    bool issocket = false;
-                    const Setting &link = linksconfig[i];
+                    if (outgoing_link == incoming_link)  // If the packet came from this link, don't bother
+                        continue;
 
-                    std::string link_name;
-                    int receive_from, output_to, output_only_heartbeat_from;
-                    std::string port;
-                    std::string output_only_from_raw;
-                    int baud;
-                    std::string target_ip;
-                    int target_port, receive_port;
-
-                    if(!(link.lookupValue("link_name", link_name)
-                                && link.lookupValue("receive_from", receive_from)
-                                && link.lookupValue("output_to", output_to)
-                                && link.lookupValue("output_only_from", output_only_from_raw)
-                                && link.lookupValue("output_only_heartbeat_from", output_only_heartbeat_from)))
+                    // If the current link being checked is designated to receive
+                    // from a non-zero system ID and that system ID isn't present on
+                    // this link, don't send on this link.
+                    if ((*outgoing_link)->info.output_only_from[0] != 0 &&
+                            std::find((*outgoing_link)->info.output_only_from.begin(),
+                                      (*outgoing_link)->info.output_only_from.end(),
+                                      msg.sysid) == (*outgoing_link)->info.output_only_from.end())
                     {
-                        LOG(ERROR) << "Invalid link, ignoring";
                         continue;
                     }
 
-                    std::vector<std::string> thisLinkoutputfroms;
-                    boost::split(thisLinkoutputfroms, output_only_from_raw, boost::is_any_of(","));
-                    std::vector<int> output_only_from;
-                    LOG(INFO) << "Link " << link_name << " will output from:";
-                    for(unsigned int i = 0; i<thisLinkoutputfroms.size(); i++){
-                        int tmpint = atoi(thisLinkoutputfroms.at(i).c_str());
-                        output_only_from.push_back(tmpint);
-                        LOG(INFO) << tmpint;
-                    }
-
-                    try
+                    // If this link is designated to receive heartbeats on a non-zero
+                    // system ID and the message ID is a mavlink heartbeat and
+                    // the system ID of the message is doesn't match with the what
+                    // the link expects, don't send on this link.
+                    if ((*outgoing_link)->info.output_only_heartbeat_from != 0 &&
+                            msg.msgid == MAVLINK_MSG_ID_HEARTBEAT &&
+                            msg.sysid != (*outgoing_link)->info.output_only_heartbeat_from)
                     {
-                        const Setting &socket = link["socket"];
-
-                        if((socket.lookupValue("target_ip",target_ip)
-                                    && socket.lookupValue("target_port",target_port)
-                                    && socket.lookupValue("receive_port",receive_port)))
-                        {
-                            valid = true;
-                            issocket = true;
-                        }
-                        else
-                        {
-                            LOG(ERROR) << "Invalid link, ignoring";
-                            continue;
-                        }
-                            
+                        continue;
                     }
-                    catch(const SettingNotFoundException &nfex)
+
+                    // Provided nothing else has failed and the link is up, add the
+                    // message to the outgoing queue.
+                    if ((*outgoing_link)->up)
                     {
-                        try
-                        {
-                        const Setting &serial = link["serial"];
-
-                        if((serial.lookupValue("port",port)
-                                    && serial.lookupValue("baud",baud)))
-                            valid = true;
-                        else
-                        {
-                            LOG(ERROR) << "Invalid link, ignoring";
-                            continue;
-                        }
-                        }
-                        catch(const SettingNotFoundException &nfex)
-                        {
-                            LOG(ERROR) << "Invalid link, ignoring";
-                            continue;
-                        }
+                        (*outgoing_link)->qAddOutgoing(msg);
                     }
-                    if(valid) LOG(INFO) << "Valid link found";
-
-                    link_info infoloc;
-                    infoloc.link_name = link_name;
-                    infoloc.receive_from = receive_from;
-                    infoloc.output_to = output_to;
-                    infoloc.output_only_from = output_only_from;
-                    infoloc.output_only_heartbeat_from = output_only_heartbeat_from;
-
-                    if(issocket){
-                        links.push_back(std::shared_ptr<mlink>(new asyncsocket(target_ip
-                                        ,std::to_string(target_port)
-                                        ,std::to_string(receive_port)
-                                        ,infoloc)));
-                    }
-                    else //is serial
+                    else if (verbose)
                     {
-                        links.push_back(std::shared_ptr<mlink>(new serial(port
-                                        ,std::to_string(baud)
-                                        ,infoloc)));
+                        LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid
+                                   << " msgID: " << (int)msg.msgid
+                                   << " target system: " << (int)sysIDmsg
+                                   << " link name: " << (*incoming_link)->info.link_name;
                     }
                 }
-
             }
-            catch(const SettingNotFoundException &nfex)
-            {
-                LOG(ERROR) << "Cannot find links in config file";
-                return ERROR_IN_COMMAND_LINE;
-
-            }
-
         }
-        catch(boost::program_options::error& e)
-        {
-            LOG(ERROR) << "ERROR: " << e.what();
-            std::cerr << desc << std::endl;
-            return ERROR_IN_COMMAND_LINE;
-        }
-        /*--------------END COMMAND LINE PARSING------------------*/
-
-        LOG(INFO) << "Command line arguments parsed succesfully";
-
-        LOG(INFO) << "Links Initialized, routing loop starting";
-
-        int counter = 0;
-
-        for(unsigned int i = 0; i < links.size(); i++)
-        {
-            links.at(i)->link_id = counter++;
-        }
-
-        boost::thread shell;
-        if(shellen)
-        shell = boost::thread(runShell);
-
-        while(!exitMainLoop)
-        {
-
-            runMainLoop(&links);
-        }
-
-
-        if(shellen)
-        shell.join();
-
-        /*----------------END MAIN CODE------------------*/
+        boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
-    catch(std::exception& e)
+
+    void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
     {
-        LOG(FATAL) << "Unhandled Exception reached the top of main: "
-                   << e.what() << ", application will now exit";
-        return ERROR_UNHANDLED_EXCEPTION;
-
-    }
-    LOG(INFO) << "Links deallocated, stack unwound, exiting";
-    return SUCCESS;
-} //main
-
-
-void runMainLoop(std::vector<std::shared_ptr<mlink>> *links)
-{
-//Gets run in a while loop once links are setup
-
-    for(unsigned int i = 0; i < links->size(); i++)
-    {
-        links->at(i)->getSysID_thisLink();
-    }
-
-    for(unsigned int i = 0; i < links->size(); i++)
-    {
-        mavlink_message_t msg;
-        //while reading off buffer for link i
-        while(links->at(i)->qReadIncoming(&msg))
-        {
-            int16_t sysIDmsg = 0;
-            int16_t compIDmsg = 0;
-            getTargets(&msg, sysIDmsg, compIDmsg);
-
-            //we have got a message, work out where to send it
-            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
-
-            bool wasForwarded = false;
-            for(unsigned int n = 0; n < links->size(); n++)
-            {
-
-                bool dontSendOnThisLink = true;
-                bool sysOnThisLink = false;
-                //if the packet came from this link, dont bother
-                if(n == i) sysOnThisLink = true;
-                if(links->at(n)->info.output_only_from.at(0) != 0)
-                {
-                    for(unsigned int z = 0; z < links->at(n)->info.output_only_from.size(); z++)
-                    {
-                        if(msg.sysid == links->at(n)->info.output_only_from.at(z))
-                        dontSendOnThisLink = false;
-                    }
-                } else dontSendOnThisLink = false;
-                if(links->at(n)->info.output_only_heartbeat_from != 0)
-                {
-                    if(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT && msg.sysid != links->at(n)->info.output_only_heartbeat_from)
-                    {
-                        dontSendOnThisLink = true;
-                    }
-                }
-
-                //If this link doesn't point to the system that sent the message, send here
-                if(!sysOnThisLink && !dontSendOnThisLink && links->at(n)->up)
-                {
-                    links->at(n)->qAddOutgoing(msg);
-                    wasForwarded = true;
-                }
-            }
-
-            if(!wasForwarded && verbose)
-            {
-                LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg << " link name: " << links->at(i)->info.link_name;
-            }
-        }
-    }
-
-
-    boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
-}
-
-void printLinkStats(std::vector<std::shared_ptr<mlink>> *links)
-{
-
-
-
-        LOG(INFO) << "=====================================";
-        for(unsigned int i = 0; i < links->size(); i++)
+        LOG(INFO) << "---------------------------------------------------------------------";
+        // Print stats for each known link
+        for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
         {
             std::ostringstream buffer;
 
-            buffer << "Link: " << links->at(i)->link_id << " " << links->at(i)->info.link_name;
-            if(links->at(i)->is_kill) buffer << " DEAD ";
-            else if(links->at(i)->up) buffer << " UP ";
-            else buffer << " DOWN ";
+            buffer << "Link: " << (*curr_link)->link_id << " "
+                   << (*curr_link)->info.link_name << " ";
+            if ((*curr_link)->is_kill)
+            {
+                buffer << "DEAD ";
+            }
+            else if ((*curr_link)->up)
+            {
+                buffer << "UP ";
+            }
+            else
+            {
+                buffer << "DOWN ";
+            }
 
-            buffer << " Received: " << links->at(i)->recentPacketCount << " Sent: " <<
-                links->at(i)->recentPacketSent << " Systems on link: ";
+            buffer << "Received: " << (*curr_link)->recentPacketCount << " "
+                   << "Sent: " << (*curr_link)->recentPacketSent << " "
+                   << "Systems on link: " << (*curr_link)->sysIDpub.size();
 
-                        if(links->at(i)->sysIDpub.size() != 0){
-                        for(unsigned int k = 0; k < links->at(i)->sysIDpub.size(); k++)
-                        {
-                            buffer << (int)links->at(i)->sysIDpub.at(k) << " ";
-                        }
-                        } else buffer << "none";
+            // Reset the recent packet counts
+            (*curr_link)->recentPacketCount = 0;
+            (*curr_link)->recentPacketSent = 0;
 
-                links->at(i)->recentPacketCount = 0;
-                links->at(i)->recentPacketSent = 0;
             LOG(INFO) << buffer.str();
         }
-        LOG(INFO) << "+++++++++++++++++++++++++++++++++++++";
-}
-
-void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
-{
-    /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
-    // unfortunately the targets are not in a consistent position in
-    // the packets, so we need a switch. Using the single element
-    // extraction functions (which are inline) makes this a bit faster
-    // than it would otherwise be.
-    // This list of messages below was extracted using:
-    //
-    // cat ardupilotmega/*h common/*h|egrep
-    // 'get_target_system|get_target_component' |grep inline | cut
-    // -d'(' -f1 | cut -d' ' -f4 > /tmp/targets.txt
-    //
-    // TODO: we should write a python script to extract this list
-    // properly
-
-    switch (msg->msgid)
-    {
-        // these messages only have a target system
-    case MAVLINK_MSG_ID_CAMERA_FEEDBACK:
-        sysid = mavlink_msg_camera_feedback_get_target_system(msg);
-        break;
-    case MAVLINK_MSG_ID_CAMERA_STATUS:
-        sysid = mavlink_msg_camera_status_get_target_system(msg);
-        break;
-    case MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL:
-        sysid = mavlink_msg_change_operator_control_get_target_system(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_MODE:
-        sysid = mavlink_msg_set_mode_get_target_system(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
-        sysid = mavlink_msg_set_gps_global_origin_get_target_system(msg);
-        break;
-
-        // these support both target system and target component
-    case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
-        sysid  = mavlink_msg_digicam_configure_get_target_system(msg);
-        compid = mavlink_msg_digicam_configure_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_DIGICAM_CONTROL:
-        sysid  = mavlink_msg_digicam_control_get_target_system(msg);
-        compid = mavlink_msg_digicam_control_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_FENCE_FETCH_POINT:
-        sysid  = mavlink_msg_fence_fetch_point_get_target_system(msg);
-        compid = mavlink_msg_fence_fetch_point_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_FENCE_POINT:
-        sysid  = mavlink_msg_fence_point_get_target_system(msg);
-        compid = mavlink_msg_fence_point_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MOUNT_CONFIGURE:
-        sysid  = mavlink_msg_mount_configure_get_target_system(msg);
-        compid = mavlink_msg_mount_configure_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MOUNT_CONTROL:
-        sysid  = mavlink_msg_mount_control_get_target_system(msg);
-        compid = mavlink_msg_mount_control_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MOUNT_STATUS:
-        sysid  = mavlink_msg_mount_status_get_target_system(msg);
-        compid = mavlink_msg_mount_status_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_RALLY_FETCH_POINT:
-        sysid  = mavlink_msg_rally_fetch_point_get_target_system(msg);
-        compid = mavlink_msg_rally_fetch_point_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_RALLY_POINT:
-        sysid  = mavlink_msg_rally_point_get_target_system(msg);
-        compid = mavlink_msg_rally_point_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_MAG_OFFSETS:
-        sysid  = mavlink_msg_set_mag_offsets_get_target_system(msg);
-        compid = mavlink_msg_set_mag_offsets_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_COMMAND_INT:
-        sysid  = mavlink_msg_command_int_get_target_system(msg);
-        compid = mavlink_msg_command_int_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_COMMAND_LONG:
-        sysid  = mavlink_msg_command_long_get_target_system(msg);
-        compid = mavlink_msg_command_long_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
-        sysid  = mavlink_msg_file_transfer_protocol_get_target_system(msg);
-        compid = mavlink_msg_file_transfer_protocol_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_GPS_INJECT_DATA:
-        sysid  = mavlink_msg_gps_inject_data_get_target_system(msg);
-        compid = mavlink_msg_gps_inject_data_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_LOG_ERASE:
-        sysid  = mavlink_msg_log_erase_get_target_system(msg);
-        compid = mavlink_msg_log_erase_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
-        sysid  = mavlink_msg_log_request_data_get_target_system(msg);
-        compid = mavlink_msg_log_request_data_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_LOG_REQUEST_END:
-        sysid  = mavlink_msg_log_request_end_get_target_system(msg);
-        compid = mavlink_msg_log_request_end_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
-        sysid  = mavlink_msg_log_request_list_get_target_system(msg);
-        compid = mavlink_msg_log_request_list_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_ACK:
-        sysid  = mavlink_msg_mission_ack_get_target_system(msg);
-        compid = mavlink_msg_mission_ack_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
-        sysid  = mavlink_msg_mission_clear_all_get_target_system(msg);
-        compid = mavlink_msg_mission_clear_all_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_COUNT:
-        sysid  = mavlink_msg_mission_count_get_target_system(msg);
-        compid = mavlink_msg_mission_count_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_ITEM:
-        sysid  = mavlink_msg_mission_item_get_target_system(msg);
-        compid = mavlink_msg_mission_item_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_ITEM_INT:
-        sysid  = mavlink_msg_mission_item_int_get_target_system(msg);
-        compid = mavlink_msg_mission_item_int_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_REQUEST:
-        sysid  = mavlink_msg_mission_request_get_target_system(msg);
-        compid = mavlink_msg_mission_request_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
-        sysid  = mavlink_msg_mission_request_list_get_target_system(msg);
-        compid = mavlink_msg_mission_request_list_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_REQUEST_PARTIAL_LIST:
-        sysid  = mavlink_msg_mission_request_partial_list_get_target_system(msg);
-        compid = mavlink_msg_mission_request_partial_list_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
-        sysid  = mavlink_msg_mission_set_current_get_target_system(msg);
-        compid = mavlink_msg_mission_set_current_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_MISSION_WRITE_PARTIAL_LIST:
-        sysid  = mavlink_msg_mission_write_partial_list_get_target_system(msg);
-        compid = mavlink_msg_mission_write_partial_list_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
-        sysid  = mavlink_msg_param_request_list_get_target_system(msg);
-        compid = mavlink_msg_param_request_list_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
-        sysid  = mavlink_msg_param_request_read_get_target_system(msg);
-        compid = mavlink_msg_param_request_read_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_PARAM_SET:
-        sysid  = mavlink_msg_param_set_get_target_system(msg);
-        compid = mavlink_msg_param_set_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_PING:
-        sysid  = mavlink_msg_ping_get_target_system(msg);
-        compid = mavlink_msg_ping_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
-        sysid  = mavlink_msg_rc_channels_override_get_target_system(msg);
-        compid = mavlink_msg_rc_channels_override_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
-        sysid  = mavlink_msg_request_data_stream_get_target_system(msg);
-        compid = mavlink_msg_request_data_stream_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_SAFETY_SET_ALLOWED_AREA:
-        sysid  = mavlink_msg_safety_set_allowed_area_get_target_system(msg);
-        compid = mavlink_msg_safety_set_allowed_area_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
-        sysid  = mavlink_msg_set_attitude_target_get_target_system(msg);
-        compid = mavlink_msg_set_attitude_target_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
-        sysid  = mavlink_msg_set_position_target_global_int_get_target_system(msg);
-        compid = mavlink_msg_set_position_target_global_int_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
-        sysid  = mavlink_msg_set_position_target_local_ned_get_target_system(msg);
-        compid = mavlink_msg_set_position_target_local_ned_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_V2_EXTENSION:
-        sysid  = mavlink_msg_v2_extension_get_target_system(msg);
-        compid = mavlink_msg_v2_extension_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_GIMBAL_REPORT:
-        sysid  = mavlink_msg_gimbal_report_get_target_system(msg);
-        compid = mavlink_msg_gimbal_report_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_GIMBAL_CONTROL:
-        sysid  = mavlink_msg_gimbal_control_get_target_system(msg);
-        compid = mavlink_msg_gimbal_control_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_GIMBAL_TORQUE_CMD_REPORT:
-        sysid  = mavlink_msg_gimbal_torque_cmd_report_get_target_system(msg);
-        compid = mavlink_msg_gimbal_torque_cmd_report_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_REMOTE_LOG_DATA_BLOCK:
-        sysid  = mavlink_msg_remote_log_data_block_get_target_system(msg);
-        compid = mavlink_msg_remote_log_data_block_get_target_component(msg);
-        break;
-    case MAVLINK_MSG_ID_REMOTE_LOG_BLOCK_STATUS:
-        sysid  = mavlink_msg_remote_log_block_status_get_target_system(msg);
-        compid = mavlink_msg_remote_log_block_status_get_target_component(msg);
-        break;
+        LOG(INFO) << "---------------------------------------------------------------------";
     }
-}
 
-long myclock()
-{
-    typedef std::chrono::high_resolution_clock clock;
-    typedef std::chrono::duration<float, std::milli> duration;
+    void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
+    {
+        /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
+        // unfortunately the targets are not in a consistent position in
+        // the packets, so we need a switch. Using the single element
+        // extraction functions (which are inline) makes this a bit faster
+        // than it would otherwise be.
+        // This list of messages below was extracted using:
+        //
+        // cat ardupilotmega/*h common/*h|egrep
+        // 'get_target_system|get_target_component' |grep inline | cut
+        // -d'(' -f1 | cut -d' ' -f4 > /tmp/targets.txt
+        //
+        // TODO: we should write a python script to extract this list
+        // properly
 
-    static clock::time_point start = clock::now();
-    duration elapsed = clock::now() - start;
-    return elapsed.count();
-}
+        switch (msg->msgid)
+        {
+            // these messages only have a target system
+        case MAVLINK_MSG_ID_CAMERA_FEEDBACK:
+            sysid = mavlink_msg_camera_feedback_get_target_system(msg);
+            break;
+        case MAVLINK_MSG_ID_CAMERA_STATUS:
+            sysid = mavlink_msg_camera_status_get_target_system(msg);
+            break;
+        case MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL:
+            sysid = mavlink_msg_change_operator_control_get_target_system(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_MODE:
+            sysid = mavlink_msg_set_mode_get_target_system(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
+            sysid = mavlink_msg_set_gps_global_origin_get_target_system(msg);
+            break;
+
+            // these support both target system and target component
+        case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
+            sysid  = mavlink_msg_digicam_configure_get_target_system(msg);
+            compid = mavlink_msg_digicam_configure_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_DIGICAM_CONTROL:
+            sysid  = mavlink_msg_digicam_control_get_target_system(msg);
+            compid = mavlink_msg_digicam_control_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_FENCE_FETCH_POINT:
+            sysid  = mavlink_msg_fence_fetch_point_get_target_system(msg);
+            compid = mavlink_msg_fence_fetch_point_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_FENCE_POINT:
+            sysid  = mavlink_msg_fence_point_get_target_system(msg);
+            compid = mavlink_msg_fence_point_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MOUNT_CONFIGURE:
+            sysid  = mavlink_msg_mount_configure_get_target_system(msg);
+            compid = mavlink_msg_mount_configure_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MOUNT_CONTROL:
+            sysid  = mavlink_msg_mount_control_get_target_system(msg);
+            compid = mavlink_msg_mount_control_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MOUNT_STATUS:
+            sysid  = mavlink_msg_mount_status_get_target_system(msg);
+            compid = mavlink_msg_mount_status_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_RALLY_FETCH_POINT:
+            sysid  = mavlink_msg_rally_fetch_point_get_target_system(msg);
+            compid = mavlink_msg_rally_fetch_point_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_RALLY_POINT:
+            sysid  = mavlink_msg_rally_point_get_target_system(msg);
+            compid = mavlink_msg_rally_point_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_MAG_OFFSETS:
+            sysid  = mavlink_msg_set_mag_offsets_get_target_system(msg);
+            compid = mavlink_msg_set_mag_offsets_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_COMMAND_INT:
+            sysid  = mavlink_msg_command_int_get_target_system(msg);
+            compid = mavlink_msg_command_int_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_COMMAND_LONG:
+            sysid  = mavlink_msg_command_long_get_target_system(msg);
+            compid = mavlink_msg_command_long_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL:
+            sysid  = mavlink_msg_file_transfer_protocol_get_target_system(msg);
+            compid = mavlink_msg_file_transfer_protocol_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_GPS_INJECT_DATA:
+            sysid  = mavlink_msg_gps_inject_data_get_target_system(msg);
+            compid = mavlink_msg_gps_inject_data_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_LOG_ERASE:
+            sysid  = mavlink_msg_log_erase_get_target_system(msg);
+            compid = mavlink_msg_log_erase_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
+            sysid  = mavlink_msg_log_request_data_get_target_system(msg);
+            compid = mavlink_msg_log_request_data_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_LOG_REQUEST_END:
+            sysid  = mavlink_msg_log_request_end_get_target_system(msg);
+            compid = mavlink_msg_log_request_end_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
+            sysid  = mavlink_msg_log_request_list_get_target_system(msg);
+            compid = mavlink_msg_log_request_list_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_ACK:
+            sysid  = mavlink_msg_mission_ack_get_target_system(msg);
+            compid = mavlink_msg_mission_ack_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
+            sysid  = mavlink_msg_mission_clear_all_get_target_system(msg);
+            compid = mavlink_msg_mission_clear_all_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_COUNT:
+            sysid  = mavlink_msg_mission_count_get_target_system(msg);
+            compid = mavlink_msg_mission_count_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_ITEM:
+            sysid  = mavlink_msg_mission_item_get_target_system(msg);
+            compid = mavlink_msg_mission_item_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_ITEM_INT:
+            sysid  = mavlink_msg_mission_item_int_get_target_system(msg);
+            compid = mavlink_msg_mission_item_int_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_REQUEST:
+            sysid  = mavlink_msg_mission_request_get_target_system(msg);
+            compid = mavlink_msg_mission_request_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
+            sysid  = mavlink_msg_mission_request_list_get_target_system(msg);
+            compid = mavlink_msg_mission_request_list_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_REQUEST_PARTIAL_LIST:
+            sysid  = mavlink_msg_mission_request_partial_list_get_target_system(msg);
+            compid = mavlink_msg_mission_request_partial_list_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
+            sysid  = mavlink_msg_mission_set_current_get_target_system(msg);
+            compid = mavlink_msg_mission_set_current_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_MISSION_WRITE_PARTIAL_LIST:
+            sysid  = mavlink_msg_mission_write_partial_list_get_target_system(msg);
+            compid = mavlink_msg_mission_write_partial_list_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+            sysid  = mavlink_msg_param_request_list_get_target_system(msg);
+            compid = mavlink_msg_param_request_list_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
+            sysid  = mavlink_msg_param_request_read_get_target_system(msg);
+            compid = mavlink_msg_param_request_read_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_PARAM_SET:
+            sysid  = mavlink_msg_param_set_get_target_system(msg);
+            compid = mavlink_msg_param_set_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_PING:
+            sysid  = mavlink_msg_ping_get_target_system(msg);
+            compid = mavlink_msg_ping_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+            sysid  = mavlink_msg_rc_channels_override_get_target_system(msg);
+            compid = mavlink_msg_rc_channels_override_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
+            sysid  = mavlink_msg_request_data_stream_get_target_system(msg);
+            compid = mavlink_msg_request_data_stream_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_SAFETY_SET_ALLOWED_AREA:
+            sysid  = mavlink_msg_safety_set_allowed_area_get_target_system(msg);
+            compid = mavlink_msg_safety_set_allowed_area_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
+            sysid  = mavlink_msg_set_attitude_target_get_target_system(msg);
+            compid = mavlink_msg_set_attitude_target_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
+            sysid  = mavlink_msg_set_position_target_global_int_get_target_system(msg);
+            compid = mavlink_msg_set_position_target_global_int_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED:
+            sysid  = mavlink_msg_set_position_target_local_ned_get_target_system(msg);
+            compid = mavlink_msg_set_position_target_local_ned_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_V2_EXTENSION:
+            sysid  = mavlink_msg_v2_extension_get_target_system(msg);
+            compid = mavlink_msg_v2_extension_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_GIMBAL_REPORT:
+            sysid  = mavlink_msg_gimbal_report_get_target_system(msg);
+            compid = mavlink_msg_gimbal_report_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_GIMBAL_CONTROL:
+            sysid  = mavlink_msg_gimbal_control_get_target_system(msg);
+            compid = mavlink_msg_gimbal_control_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_GIMBAL_TORQUE_CMD_REPORT:
+            sysid  = mavlink_msg_gimbal_torque_cmd_report_get_target_system(msg);
+            compid = mavlink_msg_gimbal_torque_cmd_report_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_REMOTE_LOG_DATA_BLOCK:
+            sysid  = mavlink_msg_remote_log_data_block_get_target_system(msg);
+            compid = mavlink_msg_remote_log_data_block_get_target_component(msg);
+            break;
+        case MAVLINK_MSG_ID_REMOTE_LOG_BLOCK_STATUS:
+            sysid  = mavlink_msg_remote_log_block_status_get_target_system(msg);
+            compid = mavlink_msg_remote_log_block_status_get_target_component(msg);
+            break;
+        }
+    }
+
+    void exitGracefully(int a)
+    {
+        std::cout << "Exit code " << a << std::endl;
+        LOG(INFO) << "SIGINT caught, deconstructing links and exiting";
+        exitMainLoop = true;
+    }

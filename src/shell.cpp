@@ -1,6 +1,6 @@
 #include "shell.h"
 
-void runShell(void)
+void runShell(bool &exitMainLoop, std::vector<std::shared_ptr<mlink> > &links)
 {
     while(!exitMainLoop)
     {
@@ -8,14 +8,14 @@ void runShell(void)
         if(!line) break;
         if(*line) add_history(line);
 
-        executeLine(line);
+        executeLine(line, exitMainLoop, links);
 
         free(line);
     }
 }
 
 
-void executeLine(char * line)
+void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mlink> > &links)
 {
 
     std::string linestring(line);
@@ -41,7 +41,7 @@ void executeLine(char * line)
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound)){
+            if(findlink(link_to_do, &linkfound, links)){
 
                 linkfound->up = false;
                 std::cout << "Link " << link_to_do << " DOWN" << std::endl;
@@ -62,7 +62,7 @@ void executeLine(char * line)
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound)){
+            if(findlink(link_to_do, &linkfound, links)){
 
                 linkfound->up = true;
                 std::cout << "Link " << link_to_do << " UP" << std::endl;
@@ -84,7 +84,7 @@ void executeLine(char * line)
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound)){
+            if(findlink(link_to_do, &linkfound, links)){
 
                 linkfound->printHeartbeatStats();
             }
@@ -99,7 +99,9 @@ void executeLine(char * line)
     }
 }
 
-int findlink(std::string link_string, std::shared_ptr<mlink>* prt){
+int findlink(std::string link_string, std::shared_ptr<mlink>* prt,
+            std::vector<std::shared_ptr<mlink> > &links)
+{
 
             int numberlink;
             bool isnumber = true;
@@ -124,7 +126,7 @@ int findlink(std::string link_string, std::shared_ptr<mlink>* prt){
                 {
                     if(numberlink == links.at(i)->link_id)
                     {
-                       *prt = links.at(i); 
+                       *prt = links.at(i);
                        return 1;
                     }
                 }
@@ -136,7 +138,7 @@ int findlink(std::string link_string, std::shared_ptr<mlink>* prt){
                 {
                     if(!link_string.compare(links.at(i)->info.link_name))
                     {
-                       *prt = links.at(i); 
+                       *prt = links.at(i);
                        return 1;
                     }
                 }
