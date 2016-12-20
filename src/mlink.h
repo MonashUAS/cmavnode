@@ -18,9 +18,6 @@
 #include <iostream>
 #include <tuple>
 
-
-#include <list>
-
 #include "exception.h"
 
 #define MAV_INCOMING_LENGTH 1000
