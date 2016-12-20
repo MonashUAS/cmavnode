@@ -166,16 +166,17 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
     ConfigFile _configFile = ConfigFile(filename);
 
     std::vector<std::string> sections = _configFile.GetSections();
+    LOG(INFO) << "Found " << sections.size() << " links";
 
-    for (std::vector<std::string>::iterator i = sections.begin(); i < sections.end(); i++)
+    for (int i = 0; i < sections.size(); i++)
     {
         std::string type;
         bool isSerial = false;
         bool isUDP = false;
-        std::cout<<"Link: " << *i << std::endl;
+        std::cout<<"Link: " << sections.at(i) << std::endl;
         try
         {
-            type = _configFile.Value(*i,"type");
+            type = _configFile.Value(sections.at(i),"type");
             std::cout<<"Type: " << type << std::endl;
         }
         catch(int e)
@@ -192,7 +193,7 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         std::vector<int> output_only_from;
         output_only_from.push_back(0);
         link_info infoloc;
-        infoloc.link_name = *i;
+        infoloc.link_name = sections.at(i);
         infoloc.output_only_from = output_only_from;
         infoloc.output_only_heartbeat_from = 0;
 
@@ -200,8 +201,8 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         {
             try
             {
-                serialport = _configFile.Value(*i, "port");
-                baud = _configFile.iValue(*i, "baud");
+                serialport = _configFile.Value(sections.at(i), "port");
+                baud = _configFile.iValue(sections.at(i), "baud");
             }
             catch(int e)
             {
@@ -215,9 +216,9 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         {
             try
             {
-                targetip = _configFile.Value(*i, "targetip");
-                targetport = _configFile.iValue(*i, "targetport");
-                localport = _configFile.iValue(*i, "localport");
+                targetip = _configFile.Value(sections.at(i), "targetip");
+                targetport = _configFile.iValue(sections.at(i), "targetport");
+                localport = _configFile.iValue(sections.at(i), "localport");
             }
             catch(int e)
             {
@@ -248,8 +249,8 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
                                        ,std::to_string(localport)
                                        ,infoloc)));
         }
-        return 0; // No errors encountered
     }
+    return 0;
 }
 
     void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
