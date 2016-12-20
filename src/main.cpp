@@ -2,10 +2,6 @@
  * Monash UAS
  */
 
-// Leaving out dumbBroadcast since it was previously unused
-// Leaving out exitGracefully() and signal() as they appeared redundant
-// Leaving out myclock() and all other timing variables as they were unused
-
 #include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
 #include <string>
@@ -35,6 +31,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> > &links);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links);
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
@@ -356,6 +353,32 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
     }
     LOG(INFO) << "---------------------------------------------------------------------";
 }
+
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
+{
+    // Create a line of link quality
+    std::ostringstream buffer;
+    for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
+    {
+        buffer << "Link: " << (*curr_link)->link_id
+               << "   (" << (*curr_link)->info.link_name << ")\n";
+
+        // Convert link delay into an easier-to-read format
+        std::string delay = to_simple_string((*curr_link)->link_quality.link_delay_ms).substr(7);
+        buffer  << "\tLink delay: " << delay << " s\n"
+                << "\tLocal RSSI: " << (*curr_link)->link_quality.local_rssi
+                << "\tRemote RSSI: " << (*curr_link)->link_quality.remote_rssi << "\n"
+                << "\tLocal noise: " << (*curr_link)->link_quality.local_noise
+                << "\tRemote noise: " << (*curr_link)->link_quality.remote_noise << "\n"
+                << "\tRX errors: " << (*curr_link)->link_quality.rx_errors
+                << "\tCorrected packets: " << (*curr_link)->link_quality.corrected_packets << "\n"
+                << "\tTX buffer: " << (*curr_link)->link_quality.tx_buffer << "%\n";
+    }
+    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+              << buffer.str()
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+}
+
 
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 {

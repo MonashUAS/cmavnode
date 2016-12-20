@@ -95,7 +95,8 @@ public:
       int remote_noise = 0;
       int rx_errors = 0;
       int corrected_packets = 0;
-      std::string link_delay = "";
+      boost::posix_time::ptime last_heartbeat;
+      boost::posix_time::time_duration link_delay_ms;
     };
     link_quality_stats link_quality;
 

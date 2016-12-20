@@ -70,17 +70,6 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
       link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
       link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
     }
-    else if (msg->msgid == 179) // If the message was a GPS timestamp, update the link stats
-    {
-      // Time when packet was sent
-      boost::posix_time::time_duration mins_remote =  boost::posix_time::minutes(_MAV_RETURN_uint8_t(msg,  4));
-      boost::posix_time::time_duration secs_remote = boost::posix_time::seconds(_MAV_RETURN_uint8_t(msg,  5));
-      // Current time
-      boost::posix_time::ptime time_local = boost::posix_time::second_clock::universal_time();
-      //Calculate packet delay
-      link_quality.link_delay = to_simple_string(time_local - mins_remote
-                                                - secs_remote).substr(15,5);
-    }
 }
 
 void mlink::printHeartbeatStats(){
@@ -110,6 +99,16 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     // Update the map for this system ID
     iter->second.num_heartbeats_received++;
     iter->second.last_heartbeat_time = nowTime;
+
+    // Also update the link delay
+    boost::posix_time::time_duration delay = nowTime
+                                                - link_quality.last_heartbeat
+                                                - boost::posix_time::time_duration(0,0,1,0);
+    // Don't allow negative delay
+    if (delay < boost::posix_time::time_duration(0,0,0,0))
+        delay = boost::posix_time::time_duration(0,0,0,0);
+    link_quality.link_delay_ms = delay;
+    link_quality.last_heartbeat = nowTime;
 
     // Check whether the system ID is new and log if it is
     if (ret.second == true)
