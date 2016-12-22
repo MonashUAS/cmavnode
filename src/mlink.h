@@ -17,6 +17,10 @@
 #include "../include/logging/src/easylogging++.h"
 #include <iostream>
 #include <tuple>
+#include <unordered_map>
+#include <map>
+#include <vector>
+#include <utility>
 
 #include "exception.h"
 
@@ -76,9 +80,27 @@ public:
     long recentPacketCount = 0;
     long recentPacketSent = 0;
 
+    // Track link quality for the link
+    struct link_quality_stats {
+      int local_rssi = 0;
+      int remote_rssi = 0;
+      int tx_buffer = 0;
+      int local_noise = 0;
+      int remote_noise = 0;
+      int rx_errors = 0;
+      int corrected_packets = 0;
+      boost::posix_time::ptime last_heartbeat;
+      boost::posix_time::time_duration link_delay_ms;
+      int packets_lost = 0;
+    };
+    link_quality_stats link_quality;
+
+    // Accessor function for recently_read.
+    bool record_incoming_packet(uint8_t &inc_byte);
+
 protected:
     struct heartbeat_stats {
-      int num_heartbeats_received = 0;  // Perhaps make this long type?
+      int num_heartbeats_received = 0;
       boost::posix_time::ptime last_heartbeat_time;
     };
     // Track heartbeat stats for each system ID.
@@ -94,6 +116,11 @@ protected:
 
     uint8_t data_in_[MAV_INCOMING_BUFFER_LENGTH];
     uint8_t data_out_[MAV_INCOMING_BUFFER_LENGTH];
+
+    // A record of recent incoming packets is kept to avoid repeated packets
+    // over various links to the same system ID.
+    // Each sysID is the key to a map of the bytes received in a packet
+    std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > recently_received;
 };
 
 #endif

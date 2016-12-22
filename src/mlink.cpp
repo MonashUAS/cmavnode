@@ -8,6 +8,8 @@
  */
 
 #include "mlink.h"
+
+
 mlink::mlink(link_info info_)
 {
     info = info_;
@@ -114,5 +116,64 @@ void mlink::checkForDeadSysID()
         LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
         sysID_stats.erase(iter);
       }
+    }
+}
+
+bool mlink::record_incoming_packet(uint8_t &inc_byte)
+{
+    // Check incoming bytes for parts of a mavlink packet
+    // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
+    // Returns false if the packet has already been seen and won't be recorded
+
+    // Track where the payload ends or if we are waiting for a new packet
+    static int bytes_until_payload_end = 0;
+    static int sysID;
+    static bool next_byte_payload_len = false;
+    static bool next_byte_sequence = false;
+    static bool next_byte_sysID = false;
+    static std::vector<uint8_t> packet_seen;
+
+    if (inc_byte == 254 && bytes_until_payload_end == 0) // Packet start sign (V1.0: 0xFE)
+    {
+        next_byte_payload_len = true;
+    } else if (next_byte_payload_len)
+    {
+        // Store the data as well as the component and message IDs
+        bytes_until_payload_end = inc_byte + 2;
+        next_byte_payload_len = false;
+        next_byte_sequence = true;
+    } else if (next_byte_sequence)
+    {
+        // Track packet loss later using this sequence
+        next_byte_sequence = false;
+        next_byte_sysID = true;
+    } else if (next_byte_sysID)
+    {
+        sysID = inc_byte;
+        next_byte_sysID = false;
+    } else // Now up to payload bytes
+    {
+        packet_seen.push_back(inc_byte);
+        if (--bytes_until_payload_end == 0) // Entire payload has now been read
+        {
+            // Search for the system ID
+            auto iter = recently_received.find(sysID);
+            // If this is a new system ID or a new packet - record it
+            if (iter == recently_received.end() ||
+                recently_received[sysID].find(packet_seen) == recently_received[sysID].end())
+            {
+                boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
+                // insert here
+                recently_received[sysID].insert(std::make_pair(packet_seen,nowTime));
+                packet_seen.clear();
+                return true;
+            } else
+            {
+                // Packet already received - drop it
+                packet_seen.clear();
+                return false;
+            }
+        }
+        return true; // Packet incomplete
     }
 }

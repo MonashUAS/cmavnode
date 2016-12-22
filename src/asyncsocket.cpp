@@ -80,12 +80,20 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
         //do something
         mavlink_message_t msg;
         mavlink_status_t status;
-        unsigned int temp;
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
+            if (record_incoming_packet(data_in_[i]) == false)
+            {
+                // Repeated packet - don't process it further
+                continue;
+            }
+
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
+                // Record the received mavlink packet
+                // record_incoming_packet(data_in_[i]);
+
                 onMessageRecv(&msg);
                 //Try to push it onto the queue
                 bool returnCheck = qMavIn.push(msg);

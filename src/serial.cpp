@@ -99,7 +99,7 @@ void serial::handleSendTo(const boost::system::error_code& error,
     else
     {
         //There was an error
-        
+
         if(errorcount++ > SERIAL_PORT_MAX_ERROR_BEFORE_KILL)
 	{
             is_kill = true;
@@ -118,13 +118,17 @@ void serial::handleReceiveFrom(const boost::system::error_code& error,
         //do something
         mavlink_message_t msg;
         mavlink_status_t status;
-        unsigned int temp;
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-            temp = data_in_[i];
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
+                if (record_incoming_packet(data_in_[i]) == false)
+                {
+                    // Repeated packet - don't process it further
+                    continue;
+                }
+
                 onMessageRecv(&msg);
                 //Try to push it onto the queue
                 bool returnCheck = qMavIn.push(msg);
