@@ -56,9 +56,22 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
     //Check if this message needs special handling based on content
 
     recentPacketCount++;
-
+    // If the message was a heartbeat, update (or add) that system ID
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
+    {
         onHeartbeatRecv(msg->sysid);
+    }
+    else if (msg->msgid == 109)  // If the message is about the link, update the link stats
+    {
+      // Update link quality stats for this link
+      link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+      link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+      link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+      link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+      link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+      link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+      link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+    }
 }
 
 void mlink::printHeartbeatStats(){
@@ -89,6 +102,16 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     iter->second.num_heartbeats_received++;
     iter->second.last_heartbeat_time = nowTime;
 
+    // Also update the link delay
+    boost::posix_time::time_duration delay = nowTime
+                                                - link_quality.last_heartbeat
+                                                - boost::posix_time::time_duration(0,0,1,0);
+    // Don't allow negative delay
+    if (delay < boost::posix_time::time_duration(0,0,0,0))
+        delay = boost::posix_time::time_duration(0,0,0,0);
+    link_quality.link_delay_ms = delay;
+    link_quality.last_heartbeat = nowTime;
+
     // Check whether the system ID is new and log if it is
     if (ret.second == true)
       LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
@@ -112,6 +135,8 @@ void mlink::checkForDeadSysID()
 
       if(time_between_heartbeats > MAV_HEARTBEAT_TIMEOUT_MS)  // Check for timeout
       {
+        // Clarify why links drop out due to timing out
+        LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_heartbeats/1000 << " s.";
         // Log then erase
         LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
         sysID_stats.erase(iter);
