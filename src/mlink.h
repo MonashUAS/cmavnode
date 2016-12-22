@@ -80,6 +80,13 @@ public:
     long recentPacketCount = 0;
     long recentPacketSent = 0;
 
+    struct heartbeat_stats {
+      int num_heartbeats_received = 0;
+      boost::posix_time::ptime last_heartbeat_time;
+    };
+    // Track heartbeat stats for each system ID.
+    std::map<uint8_t, heartbeat_stats> sysID_stats;
+
     // Track link quality for the link
     struct link_quality_stats {
       int local_rssi = 0;
@@ -99,13 +106,6 @@ public:
     bool record_incoming_packet(uint8_t &inc_byte);
 
 protected:
-    struct heartbeat_stats {
-      int num_heartbeats_received = 0;
-      boost::posix_time::ptime last_heartbeat_time;
-    };
-    // Track heartbeat stats for each system ID.
-    std::map<uint8_t, heartbeat_stats> sysID_stats;
-
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
 
