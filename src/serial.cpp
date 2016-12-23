@@ -123,7 +123,7 @@ void serial::handleReceiveFrom(const boost::system::error_code& error,
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                if (record_incoming_packet(data_in_[i]) == false)
+                if (record_incoming_packet() == false)
                 {
                     // Repeated packet - don't process it further
                     continue;

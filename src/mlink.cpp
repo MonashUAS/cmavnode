@@ -9,10 +9,15 @@
 
 #include "mlink.h"
 
+std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > mlink::recently_received;
+std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 
 mlink::mlink(link_info info_)
 {
     info = info_;
+    static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
+    num_packets_rec = 0;
+    num_packets_dropped = 0;
 }
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
@@ -109,12 +114,16 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     // Don't allow negative delay
     if (delay < boost::posix_time::time_duration(0,0,0,0))
         delay = boost::posix_time::time_duration(0,0,0,0);
-    link_quality.link_delay_ms = delay;
+    link_quality.link_delay = delay;
     link_quality.last_heartbeat = nowTime;
+    static_link_delay[link_id] = delay;
 
     // Check whether the system ID is new and log if it is
     if (ret.second == true)
       LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
+
+    // Remove old packets from recently_received
+    flush_recently_read();
 }
 
 
@@ -144,61 +153,75 @@ void mlink::checkForDeadSysID()
     }
 }
 
-bool mlink::record_incoming_packet(uint8_t &inc_byte)
+
+bool mlink::record_incoming_packet()
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
     // Returns false if the packet has already been seen and won't be recorded
 
-    // Track where the payload ends or if we are waiting for a new packet
-    static int bytes_until_payload_end = 0;
-    static int sysID;
-    static bool next_byte_payload_len = false;
-    static bool next_byte_sequence = false;
-    static bool next_byte_sysID = false;
-    static std::vector<uint8_t> packet_seen;
+    // Copy from the buffer into the snapshot
+    std::copy(data_in_, data_in_ + 263, data_in_snapshot.begin());
+    auto iter = data_in_snapshot.begin();
+    uint8_t payload_length = *(++iter);
+    uint8_t packet_sequence = *(++iter);    // Use this for packet loss calculation later
+    uint8_t sysID = *(++iter);
+    // Store the component ID, message ID, and data of the packet
+    std::vector<uint8_t> packet_payload(payload_length + 2);
+    std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
 
-    if (inc_byte == 254 && bytes_until_payload_end == 0) // Packet start sign (V1.0: 0xFE)
+    // Don't drop heartbeats
+    if (packet_payload[1] == 0)
+        return true;
+
+    boost::timed_mutex mutex;
+    boost::timed_mutex::scoped_lock scoped_lock(mutex,
+                boost::get_system_time() + boost::posix_time::milliseconds(10));
+
+    if (scoped_lock.owns_lock())
     {
-        next_byte_payload_len = true;
-    } else if (next_byte_payload_len)
-    {
-        // Store the data as well as the component and message IDs
-        bytes_until_payload_end = inc_byte + 2;
-        next_byte_payload_len = false;
-        next_byte_sequence = true;
-    } else if (next_byte_sequence)
-    {
-        // Track packet loss later using this sequence
-        next_byte_sequence = false;
-        next_byte_sysID = true;
-    } else if (next_byte_sysID)
-    {
-        sysID = inc_byte;
-        next_byte_sysID = false;
-    } else // Now up to payload bytes
-    {
-        packet_seen.push_back(inc_byte);
-        if (--bytes_until_payload_end == 0) // Entire payload has now been read
+        // Check whether this packet has been seen before
+        if (recently_received[sysID].find(packet_payload) == recently_received[sysID].end())
         {
-            // Search for the system ID
-            auto iter = recently_received.find(sysID);
-            // If this is a new system ID or a new packet - record it
-            if (iter == recently_received.end() ||
-                recently_received[sysID].find(packet_seen) == recently_received[sysID].end())
+            // New packet - add it
+            boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
+            recently_received[sysID].insert({packet_payload, nowTime});
+            return true;
+        } else
+        {
+            // Old packet - drop it
+            return false;
+        }
+    } else
+    {
+        LOG(ERROR) << "Thread unable to access recently_received after 10 ms.";
+    }
+}
+
+void mlink::flush_recently_read()
+{
+    for (auto sysID = sysIDpub.begin(); sysID != sysIDpub.end(); ++sysID)
+    {
+        auto recent_packet_map = &recently_received[*sysID];
+        for (auto packet = recent_packet_map->begin(); packet != recent_packet_map->end(); ++packet)
+        {
+            boost::posix_time::time_duration elapsed_time = boost::posix_time::microsec_clock::local_time() - packet->second;
+            if (elapsed_time > boost::posix_time::time_duration(0,0,1,0) &&
+                elapsed_time > max_delay())
             {
-                boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-                // insert here
-                recently_received[sysID].insert(std::make_pair(packet_seen,nowTime));
-                packet_seen.clear();
-                return true;
-            } else
-            {
-                // Packet already received - drop it
-                packet_seen.clear();
-                return false;
+                recent_packet_map->erase(packet);
             }
         }
-        return true; // Packet incomplete
     }
+}
+
+boost::posix_time::time_duration mlink::max_delay()
+{
+    boost::posix_time::time_duration ret = boost::posix_time::time_duration(0,0,0,0);
+    for (auto delay = static_link_delay.begin(); delay != static_link_delay.end(); ++delay)
+    {
+        if ((*delay) > ret)
+            ret = *delay;
+    }
+    return ret;
 }

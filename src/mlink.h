@@ -21,6 +21,8 @@
 #include <map>
 #include <vector>
 #include <utility>
+#include <algorithm>
+#include <boost/thread/mutex.hpp>
 
 #include "exception.h"
 
@@ -97,13 +99,19 @@ public:
       int rx_errors = 0;
       int corrected_packets = 0;
       boost::posix_time::ptime last_heartbeat;
-      boost::posix_time::time_duration link_delay_ms;
+      boost::posix_time::time_duration link_delay;
       int packets_lost = 0;
     };
     link_quality_stats link_quality;
 
     // Accessor function for recently_read.
-    bool record_incoming_packet(uint8_t &inc_byte);
+    bool record_incoming_packet();
+
+    boost::posix_time::time_duration max_delay();
+    void flush_recently_read();
+
+    long num_packets_rec;
+    long num_packets_dropped;
 
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
@@ -114,13 +122,17 @@ protected:
 
     bool exitFlag = false;
 
+    std::vector<uint8_t> data_in_snapshot{std::vector<uint8_t>(263, 0)};
     uint8_t data_in_[MAV_INCOMING_BUFFER_LENGTH];
     uint8_t data_out_[MAV_INCOMING_BUFFER_LENGTH];
 
     // A record of recent incoming packets is kept to avoid repeated packets
     // over various links to the same system ID.
     // Each sysID is the key to a map of the bytes received in a packet
-    std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > recently_received;
+    static std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > recently_received;
+
+    // All links have their delay tracked to periodically flush recently_received
+    static std::vector<boost::posix_time::time_duration> static_link_delay;
 };
 
 #endif

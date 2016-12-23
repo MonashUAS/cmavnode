@@ -83,20 +83,36 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-            if (record_incoming_packet(data_in_[i]) == false)
-            {
-                // Repeated packet - don't process it further
-                continue;
-            }
+            // Copy the buffer to avoid asynchronous reading conflicting with
+            // packet-checking
+            std::copy(data_in_, data_in_ + 264, data_in_snapshot.begin());
 
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                // Record the received mavlink packet
-                // record_incoming_packet(data_in_[i]);
+                mlink::num_packets_rec++;
+                if (record_incoming_packet() == false) // Packet already seen
+                {
+                    continue;
+                }
 
+                std::cout << "1" << std::endl;
                 onMessageRecv(&msg);
-                //Try to push it onto the queue
-                bool returnCheck = qMavIn.push(msg);
+
+                boost::timed_mutex mutex;
+                boost::timed_mutex::scoped_lock scoped_lock(mutex,
+                            boost::get_system_time() + boost::posix_time::milliseconds(10));
+                std::cout << "2" << std::endl;
+                bool returnCheck;
+                if (scoped_lock.owns_lock())
+                {
+                    // Try to push it onto the queue
+                    returnCheck = qMavIn.push(msg);
+                } else
+                {
+                    LOG(ERROR) << "Thread unable to access qMavIn after 10 ms.";
+                }
+                std::cout << "3" << std::endl;
+
                 if(!returnCheck)   //then the queue is full
                 {
                     throw Exception("MAVLink_AL: The incoming message queue is full");

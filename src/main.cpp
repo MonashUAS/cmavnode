@@ -364,7 +364,7 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                << "   (" << (*curr_link)->info.link_name << ")\n";
 
         // Convert link delay into an easier-to-read format
-        std::string delay = to_simple_string((*curr_link)->link_quality.link_delay_ms).substr(7);
+        std::string delay = to_simple_string((*curr_link)->link_quality.link_delay).substr(7);
         buffer  << "\tLink delay: " << delay << " s\n"
                 << "\tLocal RSSI: " << (*curr_link)->link_quality.local_rssi
                 << "\tRemote RSSI: " << (*curr_link)->link_quality.remote_rssi << "\n"
