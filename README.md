@@ -16,6 +16,7 @@ Supports UDP, and Serial.
 
          Ubuntu 14.04: sudo apt-get install libboost-all-dev cmake libconfig++ libreadline-dev
          Ubuntu 16.04: sudo apt-get install libboost-all-dev cmake libconfig++-dev libreadline-dev
+         Debian Stretch: sudo apt-get install libboost-all-dev cmake libconfig++-dev libreadline-dev
 * Build cmavnode
 
          mkdir build && cd build

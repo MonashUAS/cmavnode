@@ -2,6 +2,7 @@
  * Monash UAS
  */
 
+
 #include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
 #include <string>
@@ -193,6 +194,21 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         infoloc.link_name = sections.at(i);
         infoloc.output_only_from = output_only_from;
         infoloc.output_only_heartbeat_from = 0;
+
+        try
+        {
+            std::string output_list_tmp = _configFile.Value(sections.at(i), "output_only_from");
+            std::vector< std::string> output_only_from_strings;
+            boost::split(output_only_from_strings, output_list_tmp, boost::is_any_of(","));
+            for(unsigned int i = 0; i < output_only_from_strings.size(); i++)
+            {
+                infoloc.output_only_from.push_back( atoi( output_only_from_strings.at(i).c_str() ) );
+            }
+        }
+        catch(...)
+        {
+            //if this throws then output_only_from has not been specified and this link gets broadcast
+        }
 
         if( type.compare("serial") == 0)
         {
@@ -398,7 +414,7 @@ void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 
     switch (msg->msgid)
     {
-        // these messages only have a target system
+    // these messages only have a target system
     case MAVLINK_MSG_ID_CAMERA_FEEDBACK:
         sysid = mavlink_msg_camera_feedback_get_target_system(msg);
         break;
@@ -415,7 +431,7 @@ void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
         sysid = mavlink_msg_set_gps_global_origin_get_target_system(msg);
         break;
 
-        // these support both target system and target component
+    // these support both target system and target component
     case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
         sysid  = mavlink_msg_digicam_configure_get_target_system(msg);
         compid = mavlink_msg_digicam_configure_get_target_component(msg);
