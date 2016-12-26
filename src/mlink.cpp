@@ -167,16 +167,19 @@ bool mlink::record_incoming_packet()
     std::vector<uint8_t> packet_payload(payload_length + 2);
     std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
 
+    // Track packets loss
+    if (link_quality.last_packet_sequence == -1)
+        link_quality.last_packet_sequence = packet_sequence;
+    else if (packet_sequence != link_quality.last_packet_sequence + 1)
+        link_quality.packets_lost += (packet_sequence
+                                    - link_quality.last_packet_sequence) % 255;
+    link_quality.last_packet_sequence = packet_sequence;
+    if (link_quality.packets_lost < 0) // Deals with strange packet sequence at startup
+        link_quality.packets_lost = 0;
+
     // Don't drop heartbeats
     if (packet_payload[1] == 0)
         return true;
-
-    // TODO: Check whether packet sequence is unique to msgid and change accordingly
-    //      Packets listed as being lost even with SITL
-    // Track packets loss
-    if (packet_sequence != link_quality.last_packet_sequence + 1)
-        ++link_quality.packets_lost;
-    link_quality.last_packet_sequence = packet_sequence;
 
     // Check whether this packet has been seen before
     if (recently_received[sysID].find(packet_payload) == recently_received[sysID].end())
