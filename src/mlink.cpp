@@ -185,9 +185,15 @@ bool mlink::record_incoming_packet()
     std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
 
     // Track packets loss
-    if (packet_sequence != link_quality.last_packet_sequence + 1)
-        link_quality.packets_lost += (packet_sequence
-                                    - link_quality.last_packet_sequence) % 255;
+    // Deal with wrapping of 8 bit integer
+    if (link_quality.last_packet_sequence > packet_sequence)
+        link_quality.packets_lost += packet_sequence
+                                    - link_quality.last_packet_sequence
+                                    + 255;
+    else
+        link_quality.packets_lost += packet_sequence
+                                    - link_quality.last_packet_sequence
+                                    - 1;
     link_quality.last_packet_sequence = packet_sequence;
     if (link_quality.packets_lost < 0) // Deals with strange packet sequence at startup
         link_quality.packets_lost = 0;
