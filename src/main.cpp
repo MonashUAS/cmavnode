@@ -217,6 +217,7 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         catch(...)
         {
             //dont worry if this throws just dont enable simulation
+            infoloc.sim_enable = false;
         }
 
         if( type.compare("serial") == 0)
