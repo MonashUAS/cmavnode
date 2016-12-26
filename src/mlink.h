@@ -22,7 +22,6 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
-#include <boost/thread/mutex.hpp>
 
 #include "exception.h"
 
@@ -109,9 +108,6 @@ public:
 
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();
-
-    long num_packets_rec;
-    long num_packets_dropped;
 
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};

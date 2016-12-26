@@ -89,29 +89,16 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                mlink::num_packets_rec++;
                 if (record_incoming_packet() == false) // Packet already seen
                 {
                     continue;
                 }
 
-                std::cout << "1" << std::endl;
                 onMessageRecv(&msg);
 
-                boost::timed_mutex mutex;
-                boost::timed_mutex::scoped_lock scoped_lock(mutex,
-                            boost::get_system_time() + boost::posix_time::milliseconds(10));
-                std::cout << "2" << std::endl;
                 bool returnCheck;
-                if (scoped_lock.owns_lock())
-                {
-                    // Try to push it onto the queue
-                    returnCheck = qMavIn.push(msg);
-                } else
-                {
-                    LOG(ERROR) << "Thread unable to access qMavIn after 10 ms.";
-                }
-                std::cout << "3" << std::endl;
+                // Try to push it onto the queue
+                returnCheck = qMavIn.push(msg);
 
                 if(!returnCheck)   //then the queue is full
                 {

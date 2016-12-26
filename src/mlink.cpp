@@ -16,8 +16,6 @@ mlink::mlink(link_info info_)
 {
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
-    num_packets_rec = 0;
-    num_packets_dropped = 0;
 }
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
@@ -116,7 +114,6 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
         delay = boost::posix_time::time_duration(0,0,0,0);
     link_quality.link_delay = delay;
     link_quality.last_heartbeat = nowTime;
-    static_link_delay[link_id] = delay;
 
     // Check whether the system ID is new and log if it is
     if (ret.second == true)
@@ -174,27 +171,17 @@ bool mlink::record_incoming_packet()
     if (packet_payload[1] == 0)
         return true;
 
-    boost::timed_mutex mutex;
-    boost::timed_mutex::scoped_lock scoped_lock(mutex,
-                boost::get_system_time() + boost::posix_time::milliseconds(10));
-
-    if (scoped_lock.owns_lock())
+    // Check whether this packet has been seen before
+    if (recently_received[sysID].find(packet_payload) == recently_received[sysID].end())
     {
-        // Check whether this packet has been seen before
-        if (recently_received[sysID].find(packet_payload) == recently_received[sysID].end())
-        {
-            // New packet - add it
-            boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-            recently_received[sysID].insert({packet_payload, nowTime});
-            return true;
-        } else
-        {
-            // Old packet - drop it
-            return false;
-        }
+        // New packet - add it
+        boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
+        recently_received[sysID].insert({packet_payload, nowTime});
+        return true;
     } else
     {
-        LOG(ERROR) << "Thread unable to access recently_received after 10 ms.";
+        // Old packet - drop it
+        return false;
     }
 }
 
