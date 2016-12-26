@@ -72,7 +72,7 @@ void asyncsocket::processAndSend(mavlink_message_t *msgToConvert)
 
 //Async callback receiver
 void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
-                                      size_t bytes_recvd)
+                                    size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
@@ -86,12 +86,15 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                onMessageRecv(&msg);
+                bool should_accept = onMessageRecv(&msg);
                 //Try to push it onto the queue
-                bool returnCheck = qMavIn.push(msg);
-                if(!returnCheck)   //then the queue is full
+                if(should_accept)
                 {
-                    throw Exception("MAVLink_AL: The incoming message queue is full");
+                    bool returnCheck = qMavIn.push(msg);
+                    if(!returnCheck)   //then the queue is full
+                    {
+                        throw Exception("AsyncSocket: The incoming message queue is full");
+                    }
                 }
             }
         }
@@ -112,7 +115,7 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
 //Async post send callback
 void asyncsocket::handleSendTo(const boost::system::error_code& error,
-                                 size_t bytes_recvd)
+                               size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
@@ -142,10 +145,10 @@ void asyncsocket::runWriteThread()
     // Thread loop
     while (!exitFlag)
     {
-      while (qMavOut.pop(tmpMsg))
-      {
-        processAndSend(&tmpMsg);
-      }
-      boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
+        while (qMavOut.pop(tmpMsg))
+        {
+            processAndSend(&tmpMsg);
+        }
+        boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
 }

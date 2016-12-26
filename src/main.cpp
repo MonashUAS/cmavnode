@@ -2,10 +2,6 @@
  * Monash UAS
  */
 
-// Leaving out dumbBroadcast since it was previously unused
-// Leaving out exitGracefully() and signal() as they appeared redundant
-// Leaving out myclock() and all other timing variables as they were unused
-
 #include <boost/program_options.hpp>
 #include <string>
 #include <boost/algorithm/string/split.hpp>
@@ -172,15 +168,13 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         std::string type;
         bool isSerial = false;
         bool isUDP = false;
-        std::cout<<"Link: " << sections.at(i) << std::endl;
         try
         {
             type = _configFile.Value(sections.at(i),"type");
-            std::cout<<"Type: " << type << std::endl;
         }
         catch(int e)
         {
-            LOG(ERROR) << "Link has no type";
+            LOG(ERROR) << "Link has no type - skipping";
             continue;
         }
         std::string serialport;
@@ -194,7 +188,6 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
         link_info infoloc;
         infoloc.link_name = sections.at(i);
         infoloc.output_only_from = output_only_from;
-        infoloc.output_only_heartbeat_from = 0;
 
         try
         {
@@ -211,6 +204,21 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
             //if this throws then output_only_from has not been specified and this link gets broadcast
         }
 
+        try
+        {
+            std::string sim_enable = _configFile.Value(sections.at(i), "sim_enable");
+            if(sim_enable.compare("true")==0)
+            {
+                int sim_packet_loss = _configFile.iValue(sections.at(i), "sim_packet_loss");
+                infoloc.sim_enable = true;
+                infoloc.sim_packet_loss = sim_packet_loss;
+            }
+        }
+        catch(...)
+        {
+            //dont worry if this throws just dont enable simulation
+        }
+
         if( type.compare("serial") == 0)
         {
             try
@@ -224,7 +232,11 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
                 continue;
             }
             isSerial = true;
-            LOG(INFO) << "Valid Serial Link Found " << serialport << " " << baud;
+            LOG(INFO) << "Valid Serial Link: " << infoloc.link_name << " Found at: " << serialport << ", baud: " << baud;
+            if(infoloc.sim_enable)
+            {
+                LOG(INFO) << "WARNING: Link has simulation options enabled";
+            }
         }
         else if(type.compare("udp") == 0)
         {
@@ -240,7 +252,11 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
                 continue;
             }
             isUDP = true;
-            LOG(INFO) << "Valid UDP Link Found " << targetip << ":" << targetport << " -> " << localport;
+            LOG(INFO) << "Valid UDP Link: " << infoloc.link_name << " Found at " << targetip << ":" << targetport << " -> " << localport;
+            if(infoloc.sim_enable)
+            {
+                LOG(INFO) << "WARNING: Link has simulation options enabled";
+            }
         }
         else
         {
@@ -301,17 +317,6 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
                         std::find((*outgoing_link)->info.output_only_from.begin(),
                                   (*outgoing_link)->info.output_only_from.end(),
                                   msg.sysid) == (*outgoing_link)->info.output_only_from.end())
-                {
-                    continue;
-                }
-
-                // If this link is designated to receive heartbeats on a non-zero
-                // system ID and the message ID is a mavlink heartbeat and
-                // the system ID of the message is doesn't match with the what
-                // the link expects, don't send on this link.
-                if ((*outgoing_link)->info.output_only_heartbeat_from != 0 &&
-                        msg.msgid == MAVLINK_MSG_ID_HEARTBEAT &&
-                        msg.sysid != (*outgoing_link)->info.output_only_heartbeat_from)
                 {
                     continue;
                 }
