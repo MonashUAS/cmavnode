@@ -168,9 +168,7 @@ bool mlink::record_incoming_packet()
     std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
 
     // Track packets loss
-    if (link_quality.last_packet_sequence == -1)
-        link_quality.last_packet_sequence = packet_sequence;
-    else if (packet_sequence != link_quality.last_packet_sequence + 1)
+    if (packet_sequence != link_quality.last_packet_sequence + 1)
         link_quality.packets_lost += (packet_sequence
                                     - link_quality.last_packet_sequence) % 255;
     link_quality.last_packet_sequence = packet_sequence;
@@ -191,6 +189,7 @@ bool mlink::record_incoming_packet()
     } else
     {
         // Old packet - drop it
+        ++link_quality.packets_dropped;
         return false;
     }
 }

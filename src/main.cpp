@@ -389,7 +389,8 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                 << "\tRX errors: " << (*curr_link)->link_quality.rx_errors
                 << "\tCorrected packets: " << (*curr_link)->link_quality.corrected_packets << "\n"
                 << "\tLost packets: " << (*curr_link)->link_quality.packets_lost
-                << "\tTX buffer: " << (*curr_link)->link_quality.tx_buffer << "%\n";
+                << "\tTX buffer: " << (*curr_link)->link_quality.tx_buffer << "%\n"
+                << "\tPackets dropped: " << (*curr_link)->link_quality.packets_dropped << "\n";
     }
     LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
               << buffer.str()
