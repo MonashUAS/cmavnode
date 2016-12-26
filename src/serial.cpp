@@ -84,13 +84,14 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
     uint8_t tmplen = mavlink_msg_to_send_buffer(data_out_, msgToConvert);
     //ERROR HANDLING?
 
+    bool should_drop = shouldDropPacket();
     //send on socket
     send(data_out_, tmplen);
 }
 
 //Async post send callback
 void serial::handleSendTo(const boost::system::error_code& error,
-                            size_t bytes_recvd)
+                          size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
@@ -101,16 +102,16 @@ void serial::handleSendTo(const boost::system::error_code& error,
         //There was an error
 
         if(errorcount++ > SERIAL_PORT_MAX_ERROR_BEFORE_KILL)
-	{
+        {
             is_kill = true;
-	    LOG(INFO) << "Link " << info.link_name << " is dead";
-	}
+            LOG(INFO) << "Link " << info.link_name << " is dead";
+        }
     }
 }
 
 //Async callback receiver
 void serial::handleReceiveFrom(const boost::system::error_code& error,
-                                 size_t bytes_recvd)
+                               size_t bytes_recvd)
 {
     if (!error & bytes_recvd > 0)
     {
@@ -123,18 +124,27 @@ void serial::handleReceiveFrom(const boost::system::error_code& error,
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                if (record_incoming_packet() == false)
+                if (record_incoming_packet() == false ||
+                    shouldDropPacket())
                 {
                     // Repeated packet - don't process it further
                     continue;
                 }
 
                 onMessageRecv(&msg);
-                //Try to push it onto the queue
-                bool returnCheck = qMavIn.push(msg);
+
+                bool returnCheck;
+                // Try to push it onto the queue
+                returnCheck = qMavIn.push(msg);
+
                 if(!returnCheck)   //then the queue is full
                 {
-                    throw Exception("Serial: The incoming message queue is full");
+                    onMessageRecv(&msg);
+                    bool returnCheck = qMavIn.push(msg);
+                    if(!returnCheck)   //then the queue is full
+                    {
+                        throw Exception("Serial: The incoming message queue is full");
+                    }
                 }
             }
         }

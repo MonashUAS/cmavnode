@@ -64,15 +64,17 @@ void asyncsocket::processAndSend(mavlink_message_t *msgToConvert)
     uint8_t tmplen = mavlink_msg_to_send_buffer(data_out_, msgToConvert);
     //ERROR HANDLING?
 
+    bool should_drop = shouldDropPacket();
     //send on socket
-    send(data_out_, tmplen);
+    if(!should_drop)
+        send(data_out_, tmplen);
 }
 
 
 
 //Async callback receiver
 void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
-                                      size_t bytes_recvd)
+                                    size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
@@ -89,7 +91,8 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                if (record_incoming_packet() == false) // Packet already seen
+                if (record_incoming_packet() == false ||
+                    shouldDropPacket()) // Packet already seen or sim packet loss
                 {
                     continue;
                 }
@@ -102,7 +105,12 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
                 if(!returnCheck)   //then the queue is full
                 {
-                    throw Exception("MAVLink_AL: The incoming message queue is full");
+                    onMessageRecv(&msg);
+                    bool returnCheck = qMavIn.push(msg);
+                    if(!returnCheck)   //then the queue is full
+                    {
+                        throw Exception("AsyncSocket: The incoming message queue is full");
+                    }
                 }
             }
         }
@@ -123,7 +131,7 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
 //Async post send callback
 void asyncsocket::handleSendTo(const boost::system::error_code& error,
-                                 size_t bytes_recvd)
+                               size_t bytes_recvd)
 {
     if (!error && bytes_recvd > 0)
     {
@@ -153,10 +161,10 @@ void asyncsocket::runWriteThread()
     // Thread loop
     while (!exitFlag)
     {
-      while (qMavOut.pop(tmpMsg))
-      {
-        processAndSend(&tmpMsg);
-      }
-      boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
+        while (qMavOut.pop(tmpMsg))
+        {
+            processAndSend(&tmpMsg);
+        }
+        boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
 }

@@ -44,7 +44,8 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound, links)){
+            if(findlink(link_to_do, &linkfound, links))
+            {
 
                 linkfound->up = false;
                 std::cout << "Link " << link_to_do << " DOWN" << std::endl;
@@ -65,7 +66,8 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound, links)){
+            if(findlink(link_to_do, &linkfound, links))
+            {
 
                 linkfound->up = true;
                 std::cout << "Link " << link_to_do << " UP" << std::endl;
@@ -87,7 +89,8 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
 
             std::shared_ptr<mlink> linkfound;
 
-            if(findlink(link_to_do, &linkfound, links)){
+            if(findlink(link_to_do, &linkfound, links))
+            {
 
                 linkfound->printHeartbeatStats();
             }
@@ -103,50 +106,50 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
 }
 
 int findlink(std::string link_string, std::shared_ptr<mlink>* prt,
-            std::vector<std::shared_ptr<mlink> > &links)
+             std::vector<std::shared_ptr<mlink> > &links)
 {
 
-            int numberlink;
-            bool isnumber = true;
-            bool found = false;
-            try
-            {
-                numberlink = stoi(link_string);
-            }
-            catch(std::invalid_argument& e)
-            {
+    int numberlink;
+    bool isnumber = true;
+    bool found = false;
+    try
+    {
+        numberlink = stoi(link_string);
+    }
+    catch(std::invalid_argument& e)
+    {
 
-                isnumber = false;
-            }
-            catch(std::out_of_range& e)
+        isnumber = false;
+    }
+    catch(std::out_of_range& e)
+    {
+        isnumber = false;
+    }
+
+    if(isnumber) // this is bad it assumes less than 10 links
+    {
+        for(int i = 0; i < links.size(); i++)
+        {
+            if(numberlink == links.at(i)->link_id)
             {
-                isnumber = false;
+                *prt = links.at(i);
+                return 1;
             }
+        }
+    }
+    else //not number
+    {
 
-            if(isnumber) // this is bad it assumes less than 10 links
+        for(int i = 0; i < links.size(); i++)
+        {
+            if(!link_string.compare(links.at(i)->info.link_name))
             {
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(numberlink == links.at(i)->link_id)
-                    {
-                       *prt = links.at(i);
-                       return 1;
-                    }
-                }
+                *prt = links.at(i);
+                return 1;
             }
-            else //not number
-            {
-
-                for(int i = 0; i < links.size(); i++)
-                {
-                    if(!link_string.compare(links.at(i)->info.link_name))
-                    {
-                       *prt = links.at(i);
-                       return 1;
-                    }
-                }
+        }
 
 
-            }
-            return 0;
+    }
+    return 0;
 }

@@ -35,9 +35,9 @@ public:
 private:
     //Callbacks for async send/recv
     void handleReceiveFrom(const boost::system::error_code& error,
-                             size_t bytes_recvd);
+                           size_t bytes_recvd);
     void handleSendTo(const boost::system::error_code& error,
-                        size_t bytes_recvd);
+                      size_t bytes_recvd);
 
     //UDP Stuff
     boost::asio::io_service io_service_;

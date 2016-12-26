@@ -31,10 +31,13 @@
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_HEARTBEAT_TIMEOUT_MS 10000
 
-struct link_info{
+struct link_info
+{
     std::string link_name;
-    int receive_from, output_to, output_only_heartbeat_from;
+    int receive_from, output_to;
     std::vector<int> output_only_from;
+    bool sim_enable;
+    int sim_packet_loss; //0-100, amount of packets that should be dropped
 };
 
 class mlink
@@ -61,7 +64,9 @@ public:
 
 
     void onHeartbeatRecv(uint8_t sysID);
-    void onMessageRecv(mavlink_message_t *msg);
+    bool onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
+
+    bool shouldDropPacket();
 
 #ifdef MUASMAV
     void hackSysID(mavlink_message_t *msg);

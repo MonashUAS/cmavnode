@@ -16,18 +16,22 @@ mlink::mlink(link_info info_)
 {
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
+
+    //if we are simulating init the random generator
+    if( info.sim_enable) srand(time(NULL));
 }
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
 {
-    if(!is_kill){
-    bool returnCheck = qMavOut.push(msg);
-    recentPacketSent++;
-
-    if(!returnCheck) //Then the queue is full
+    if(!is_kill)
     {
-        LOG(ERROR) << "MLINK: The outgoing queue is full";
-    }
+        bool returnCheck = qMavOut.push(msg);
+        recentPacketSent++;
+
+        if(!returnCheck) //Then the queue is full
+        {
+            LOG(ERROR) << "MLINK: The outgoing queue is full";
+        }
     }
 }
 
@@ -50,14 +54,12 @@ void mlink::getSysID_thisLink()
     std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      sysIDpub.push_back(iter->first);
+        sysIDpub.push_back(iter->first);
     }
 }
 
-void mlink::onMessageRecv(mavlink_message_t *msg)
+bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    //Check if this message needs special handling based on content
-
     recentPacketCount++;
     // If the message was a heartbeat, update (or add) that system ID
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
@@ -75,17 +77,32 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
       link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
       link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
     }
+    return true;
 }
 
-void mlink::printHeartbeatStats(){
+bool mlink::shouldDropPacket()
+{
+    if(info.sim_enable)
+    {
+        int randnumber = rand() % 100 + 1;
+        if(randnumber < info.sim_packet_loss)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void mlink::printHeartbeatStats()
+{
     std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
 
     std::map<uint8_t, heartbeat_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      std::cout << "sysID: " << (int)iter->first
-                << " # heartbeats: " << iter->second.num_heartbeats_received
-                << std::endl;
+        std::cout << "sysID: " << (int)iter->first
+                  << " # heartbeats: " << iter->second.num_heartbeats_received
+                  << std::endl;
     }
 }
 
@@ -117,7 +134,7 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
 
     // Check whether the system ID is new and log if it is
     if (ret.second == true)
-      LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
+        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
 
     // Remove old packets from recently_received
     flush_recently_read();
