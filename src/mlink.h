@@ -99,6 +99,7 @@ public:
       int corrected_packets = 0;
       boost::posix_time::ptime last_heartbeat;
       boost::posix_time::time_duration link_delay;
+      uint8_t last_packet_sequence = -1;
       int packets_lost = 0;
     };
     link_quality_stats link_quality;
