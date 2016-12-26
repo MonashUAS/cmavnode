@@ -64,8 +64,10 @@ void asyncsocket::processAndSend(mavlink_message_t *msgToConvert)
     uint8_t tmplen = mavlink_msg_to_send_buffer(data_out_, msgToConvert);
     //ERROR HANDLING?
 
+    bool should_drop = shouldDropPacket();
     //send on socket
-    send(data_out_, tmplen);
+    if(!should_drop)
+        send(data_out_, tmplen);
 }
 
 
@@ -86,10 +88,11 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                bool should_accept = onMessageRecv(&msg);
+                bool should_drop = shouldDropPacket();
                 //Try to push it onto the queue
-                if(should_accept)
+                if(!should_drop)
                 {
+                    onMessageRecv(&msg);
                     bool returnCheck = qMavIn.push(msg);
                     if(!returnCheck)   //then the queue is full
                     {

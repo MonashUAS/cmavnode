@@ -55,21 +55,24 @@ void mlink::getSysID_thisLink()
 
 bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    //Check if this message needs special handling based on content
-    if(info.sim_enable)
-    {
-        int randnumber = rand() % 100 + 1;
-        if(randnumber < info.sim_packet_loss)
-        {
-            return false;
-        }
-    }
-
     recentPacketCount++;
 
     if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
         onHeartbeatRecv(msg->sysid);
     return true;
+}
+
+bool mlink::shouldDropPacket()
+{
+    if(info.sim_enable)
+    {
+        int randnumber = rand() % 100 + 1;
+        if(randnumber < info.sim_packet_loss)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void mlink::printHeartbeatStats()

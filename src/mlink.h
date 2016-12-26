@@ -31,7 +31,7 @@ struct link_info
     std::string link_name;
     int receive_from, output_to;
     std::vector<int> output_only_from;
-    bool sim_enable = false;
+    bool sim_enable;
     int sim_packet_loss; //0-100, amount of packets that should be dropped
 };
 
@@ -60,6 +60,8 @@ public:
 
     void onHeartbeatRecv(uint8_t sysID);
     bool onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
+
+    bool shouldDropPacket();
 
 #ifdef MUASMAV
     void hackSysID(mavlink_message_t *msg);
