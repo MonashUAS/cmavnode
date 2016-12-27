@@ -99,18 +99,12 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
                 onMessageRecv(&msg);
 
-                bool returnCheck;
                 // Try to push it onto the queue
-                returnCheck = qMavIn.push(msg);
+                bool returnCheck = qMavIn.push(msg);
 
                 if(!returnCheck)   //then the queue is full
                 {
-                    onMessageRecv(&msg);
-                    bool returnCheck = qMavIn.push(msg);
-                    if(!returnCheck)   //then the queue is full
-                    {
-                        throw Exception("AsyncSocket: The incoming message queue is full");
-                    }
+                    throw Exception("AsyncSocket: The incoming message queue is full");
                 }
             }
         }
