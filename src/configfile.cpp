@@ -96,7 +96,8 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
 
     _info->link_name = thisSection;
     _info->output_only_from = output_only_from;
-    if(_configFile->boolValue(thisSection, "sim_enable", &_info->sim_enable) && (&_info->sim_enable))
+    _configFile->boolValue(thisSection, "sim_enable", &_info->sim_enable);
+    if(_info->sim_enable)
     {
         //then sim_enable is true
         LOG(INFO) << "WARNING: Link has simulation options enabled";
@@ -105,6 +106,9 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
             LOG(INFO) << "Packet loss set to " << _info->sim_packet_loss << "%";
         }
     }
+
+    // Enable or disable packet dropping
+    _configFile->boolValue(thisSection, "packet_drop_enable", &_info->packet_drop_enable);
 
 
 }

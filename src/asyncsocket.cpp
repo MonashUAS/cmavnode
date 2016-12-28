@@ -91,12 +91,11 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                if ((record_incoming_packet() == false &&
-                    info.packet_drop_enable) ||
-                    shouldDropPacket()) // Packet already seen or sim packet loss
-                {
+                if (shouldDropPacket()) // Simulate packet loss
                     continue;
-                }
+                
+                if (record_incoming_packet() == false) // Drop repeated packets
+                    continue;
 
                 onMessageRecv(&msg);
 

@@ -196,8 +196,8 @@ bool mlink::record_incoming_packet()
                                     - 1;
     link_quality.last_packet_sequence = packet_sequence;
 
-    // Don't drop heartbeats
-    if (packet_payload[1] == 0)
+    // Don't drop heartbeats and only drop when enabled
+    if (packet_payload[1] == 0 || info.packet_drop_enable == false)
         return true;
 
     // Check whether this packet has been seen before
