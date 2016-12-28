@@ -13,6 +13,7 @@
 #include <ostream>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <iomanip>
 
 // CMAVNode headers
 #include "mlink.h"
@@ -402,25 +403,44 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
     std::ostringstream buffer;
     for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
     {
-        buffer << "Link: " << (*curr_link)->link_id
+        buffer << "\nLink: " << (*curr_link)->link_id
                << "   (" << (*curr_link)->info.link_name << ")\n";
 
         // Convert link delay into an easier-to-read format
-        std::string delay = to_simple_string((*curr_link)->link_quality.link_delay).substr(7);
-        buffer  << "\tLink delay: " << delay << " s\n"
-                << "\tLocal RSSI: " << (*curr_link)->link_quality.local_rssi
-                << "\tRemote RSSI: " << (*curr_link)->link_quality.remote_rssi << "\n"
-                << "\tLocal noise: " << (*curr_link)->link_quality.local_noise
-                << "\tRemote noise: " << (*curr_link)->link_quality.remote_noise << "\n"
-                << "\tRX errors: " << (*curr_link)->link_quality.rx_errors
-                << "\tCorrected packets: " << (*curr_link)->link_quality.corrected_packets << "\n"
-                << "\tLost packets: " << (*curr_link)->link_quality.packets_lost
-                << "\tTX buffer: " << (*curr_link)->link_quality.tx_buffer << "%\n"
-                << "\tPackets dropped: " << (*curr_link)->link_quality.packets_dropped << "\n";
+        std::string delay;
+        if (to_simple_string((*curr_link)->link_quality.link_delay).compare("not-a-date-time") == 0)
+            delay = "0";
+        else
+            delay = to_simple_string((*curr_link)->link_quality.link_delay).substr(7,5);
+        buffer  << std::setw(17)
+                << "Link delay: "<< std::setw(5) << delay << " s\n"
+                << std::setw(17)
+                << "Local RSSI: " << std::setw(5) << (*curr_link)->link_quality.local_rssi
+                << std::setw(23)
+                << "Remote RSSI: " << std::setw(5) << (*curr_link)->link_quality.remote_rssi << "\n"
+                << std::setw(17)
+                << "Local noise: " << std::setw(5) << (*curr_link)->link_quality.local_noise
+                << std::setw(23)
+                << "Remote noise: " << std::setw(5) << (*curr_link)->link_quality.remote_noise << "\n"
+                << std::setw(17)
+                << "RX errors: " << std::setw(5) << (*curr_link)->link_quality.rx_errors
+                << std::setw(23)
+                << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
+                << std::setw(17)
+                << "Lost packets: " << std::setw(5) << (*curr_link)->link_quality.packets_lost
+                << std::setw(23)
+                << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n"
+                << std::setw(17)
+                << "Packets dropped: " << std::setw(5) << (*curr_link)->link_quality.packets_dropped << "\n";
+
+        // Reset some link quality values
+        (*curr_link)->link_quality.packets_lost = 0;
+        (*curr_link)->link_quality.packets_dropped = 0;
     }
     LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
               << buffer.str()
               <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+
 }
 
 
