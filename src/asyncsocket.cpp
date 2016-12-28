@@ -93,14 +93,11 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
             {
                 if (shouldDropPacket()) // Simulate packet loss
                     continue;
-                
+
                 if (record_incoming_packet() == false) // Drop repeated packets
                     continue;
 
                 onMessageRecv(&msg);
-
-                // Update the packet sequence for outgoing packets
-                msg.seq = link_quality.out_packet_sequence++;
 
                 // Try to push it onto the queue
                 bool returnCheck = qMavIn.push(msg);
