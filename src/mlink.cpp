@@ -186,15 +186,19 @@ bool mlink::record_incoming_packet()
 
     // Track packets loss
     // Deal with wrapping of 8 bit integer
-    if (link_quality.last_packet_sequence > packet_sequence)
-        link_quality.packets_lost += packet_sequence
-                                    - link_quality.last_packet_sequence
-                                    + 255;
-    else
-        link_quality.packets_lost += packet_sequence
-                                    - link_quality.last_packet_sequence
-                                    - 1;
-    link_quality.last_packet_sequence = packet_sequence;
+    if (packet_payload[1] != 109 && packet_payload[1] != 166)
+    {
+        // Ignore packet sequences from RFDs
+        if (link_quality.last_packet_sequence > packet_sequence)
+            link_quality.packets_lost += packet_sequence
+                                        - link_quality.last_packet_sequence
+                                        + 255;
+        else
+            link_quality.packets_lost += packet_sequence
+                                        - link_quality.last_packet_sequence
+                                        - 1;
+        link_quality.last_packet_sequence = packet_sequence;
+    }
 
     // Don't drop heartbeats and only drop when enabled
     if (packet_payload[1] == 0 || info.packet_drop_enable == false)
