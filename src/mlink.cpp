@@ -196,7 +196,6 @@ bool mlink::record_incoming_packet()
                                     - 1;
     link_quality.last_packet_sequence = packet_sequence;
 
-
     // Don't drop heartbeats
     if (packet_payload[1] == 0)
         return true;
