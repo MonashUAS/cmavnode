@@ -21,6 +21,9 @@ public:
 
     std::vector<std::string> GetSections();
 
+    // These functions are used to retrieve config file values
+    // values are returned by reference
+    // the bool return value signifies whether the requested value was successfully found parsed
     bool boolValue(std::string const& section, std::string const& entry, bool* value);
     bool intValue(std::string const& section, std::string const& entry, int* value);
     bool strValue(std::string const& section, std::string const& entry, std::string* value);
