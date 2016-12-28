@@ -14,6 +14,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
 #include "../include/mavlink/ardupilotmega/mavlink.h"
+#include "../include/mavlink/checksum.h"
 #include "../include/logging/src/easylogging++.h"
 #include <iostream>
 #include <tuple>
@@ -113,7 +114,7 @@ public:
     link_quality_stats link_quality;
 
     // Accessor function for recently_read.
-    bool record_incoming_packet();
+    bool record_incoming_packet(uint16_t &checksum);
     // Helper functions for record_incoming_packet()
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();

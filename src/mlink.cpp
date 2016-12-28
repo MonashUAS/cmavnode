@@ -168,14 +168,43 @@ void mlink::checkForDeadSysID()
 }
 
 
-bool mlink::record_incoming_packet()
+bool mlink::record_incoming_packet(uint16_t &checksum)
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
     // Returns false if the packet has already been seen and won't be recorded
 
+    static uint8_t mavlink_message_crcs[256] = {
+                                        50, 124, 137, 0, 237, 217, 104, 119, 0,
+                                        0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 214,
+                                        159, 220, 168, 24, 23, 170, 144, 67, 115,
+                                        39, 246, 185, 104, 237, 244, 222, 212, 9,
+                                        254, 230, 28, 28, 132, 221, 232, 11, 153,
+                                        41, 39, 78, 196, 0, 0, 15, 3, 0, 0, 0, 0,
+                                        0, 167, 183, 119, 191, 118, 148, 21, 0,
+                                        243, 124, 0, 0, 38, 20, 158, 152, 143,
+                                        0, 0, 0, 106, 49, 22, 143, 140, 5, 150,
+                                        0, 231, 183, 63, 54, 47, 0, 0, 0, 0, 0,
+                                        0, 175, 102, 158, 208, 56, 93, 138, 108,
+                                        32, 185, 84, 34, 174, 124, 237, 4, 76,
+                                        128, 56, 116, 134, 237, 203, 250, 87,
+                                        203, 220, 25, 226, 46, 29, 223, 85, 6,
+                                        229, 203, 1, 195, 109, 168, 181, 47, 72,
+                                        131, 127, 0, 103, 154, 178, 200, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        163, 105, 151, 35, 150, 0, 0, 0, 0, 0,
+                                        0, 90, 104, 85, 95, 130, 184, 81, 8,
+                                        204, 49, 170, 44, 83, 46, 0};
+
     // Copy from the buffer into the snapshot
+    uint8_t snapshot_array[263];
     std::copy(data_in_, data_in_ + 263, data_in_snapshot.begin());
+    std::copy(data_in_, data_in_ + 263, snapshot_array);
     auto iter = data_in_snapshot.begin();
     uint8_t payload_length = *(++iter);
     uint8_t packet_sequence = *(++iter);
@@ -183,6 +212,11 @@ bool mlink::record_incoming_packet()
     // Store the component ID, message ID, and data of the packet
     std::vector<uint8_t> packet_payload(payload_length + 2);
     std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
+
+    // Use the incoming packet to calculate two new checksum bytes for if/when
+    // it is forwarded with a new sequence number
+    snapshot_array[payload_length + 6] = mavlink_message_crcs[packet_payload[1]];
+    checksum = crc_calculate(snapshot_array + 1, payload_length + 6);
 
     // Track packets loss
     // Deal with wrapping of 8 bit integer
