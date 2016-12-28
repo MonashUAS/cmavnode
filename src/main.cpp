@@ -222,6 +222,23 @@ int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> >
             infoloc.sim_enable = false;
         }
 
+        try
+        {
+            std::string packet_drop_enable = _configFile.Value(sections.at(i), "packet_drop_enable");
+            if (packet_drop_enable.compare("true")==0)
+            {
+                infoloc.packet_drop_enable = true;
+            } else
+            {
+                infoloc.packet_drop_enable = false;
+            }
+        }
+        catch (...)
+        {
+            LOG(ERROR) << "PACKET DROP ERROR - NOT READ FROM CONFIG FILE";
+            infoloc.packet_drop_enable = false;
+        }
+
         if( type.compare("serial") == 0)
         {
             try
