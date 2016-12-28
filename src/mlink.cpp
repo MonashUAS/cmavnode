@@ -168,7 +168,7 @@ void mlink::checkForDeadSysID()
 }
 
 
-bool mlink::record_incoming_packet(uint16_t &checksum)
+bool mlink::record_incoming_packet(mavlink_message_t &msg, uint16_t &checksum)
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
@@ -213,11 +213,6 @@ bool mlink::record_incoming_packet(uint16_t &checksum)
     std::vector<uint8_t> packet_payload(payload_length + 2);
     std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
 
-    // Use the incoming packet to calculate two new checksum bytes for if/when
-    // it is forwarded with a new sequence number
-    snapshot_array[payload_length + 6] = mavlink_message_crcs[packet_payload[1]];
-    checksum = crc_calculate(snapshot_array + 1, payload_length + 6);
-
     // Track packets loss
     // Deal with wrapping of 8 bit integer
     if (packet_payload[1] != 109 && packet_payload[1] != 166)
@@ -233,6 +228,12 @@ bool mlink::record_incoming_packet(uint16_t &checksum)
                                         - 1;
         link_quality.last_packet_sequence = packet_sequence;
     }
+
+    // Use the incoming packet to calculate two new checksum bytes for if/when
+    // it is forwarded with a new sequence number
+    msg.seq = link_quality.out_packet_sequence++;
+    snapshot_array[payload_length + 6] = mavlink_message_crcs[packet_payload[1]];
+    checksum = crc_calculate(snapshot_array + 1, payload_length + 6);
 
     // Don't drop heartbeats and only drop when enabled
     if (packet_payload[1] == 0 || info.packet_drop_enable == false)

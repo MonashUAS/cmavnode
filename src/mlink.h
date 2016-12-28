@@ -114,7 +114,7 @@ public:
     link_quality_stats link_quality;
 
     // Accessor function for recently_read.
-    bool record_incoming_packet(uint16_t &checksum);
+    bool record_incoming_packet(mavlink_message_t &msg, uint16_t &checksum);
     // Helper functions for record_incoming_packet()
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();

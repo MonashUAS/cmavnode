@@ -95,7 +95,7 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
                     continue;
 
                 uint16_t new_checksum;
-                if (record_incoming_packet(new_checksum) == false) // Drop repeated packets
+                if (record_incoming_packet(msg, new_checksum) == false) // Drop repeated packets
                     continue;
 
                 onMessageRecv(&msg);
