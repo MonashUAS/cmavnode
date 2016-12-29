@@ -45,8 +45,9 @@ serial::serial(const std::string& port,
     }
     catch (boost::system::system_error &error)
     {
-        LOG(ERROR) << "Error opening Serial Port: " << port;
-        throw Exception("Error opening serial port");
+      LOG(ERROR) << "Error opening Serial Port: " << port << " " << error.what();
+      LOG(ERROR) << "Link: " << info.link_name << " failed to initialise and is dead";
+      exitFlag = true;
     }
 
     //Start the read and write threads
