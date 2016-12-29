@@ -168,38 +168,45 @@ void mlink::checkForDeadSysID()
 }
 
 
-bool mlink::record_incoming_packet(mavlink_message_t &msg, uint16_t &checksum)
+bool mlink::record_incoming_packet(mavlink_message_t &msg)
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
     // Returns false if the packet has already been seen and won't be recorded
 
-    static uint8_t mavlink_message_crcs[256] = {
-                                        50, 124, 137, 0, 237, 217, 104, 119, 0,
-                                        0, 0, 89, 0, 0, 0, 0, 0, 0, 0, 0, 214,
-                                        159, 220, 168, 24, 23, 170, 144, 67, 115,
-                                        39, 246, 185, 104, 237, 244, 222, 212, 9,
-                                        254, 230, 28, 28, 132, 221, 232, 11, 153,
-                                        41, 39, 78, 196, 0, 0, 15, 3, 0, 0, 0, 0,
-                                        0, 167, 183, 119, 191, 118, 148, 21, 0,
-                                        243, 124, 0, 0, 38, 20, 158, 152, 143,
-                                        0, 0, 0, 106, 49, 22, 143, 140, 5, 150,
-                                        0, 231, 183, 63, 54, 47, 0, 0, 0, 0, 0,
-                                        0, 175, 102, 158, 208, 56, 93, 138, 108,
-                                        32, 185, 84, 34, 174, 124, 237, 4, 76,
-                                        128, 56, 116, 134, 237, 203, 250, 87,
-                                        203, 220, 25, 226, 46, 29, 223, 85, 6,
-                                        229, 203, 1, 195, 109, 168, 181, 47, 72,
-                                        131, 127, 0, 103, 154, 178, 200, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                        163, 105, 151, 35, 150, 0, 0, 0, 0, 0,
-                                        0, 90, 104, 85, 95, 130, 184, 81, 8,
-                                        204, 49, 170, 44, 83, 46, 0};
+    // Note that custom messages have had their crcs found by brute force
+    static uint8_t mavlink_message_crcs[256] = { 50, 124, 137,   0, 237, 217, 104, 119,
+                                                  0,   0,   0,  89,   0,   0,   0,   0,
+                                                  0,   0,   0,   0, 214, 159, 220, 168,
+                                                 24,  23, 170, 144,  67, 115,  39, 246,
+                                                185, 104, 237, 244, 222, 212,   9, 254,
+                                                230,  28,  28, 132, 221, 232,  11, 153,
+                                                 41,  39,  78, 196,   0,   0,  15,   3,
+                                                  0,   0,   0,   0,   0, 167, 183, 119,
+                                                191, 118, 148,  21,   0, 243, 124,   0,
+                                                  0,  38,  20, 158, 152, 143,   0,   0,
+                                                  0, 106,  49,  22, 143, 140,   5, 150,
+                                                  0, 231, 183,  63,  54,  47,   0,   0,
+                                                  0,   0,   0,   0, 175, 102, 158, 208,
+                                                 56,  93, 138, 108,  32, 185,  84,  34,
+                                                174, 124, 237,   4,  76, 128,  56, 116,
+                                                134, 237, 203, 250,  87, 203, 220,  25,
+                                                226,  46,  29, 223,  85,   6, 229, 203,
+                                                  1, 195, 109, 168, 181,  47,  72, 131,
+                                                127,   0, 103, 154, 178, 200, 134,   0,
+                                                208,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,   0, 127, 154,  21,   0,   0,
+                                                  1,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,  47,   0,   0,   0, 229,   0,
+                                                  0,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,  71,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,   0,   0,   0,   0,   0,   0,
+                                                  0,   0,   0,   0,   0,   0, 163, 105,
+                                                151,  35, 150,   0,   0,   0,   0,   0,
+                                                  0,  90, 104,  85,  95, 130, 184,  81,
+                                                  8, 204,  49, 170,  44,  83,  46,   0};
 
     // Copy from the buffer into the snapshot
     uint8_t snapshot_array[263];
@@ -231,9 +238,22 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg, uint16_t &checksum)
 
     // Use the incoming packet to calculate two new checksum bytes for if/when
     // it is forwarded with a new sequence number
-    msg.seq = link_quality.out_packet_sequence++;
-    snapshot_array[payload_length + 6] = mavlink_message_crcs[packet_payload[1]];
-    checksum = crc_calculate(snapshot_array + 1, payload_length + 6);
+    msg.seq = ++link_quality.out_packet_sequence;
+    snapshot_array[2] = link_quality.out_packet_sequence;
+    uint16_t checksum = crc_calculate(snapshot_array + 1, payload_length + 5);
+    crc_accumulate(mavlink_message_crcs[msg.msgid], &checksum); // crc extra
+    msg.checksum = checksum;
+
+    if (149 < msg.msgid && msg.msgid < 230 && mavlink_message_crcs[msg.msgid] == 0)
+    {
+        // These custom messages have not been encountered before and need their
+        // crcs to be added to mavlink_message_crcs
+        LOG(ERROR) << "Custom mavlink packet with msgID " << (int)msg.msgid
+                   << " detected. This packet does not have a known message crc"
+                   << " and has been dropped. Please add the crc to the"
+                   << " \"mavlink_message_crcs\" array.";
+       return false;
+    }
 
     // Don't drop heartbeats and only drop when enabled
     if (packet_payload[1] == 0 || info.packet_drop_enable == false)

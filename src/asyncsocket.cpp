@@ -94,13 +94,10 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
                 if (shouldDropPacket()) // Simulate packet loss
                     continue;
 
-                uint16_t new_checksum;
-                if (record_incoming_packet(msg, new_checksum) == false) // Drop repeated packets
+                if (record_incoming_packet(msg) == false) // Drop repeated packets
                     continue;
 
                 onMessageRecv(&msg);
-
-                msg.checksum = new_checksum;
 
                 // Try to push it onto the queue
                 bool returnCheck = qMavIn.push(msg);

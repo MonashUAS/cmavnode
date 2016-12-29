@@ -85,8 +85,9 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
     //ERROR HANDLING?
 
     bool should_drop = shouldDropPacket();
-    //send on socket
-    send(data_out_, tmplen);
+    //send on serial
+    if(!should_drop)
+        send(data_out_, tmplen);
 }
 
 //Async post send callback
@@ -127,13 +128,10 @@ void serial::handleReceiveFrom(const boost::system::error_code& error,
                 if (shouldDropPacket()) // Simulate packet loss
                     continue;
 
-                uint16_t new_checksum;
-                if (record_incoming_packet(msg, new_checksum) == false) // Drop repeated packets
+                if (record_incoming_packet(msg) == false) // Drop repeated packets
                     continue;
 
                 onMessageRecv(&msg);
-
-                msg.checksum = new_checksum;
 
                 // Try to push it onto the queue
                 bool returnCheck = qMavIn.push(msg);

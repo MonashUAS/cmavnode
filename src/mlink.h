@@ -113,8 +113,8 @@ public:
     };
     link_quality_stats link_quality;
 
-    // Accessor function for recently_read.
-    bool record_incoming_packet(mavlink_message_t &msg, uint16_t &checksum);
+    // Accessor function for recently_read also performs resequencing
+    bool record_incoming_packet(mavlink_message_t &msg);
     // Helper functions for record_incoming_packet()
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();
