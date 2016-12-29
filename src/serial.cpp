@@ -9,6 +9,7 @@
 
 serial::serial(const std::string& port,
                const std::string& baudrate,
+               bool flowcontrol,
                link_info info_):
     io_service_(), port_(io_service_), mlink(info_)
 {
@@ -26,8 +27,14 @@ serial::serial(const std::string& port,
 
         port_.set_option(boost::asio::serial_port_base::character_size(8));
 
-        port_.set_option(boost::asio::serial_port_base::flow_control(
-                             boost::asio::serial_port_base::flow_control::none));
+        if(flowcontrol){
+          port_.set_option(boost::asio::serial_port_base::flow_control(
+                              boost::asio::serial_port_base::flow_control::hardware));
+        }
+        else{
+          port_.set_option(boost::asio::serial_port_base::flow_control(
+                                                                     boost::asio::serial_port_base::flow_control::none));
+        }
 
         port_.set_option(boost::asio::serial_port_base::parity(
                              boost::asio::serial_port_base::parity::none));
@@ -71,11 +78,8 @@ serial::~serial()
 
 void serial::send(uint8_t *buf, std::size_t buf_size)
 {
-    port_.async_write_some(
-        boost::asio::buffer(buf, buf_size),
-        boost::bind(&serial::handleSendTo, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
+    port_.write_some(
+                boost::asio::buffer(buf, buf_size));
 }
 
 void serial::processAndSend(mavlink_message_t *msgToConvert)

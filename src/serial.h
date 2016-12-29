@@ -22,6 +22,7 @@ public:
     //construct and destruct
     serial(const std::string& port,
            const std::string& baudrate,
+           bool flowcontrol,
            link_info info_);
     ~serial();
 
