@@ -2,14 +2,8 @@
  * Monash UAS
  */
 
-// Leaving out dumbBroadcast since it was previously unused
-// Leaving out exitGracefully() and signal() as they appeared redundant
-// Leaving out myclock() and all other timing variables as they were unused
-
 #include <boost/program_options.hpp>
 #include <string>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/classification.hpp>
 #include <vector>
 #include <boost/thread/thread.hpp>
 #include <algorithm>
@@ -23,7 +17,7 @@
 #include "serial.h"
 #include "exception.h"
 #include "shell.h"
-#include "ConfigFile.h"
+#include "configfile.h"
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
@@ -31,7 +25,6 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
 int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
-int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> > &links);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
@@ -63,7 +56,7 @@ int main(int argc, char** argv)
     else if (ret == -1)
         return 0; // Help option
 
-    ret = read_config_file(filename, links);
+    ret = readConfigFile(filename, links);
     if (links.size() == 0)
     {
         LOG(ERROR) << "No Valid Links found";
@@ -160,112 +153,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 
 }
 
-int read_config_file(std::string &filename, std::vector<std::shared_ptr<mlink> > &links)
-{
-    ConfigFile _configFile = ConfigFile(filename);
 
-    std::vector<std::string> sections = _configFile.GetSections();
-    LOG(INFO) << "Found " << sections.size() << " links";
-
-    for (int i = 0; i < sections.size(); i++)
-    {
-        std::string type;
-        bool isSerial = false;
-        bool isUDP = false;
-        std::cout<<"Link: " << sections.at(i) << std::endl;
-        try
-        {
-            type = _configFile.Value(sections.at(i),"type");
-            std::cout<<"Type: " << type << std::endl;
-        }
-        catch(int e)
-        {
-            LOG(ERROR) << "Link has no type";
-            continue;
-        }
-        std::string serialport;
-        int baud;
-        std::string targetip;
-        int targetport, localport;
-
-        //hack for now to hardcode the link_info
-        std::vector<int> output_only_from;
-        output_only_from.push_back(0);
-        link_info infoloc;
-        infoloc.link_name = sections.at(i);
-        infoloc.output_only_from = output_only_from;
-        infoloc.output_only_heartbeat_from = 0;
-
-        try
-        {
-            std::string output_list_tmp = _configFile.Value(sections.at(i), "output_only_from");
-            std::vector< std::string> output_only_from_strings;
-            boost::split(output_only_from_strings, output_list_tmp, boost::is_any_of(","));
-            for(unsigned int i = 0; i < output_only_from_strings.size(); i++)
-            {
-                infoloc.output_only_from.push_back( atoi( output_only_from_strings.at(i).c_str() ) );
-            }
-        }
-        catch(...)
-        {
-            //if this throws then output_only_from has not been specified and this link gets broadcast
-        }
-
-        if( type.compare("serial") == 0)
-        {
-            try
-            {
-                serialport = _configFile.Value(sections.at(i), "port");
-                baud = _configFile.iValue(sections.at(i), "baud");
-            }
-            catch(int e)
-            {
-                LOG(ERROR) << "Invalid serial link";
-                continue;
-            }
-            isSerial = true;
-            LOG(INFO) << "Valid Serial Link Found " << serialport << " " << baud;
-        }
-        else if(type.compare("udp") == 0)
-        {
-            try
-            {
-                targetip = _configFile.Value(sections.at(i), "targetip");
-                targetport = _configFile.iValue(sections.at(i), "targetport");
-                localport = _configFile.iValue(sections.at(i), "localport");
-            }
-            catch(int e)
-            {
-                LOG(ERROR) << "Invalid UDP link";
-                continue;
-            }
-            isUDP = true;
-            LOG(INFO) << "Valid UDP Link Found " << targetip << ":" << targetport << " -> " << localport;
-        }
-        else
-        {
-            LOG(ERROR) << "Invalid link type: " << type;
-            continue;
-        }
-
-        //if we made it this far without break we have a valid link of some sort
-        if(isSerial)
-        {
-            links.push_back(std::shared_ptr<mlink>(new serial(serialport
-                                                   ,std::to_string(baud)
-                                                   ,infoloc)));
-        }
-        else if (isUDP)
-        {
-            links.push_back(
-                std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                       std::to_string(targetport)
-                                       ,std::to_string(localport)
-                                       ,infoloc)));
-        }
-    }
-    return 0;
-}
 
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 {
@@ -301,17 +189,6 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
                         std::find((*outgoing_link)->info.output_only_from.begin(),
                                   (*outgoing_link)->info.output_only_from.end(),
                                   msg.sysid) == (*outgoing_link)->info.output_only_from.end())
-                {
-                    continue;
-                }
-
-                // If this link is designated to receive heartbeats on a non-zero
-                // system ID and the message ID is a mavlink heartbeat and
-                // the system ID of the message is doesn't match with the what
-                // the link expects, don't send on this link.
-                if ((*outgoing_link)->info.output_only_heartbeat_from != 0 &&
-                        msg.msgid == MAVLINK_MSG_ID_HEARTBEAT &&
-                        msg.sysid != (*outgoing_link)->info.output_only_heartbeat_from)
                 {
                     continue;
                 }

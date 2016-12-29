@@ -32,15 +32,15 @@ public:
 private:
     //Callbacks for async send/recv
     void handleReceiveFrom(const boost::system::error_code& error,
-                             size_t bytes_recvd);
+                           size_t bytes_recvd);
     void handleSendTo(const boost::system::error_code& error,
-                        size_t bytes_recvd);
+                      size_t bytes_recvd);
 
     mavlink_message_t getMavMsg();
 
     boost::asio::io_service io_service_;
     boost::asio::serial_port port_;
-    
+
     int errorcount = 0;
 
     //takes message, puts onto buff and calls send
