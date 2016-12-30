@@ -260,7 +260,6 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
                    << " \"mavlink_message_crcs\" array to avoid this error"
                    << " in future.";
         new_custom_msg_crcs.insert(std::make_pair(msg.msgid, crc_extra_guess));
-        return false;
     }
 
     // Use the incoming packet to calculate two new checksum bytes for if/when
