@@ -236,6 +236,33 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
         link_quality.last_packet_sequence = packet_sequence;
     }
 
+    if (149 < msg.msgid && msg.msgid < 230
+        && mavlink_message_crcs[msg.msgid] == 0
+        && new_custom_msg_crcs.find(msg.msgid) == new_custom_msg_crcs.end())
+    {
+        // These custom messages have not been encountered before and need their
+        // crcs to be added to mavlink_message_crcs
+
+        // Brute-force to find the correct crc
+        uint8_t crc_extra_guess = 1;
+        uint16_t tryChecksum = 0;
+        while (msg.checksum != tryChecksum)
+        {
+            tryChecksum = crc_calculate(snapshot_array + 1, payload_length + 5);
+            crc_accumulate(crc_extra_guess++, &tryChecksum);
+        }
+        mavlink_message_crcs[msg.msgid] = crc_extra_guess;
+
+        LOG(ERROR) << "Custom mavlink packet with msgID " << (int)msg.msgid
+                   << " detected. This packet did not have a known crc"
+                   << " extra byte, however it has been calculated to be "
+                   << (int)crc_extra_guess << ". Please add this value to the"
+                   << " \"mavlink_message_crcs\" array to avoid this error"
+                   << " in future.";
+        new_custom_msg_crcs.insert(std::make_pair(msg.msgid, crc_extra_guess));
+        return false;
+    }
+
     // Use the incoming packet to calculate two new checksum bytes for if/when
     // it is forwarded with a new sequence number
     msg.seq = ++link_quality.out_packet_sequence;
@@ -243,17 +270,6 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     uint16_t checksum = crc_calculate(snapshot_array + 1, payload_length + 5);
     crc_accumulate(mavlink_message_crcs[msg.msgid], &checksum); // crc extra
     msg.checksum = checksum;
-
-    if (149 < msg.msgid && msg.msgid < 230 && mavlink_message_crcs[msg.msgid] == 0)
-    {
-        // These custom messages have not been encountered before and need their
-        // crcs to be added to mavlink_message_crcs
-        LOG(ERROR) << "Custom mavlink packet with msgID " << (int)msg.msgid
-                   << " detected. This packet does not have a known message crc"
-                   << " and has been dropped. Please add the crc to the"
-                   << " \"mavlink_message_crcs\" array.";
-       return false;
-    }
 
     // Don't drop heartbeats and only drop when enabled
     if (packet_payload[1] == 0 || info.packet_drop_enable == false)

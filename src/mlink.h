@@ -139,6 +139,8 @@ protected:
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;
+
+    std::map<uint8_t, uint8_t> new_custom_msg_crcs;
 };
 
 #endif
