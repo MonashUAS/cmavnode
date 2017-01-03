@@ -128,7 +128,6 @@ protected:
 
     bool exitFlag = false;
 
-    std::vector<uint8_t> data_in_snapshot{std::vector<uint8_t>(263, 0)};
     uint8_t data_in_[MAV_INCOMING_BUFFER_LENGTH];
     uint8_t data_out_[MAV_INCOMING_BUFFER_LENGTH];
 

@@ -85,10 +85,6 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-            // Copy the buffer to avoid asynchronous reading conflicting with
-            // packet-checking
-            std::copy(data_in_, data_in_ + 264, data_in_snapshot.begin());
-
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
                 if (shouldDropPacket()) // Simulate packet loss

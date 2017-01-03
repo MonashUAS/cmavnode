@@ -208,32 +208,36 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
                                                   0,  90, 104,  85,  95, 130, 184,  81,
                                                   8, 204,  49, 170,  44,  83,  46,   0};
 
-    // Copy from the buffer into the snapshot
-    uint8_t snapshot_array[263];
-    std::copy(data_in_, data_in_ + 263, data_in_snapshot.begin());
-    std::copy(data_in_, data_in_ + 263, snapshot_array);
-    auto iter = data_in_snapshot.begin();
-    uint8_t payload_length = *(++iter);
-    uint8_t packet_sequence = *(++iter);
-    uint8_t sysID = *(++iter);
-    // Store the component ID, message ID, and data of the packet
-    std::vector<uint8_t> packet_payload(payload_length + 2);
-    std::copy(iter + 1, iter + payload_length + 3, packet_payload.begin());
+    // Extract the mavlink packet into a buffer (since data_in_ is unstable)
+    static uint8_t snapshot_array[263];
+    snapshot_array[0] = 254;
+    snapshot_array[1] = msg.len;
+    snapshot_array[2] = msg.seq;
+    snapshot_array[3] = msg.sysid;
+    snapshot_array[4] = msg.compid;
+    snapshot_array[5] = msg.msgid;
+    _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
+
+    // Store a copy of the packet payload to check for repeated packets
+    static std::vector<uint8_t> packet_payload(255, 0);
+    std::copy(snapshot_array + 5, snapshot_array + 5 + msg.len, packet_payload.begin());
+
+
 
     // Track packets loss
     // Deal with wrapping of 8 bit integer
-    if (packet_payload[1] != 109 && packet_payload[1] != 166)
+    if (msg.msgid != 109 && msg.msgid != 166)
     {
         // Ignore packet sequences from RFDs
-        if (link_quality.last_packet_sequence > packet_sequence)
-            link_quality.packets_lost += packet_sequence
+        if (link_quality.last_packet_sequence > msg.seq)
+            link_quality.packets_lost += msg.seq
                                         - link_quality.last_packet_sequence
                                         + 255;
         else
-            link_quality.packets_lost += packet_sequence
+            link_quality.packets_lost += msg.seq
                                         - link_quality.last_packet_sequence
                                         - 1;
-        link_quality.last_packet_sequence = packet_sequence;
+        link_quality.last_packet_sequence = msg.seq;
     }
 
     if (149 < msg.msgid && msg.msgid < 230
@@ -248,7 +252,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
         uint16_t tryChecksum = 0;
         while (msg.checksum != tryChecksum)
         {
-            tryChecksum = crc_calculate(snapshot_array + 1, payload_length + 5);
+            tryChecksum = crc_calculate(snapshot_array + 1, msg.len + 5);
             crc_accumulate(crc_extra_guess++, &tryChecksum);
         }
         mavlink_message_crcs[msg.msgid] = crc_extra_guess;
@@ -266,20 +270,20 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     // it is forwarded with a new sequence number
     msg.seq = ++link_quality.out_packet_sequence;
     snapshot_array[2] = link_quality.out_packet_sequence;
-    uint16_t checksum = crc_calculate(snapshot_array + 1, payload_length + 5);
+    uint16_t checksum = crc_calculate(snapshot_array + 1, msg.len + 5);
     crc_accumulate(mavlink_message_crcs[msg.msgid], &checksum); // crc extra
     msg.checksum = checksum;
 
     // Don't drop heartbeats and only drop when enabled
-    if (packet_payload[1] == 0 || info.packet_drop_enable == false)
+    if (msg.msgid == 0 || info.packet_drop_enable == false)
         return true;
 
     // Check whether this packet has been seen before
-    if (recently_received[sysID].find(packet_payload) == recently_received[sysID].end())
+    if (recently_received[msg.sysid].find(packet_payload) == recently_received[msg.sysid].end())
     {
         // New packet - add it
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        recently_received[sysID].insert({packet_payload, nowTime});
+        recently_received[msg.sysid].insert({packet_payload, nowTime});
         return true;
     } else
     {
