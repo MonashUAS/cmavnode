@@ -108,6 +108,10 @@ void mlink::printHeartbeatStats()
 
 void mlink::onHeartbeatRecv(uint8_t sysID)
 {
+    // Track past heartbeats to give a less volatile link delay
+    static std::list<boost::posix_time::time_duration>
+        past_heartbeats (5, boost::posix_time::time_duration(0,0,0,0));
+
     // Search for the given system ID
     std::map<uint8_t, heartbeat_stats>::iterator iter;
     std::pair<std::map<uint8_t, heartbeat_stats>::iterator, bool> ret;
@@ -129,7 +133,14 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     // Don't allow negative delay
     if (delay < boost::posix_time::time_duration(0,0,0,0))
         delay = boost::posix_time::time_duration(0,0,0,0);
-    link_quality.link_delay = delay;
+
+    // Take the median of 5 heartbeats
+    past_heartbeats.pop_back();
+    past_heartbeats.push_front(delay);
+    std::list<boost::posix_time::time_duration> tmp_list = past_heartbeats;
+    tmp_list.sort();
+
+    link_quality.link_delay = *(++(++tmp_list.begin()));
     link_quality.last_heartbeat = nowTime;
 
     // Check whether the system ID is new and log if it is

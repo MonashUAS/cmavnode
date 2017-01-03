@@ -23,6 +23,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <list>
 
 #include "exception.h"
 
