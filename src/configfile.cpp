@@ -107,6 +107,9 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
         }
     }
 
+    // Enable or disable packet dropping
+    _configFile->boolValue(thisSection, "packet_drop_enable", &_info->packet_drop_enable);
+
 
 }
 

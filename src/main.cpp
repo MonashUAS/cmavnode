@@ -2,6 +2,7 @@
  * Monash UAS
  */
 
+#include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
@@ -10,6 +11,7 @@
 #include <ostream>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <iomanip>
 
 // CMAVNode headers
 #include "mlink.h"
@@ -27,6 +29,7 @@ boost::program_options::options_description add_program_options(std::string &fil
 int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links);
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
@@ -153,8 +156,6 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 
 }
 
-
-
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 {
     // Gets run in a while loop once links are setup
@@ -247,6 +248,53 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
     }
     LOG(INFO) << "---------------------------------------------------------------------";
 }
+
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
+{
+    // Create a line of link quality
+    std::ostringstream buffer;
+    for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
+    {
+        buffer << "\nLink: " << (*curr_link)->link_id
+               << "   (" << (*curr_link)->info.link_name << ")\n";
+
+        // Convert link delay into an easier-to-read format
+        std::string delay;
+        if (to_simple_string((*curr_link)->link_quality.link_delay).compare("not-a-date-time") == 0)
+            delay = "0";
+        else
+            delay = to_simple_string((*curr_link)->link_quality.link_delay).substr(7,5);
+        buffer  << std::setw(17)
+                << "Link delay: "<< std::setw(5) << delay << " s\n"
+                << std::setw(17)
+                << "Local RSSI: " << std::setw(5) << (*curr_link)->link_quality.local_rssi
+                << std::setw(23)
+                << "Remote RSSI: " << std::setw(5) << (*curr_link)->link_quality.remote_rssi << "\n"
+                << std::setw(17)
+                << "Local noise: " << std::setw(5) << (*curr_link)->link_quality.local_noise
+                << std::setw(23)
+                << "Remote noise: " << std::setw(5) << (*curr_link)->link_quality.remote_noise << "\n"
+                << std::setw(17)
+                << "RX errors: " << std::setw(5) << (*curr_link)->link_quality.rx_errors
+                << std::setw(23)
+                << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
+                << std::setw(17)
+                << "Lost packets: " << std::setw(5) << (*curr_link)->link_quality.packets_lost
+                << std::setw(23)
+                << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n"
+                << std::setw(17)
+                << "Packets dropped: " << std::setw(5) << (*curr_link)->link_quality.packets_dropped << "\n";
+
+        // Reset some link quality values
+        (*curr_link)->link_quality.packets_lost = 0;
+        (*curr_link)->link_quality.packets_dropped = 0;
+    }
+    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+              << buffer.str()
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+
+}
+
 
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 {
