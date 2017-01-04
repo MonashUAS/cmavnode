@@ -174,6 +174,28 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return false;
     }
 
+    int16_t sysIDmsg = -1;
+    int16_t compIDmsg = -1;
+    getTargets(&msg, sysIDmsg, compIDmsg);
+    if (sysIDmsg == -1) {
+        return true;
+    }
+    if (compIDmsg == -1) {
+        return true;
+    }
+    if (sysIDmsg == 0) {
+        return true;
+    }
+
+    // if we get this far then the packet it routable; if we can't
+    // find a route for it then we drop the message.
+    if (!((*outgoing_link)->seenSysID(sysIDmsg))) {
+        return false;
+    }
+
+    // TODO: should check sysid/compid combination has been seen, not
+    // just sysid
+
     return true;
 }
 

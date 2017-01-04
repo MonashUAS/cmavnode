@@ -53,6 +53,20 @@ void mlink::getSysID_thisLink()
     }
 }
 
+bool mlink::seenSysID(const uint8_t sysid) const
+{
+    // returns true if this system ID has been seen on this link
+    for (auto iter = sysIDpub.begin(); iter != sysIDpub.end(); ++iter)
+    {
+        uint8_t this_id = *iter;
+        if (this_id == sysid)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
     recentPacketCount++;
