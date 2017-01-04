@@ -170,7 +170,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
         while ((*incoming_link)->qReadIncoming(&msg))
         {
             // Determine the correct target system ID for this message
-            int16_t sysIDmsg, compIDmsg;
+            int16_t sysIDmsg = -1;
+            int16_t compIDmsg = -1;
             getTargets(&msg, sysIDmsg, compIDmsg);
 
             // Use the system ID to determine where to send the message
