@@ -154,6 +154,28 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 }
 
 
+bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
+{
+
+    // If the packet came from this link, don't bother
+    if (outgoing_link == incoming_link)
+    {
+        return false;
+    }
+
+    // If the current link being checked is designated to receive
+    // from a non-zero system ID and that system ID isn't present on
+    // this link, don't send on this link.
+    if ((*outgoing_link)->info.output_only_from[0] != 0 &&
+        std::find((*outgoing_link)->info.output_only_from.begin(),
+                  (*outgoing_link)->info.output_only_from.end(),
+                  msg.sysid) == (*outgoing_link)->info.output_only_from.end())
+    {
+        return false;
+    }
+
+    return true;
+}
 
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 {
@@ -180,17 +202,9 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             // Iterate through each link to send to the correct target
             for (auto outgoing_link = links->begin(); outgoing_link != links->end(); ++outgoing_link)
             {
-                if (outgoing_link == incoming_link)  // If the packet came from this link, don't bother
-                    continue;
-
-                // If the current link being checked is designated to receive
-                // from a non-zero system ID and that system ID isn't present on
-                // this link, don't send on this link.
-                if ((*outgoing_link)->info.output_only_from[0] != 0 &&
-                        std::find((*outgoing_link)->info.output_only_from.begin(),
-                                  (*outgoing_link)->info.output_only_from.end(),
-                                  msg.sysid) == (*outgoing_link)->info.output_only_from.end())
-                {
+                // mavlink routing.  See comment in MAVLink_routing.cpp
+                // for logic
+                if (!should_forward_message(msg, &(*incoming_link), &(*outgoing_link))) {
                     continue;
                 }
 
