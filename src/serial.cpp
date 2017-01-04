@@ -113,7 +113,7 @@ void serial::handleSendTo(const boost::system::error_code& error,
 void serial::handleReceiveFrom(const boost::system::error_code& error,
                                size_t bytes_recvd)
 {
-    if (!error & bytes_recvd > 0)
+    if (!error && bytes_recvd > 0)
     {
         //message received
         //do something
