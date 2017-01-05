@@ -31,8 +31,8 @@ struct link_info
     std::string link_name;
     int receive_from, output_to;
     std::vector<int> output_only_from;
-    bool sim_enable;
-    int sim_packet_loss; //0-100, amount of packets that should be dropped
+    bool sim_enable = false;
+    int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
 };
 
 class mlink
