@@ -78,9 +78,9 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
         }
 
     }
-    else if(!linestring.compare(0,5,"packet"))
+    else if(!linestring.compare(0,7,"packet"))
     {
-        if(linestring.size() >= 7)
+        if(linestring.size() >= 9)
         {
             std::string link_to_do = linestring.substr(6,std::string::npos);
 
@@ -96,7 +96,7 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
         }
         else
         {
-            std::cout << "heart requires parameters" << std::endl;
+            std::cout << "packet requires parameters (link number or name)" << std::endl;
         }
 
     }
