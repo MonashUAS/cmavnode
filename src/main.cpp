@@ -154,6 +154,50 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 }
 
 
+bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
+{
+
+    // If the packet came from this link, don't bother
+    if (outgoing_link == incoming_link)
+    {
+        return false;
+    }
+
+    // If the current link being checked is designated to receive
+    // from a non-zero system ID and that system ID isn't present on
+    // this link, don't send on this link.
+    if ((*outgoing_link)->info.output_only_from[0] != 0 &&
+        std::find((*outgoing_link)->info.output_only_from.begin(),
+                  (*outgoing_link)->info.output_only_from.end(),
+                  msg.sysid) == (*outgoing_link)->info.output_only_from.end())
+    {
+        return false;
+    }
+
+    int16_t sysIDmsg = -1;
+    int16_t compIDmsg = -1;
+    getTargets(&msg, sysIDmsg, compIDmsg);
+    if (sysIDmsg == -1) {
+        return true;
+    }
+    if (compIDmsg == -1) {
+        return true;
+    }
+    if (sysIDmsg == 0) {
+        return true;
+    }
+
+    // if we get this far then the packet it routable; if we can't
+    // find a route for it then we drop the message.
+    if (!((*outgoing_link)->seenSysID(sysIDmsg))) {
+        return false;
+    }
+
+    // TODO: should check sysid/compid combination has been seen, not
+    // just sysid
+
+    return true;
+}
 
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 {
@@ -170,7 +214,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
         while ((*incoming_link)->qReadIncoming(&msg))
         {
             // Determine the correct target system ID for this message
-            int16_t sysIDmsg, compIDmsg;
+            int16_t sysIDmsg = -1;
+            int16_t compIDmsg = -1;
             getTargets(&msg, sysIDmsg, compIDmsg);
 
             // Use the system ID to determine where to send the message
@@ -179,17 +224,9 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             // Iterate through each link to send to the correct target
             for (auto outgoing_link = links->begin(); outgoing_link != links->end(); ++outgoing_link)
             {
-                if (outgoing_link == incoming_link)  // If the packet came from this link, don't bother
-                    continue;
-
-                // If the current link being checked is designated to receive
-                // from a non-zero system ID and that system ID isn't present on
-                // this link, don't send on this link.
-                if ((*outgoing_link)->info.output_only_from[0] != 0 &&
-                        std::find((*outgoing_link)->info.output_only_from.begin(),
-                                  (*outgoing_link)->info.output_only_from.end(),
-                                  msg.sysid) == (*outgoing_link)->info.output_only_from.end())
-                {
+                // mavlink routing.  See comment in MAVLink_routing.cpp
+                // for logic
+                if (!should_forward_message(msg, &(*incoming_link), &(*outgoing_link))) {
                     continue;
                 }
 
