@@ -4,6 +4,9 @@ MAVLink forwarding node written in C++
 This program can forward packets between an arbitrary number of MAVLink connections.
 Supports UDP, and Serial.
 
+Mavlink routing is done transparently. (cmavnode will not inject any packets)
+cmavnode treats each link equally unless specified otherwise, and does not differentiate between an autopilot and a groundstation.
+
 ## Installing
 
 - Clone the repository
@@ -38,6 +41,40 @@ Supports UDP, and Serial.
 cmavnode is configured by a config file. This config file specifies the links you want (socket or serial) and allows you to dictate routing rules. Please see examples to see how this works.
 
 Use -i to get an interactive shell, type help into the shell to list commands.
+
+## Config File
+cmavnode uses a config file which defines the links it should create. Each link has several options, some of which are optional.
+
+A link is defined by the following syntax
+
+        [linkname]
+            option1=.....
+            option2=.....
+
+### Serial Port
+This is the minimum configuration needed for a serial port
+
+        [linkname]
+            type=serial
+            port=/dev/ttyUSB0
+            baud=57600
+
+### UDP
+This is the minimum configuration needed for a UDP socket
+
+        [linkname]
+            type=socket
+            targetip=127.0.0.1
+            targetport=14553
+            localport=14550
+
+### Optional Flags
+The following flags can be applied to any type of link and are optional
+        
+        sim_enable=true #enables simulation options
+        sim_packet_loss=25 #simulates packet loss of 25% on this link (incoming and outgoing)
+        output_only_from=1,2,3 #only sends packets from sysID's 1, 2, and 3 on this link
+
 
 ## Licence
 Cmavnode is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

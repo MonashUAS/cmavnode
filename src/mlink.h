@@ -60,6 +60,7 @@ public:
 
     void printPacketStats();
 
+    // indicate if a system has been seen on a link:
     bool seenSysID(uint8_t sysid) const;
 
     //remove dead systems from private mapping

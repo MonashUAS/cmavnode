@@ -75,6 +75,7 @@ bool mlink::onMessageRecv(mavlink_message_t *msg)
       link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
       link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
     }
+
     return true;
 }
 
