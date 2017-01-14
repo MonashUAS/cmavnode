@@ -11,6 +11,8 @@
 
 std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > mlink::recently_received;
 std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
+std::mutex mlink::recently_received_mutex;
+std::set<uint8_t> mlink::sysIDs_all_links;
 
 mlink::mlink(link_info info_)
 {
@@ -44,18 +46,7 @@ bool mlink::qReadIncoming(mavlink_message_t *msg)
 
 void mlink::getSysID_thisLink()
 {
-    //iterate through internal mapping and return sysID's
-    checkForDeadSysID();
-    // Empty the vector of system IDs
-    sysIDpub.clear();
 
-    // Iterate through the system ID stats map and put all of the sys IDs into
-    // sysIDpub
-    std::map<uint8_t, heartbeat_stats>::iterator iter;
-    for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
-    {
-        sysIDpub.push_back(iter->first);
-    }
 }
 
 bool mlink::onMessageRecv(mavlink_message_t *msg)
@@ -111,8 +102,11 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     // Search for the given system ID
     std::map<uint8_t, heartbeat_stats>::iterator iter;
     std::pair<std::map<uint8_t, heartbeat_stats>::iterator, bool> ret;
-    // If the system ID is new, add it to the map. Return the position of the new or existing element
+    // If the system ID is new, add it to the map and set.
+    // Return the position of the new or existing element
     ret = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
+    sysIDs_all_links.insert(sysIDs_all_links.end(), sysID);
+
     iter = ret.first;
 
     // Record when the heartbeat was received
@@ -136,8 +130,8 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     if (ret.second == true)
         LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
 
-    // Remove old packets from recently_received
-    flush_recently_read();
+    // Clear out old sysIDs
+    checkForDeadSysID();
 }
 
 
@@ -274,6 +268,12 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     crc_accumulate(mavlink_message_crcs[msg.msgid], &checksum); // crc extra
     msg.checksum = checksum;
 
+    // Ensure link threads don't cause seg faults
+    std::lock_guard<std::mutex> lock(recently_received_mutex);
+
+    // Remove old packets from recently_received
+    flush_recently_read();
+
     // Don't drop heartbeats and only drop when enabled
     if (msg.msgid == 0 || info.packet_drop_enable == false)
         return true;
@@ -295,7 +295,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
 
 void mlink::flush_recently_read()
 {
-    for (auto sysID = sysIDpub.begin(); sysID != sysIDpub.end(); ++sysID)
+    for (auto sysID = sysIDs_all_links.begin(); sysID != sysIDs_all_links.end(); ++sysID)
     {
         auto recent_packet_map = &recently_received[*sysID];
         for (auto packet = recent_packet_map->begin(); packet != recent_packet_map->end(); ++packet)

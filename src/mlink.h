@@ -23,6 +23,8 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <mutex>
+#include <set>
 
 #include "exception.h"
 
@@ -73,9 +75,6 @@ public:
 #ifdef MUASMAV
     void hackSysID(mavlink_message_t *msg);
 #endif
-
-    //Public system ID mapping
-    std::vector<uint8_t> sysIDpub;
 
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop
@@ -135,11 +134,14 @@ protected:
     // over various links to the same system ID.
     // Each sysID is the key to a map of the bytes received in a packet
     static std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > recently_received;
+    static std::mutex recently_received_mutex;
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;
 
     std::map<uint8_t, uint8_t> new_custom_msg_crcs;
+
+    static std::set<uint8_t> sysIDs_all_links;
 };
 
 #endif

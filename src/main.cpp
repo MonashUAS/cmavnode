@@ -70,7 +70,7 @@ int main(int argc, char** argv)
     LOG(INFO) << "Links Initialized, routing loop starting.";
 
     // Number the links
-    for (int i = 0; i != links.size(); ++i)
+    for (uint16_t i = 0; i != links.size(); ++i)
     {
         links.at(i)->link_id = i;
     }
@@ -238,7 +238,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         buffer << "Received: " << (*curr_link)->recentPacketCount << " "
                << "Sent: " << (*curr_link)->recentPacketSent << " "
-               << "Systems on link: " << (*curr_link)->sysIDpub.size();
+               << "Systems on link: " << (*curr_link)->sysID_stats.size();
 
         // Reset the recent packet counts
         (*curr_link)->recentPacketCount = 0;
