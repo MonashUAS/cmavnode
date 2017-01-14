@@ -9,7 +9,7 @@
 
 #include "mlink.h"
 
-std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > mlink::recently_received;
+std::unordered_map<uint8_t, std::map<uint16_t, boost::posix_time::ptime> > mlink::recently_received;
 std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 std::mutex mlink::recently_received_mutex;
 std::set<uint8_t> mlink::sysIDs_all_links;
@@ -132,6 +132,10 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
 
     // Clear out old sysIDs
     checkForDeadSysID();
+
+    // Remove old packets from recently_received
+    std::lock_guard<std::mutex> lock(recently_received_mutex);
+    flush_recently_read();
 }
 
 
@@ -202,7 +206,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
                                                   0,  90, 104,  85,  95, 130, 184,  81,
                                                   8, 204,  49, 170,  44,  83,  46,   0};
 
-    // Extract the mavlink packet into a buffer (since data_in_ is unstable)
+    // Extract the mavlink packet into a buffer
     static uint8_t snapshot_array[263];
     snapshot_array[0] = 254;
     snapshot_array[1] = msg.len;
@@ -211,12 +215,6 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     snapshot_array[4] = msg.compid;
     snapshot_array[5] = msg.msgid;
     _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
-
-    // Store a copy of the packet payload to check for repeated packets
-    static std::vector<uint8_t> packet_payload(255, 0);
-    std::copy(snapshot_array + 5, snapshot_array + 5 + msg.len, packet_payload.begin());
-
-
 
     // Track packets loss
     // Deal with wrapping of 8 bit integer
@@ -271,19 +269,19 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     // Ensure link threads don't cause seg faults
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
-    // Remove old packets from recently_received
-    flush_recently_read();
-
     // Don't drop heartbeats and only drop when enabled
     if (msg.msgid == 0 || info.packet_drop_enable == false)
         return true;
 
+    // Check for repeated packets by comparing checksums
+    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg.len);
+
     // Check whether this packet has been seen before
-    if (recently_received[msg.sysid].find(packet_payload) == recently_received[msg.sysid].end())
+    if (recently_received[msg.sysid].find(payload_crc) == recently_received[msg.sysid].end())
     {
         // New packet - add it
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        recently_received[msg.sysid].insert({packet_payload, nowTime});
+        recently_received[msg.sysid].insert({payload_crc, nowTime});
         return true;
     } else
     {

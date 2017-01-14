@@ -133,7 +133,7 @@ protected:
     // A record of recent incoming packets is kept to avoid repeated packets
     // over various links to the same system ID.
     // Each sysID is the key to a map of the bytes received in a packet
-    static std::unordered_map<uint8_t, std::map<std::vector<uint8_t>, boost::posix_time::ptime> > recently_received;
+    static std::unordered_map<uint8_t, std::map<uint16_t, boost::posix_time::ptime> > recently_received;
     static std::mutex recently_received_mutex;
 
     // All links have their delay tracked to periodically flush recently_received
