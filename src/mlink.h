@@ -112,12 +112,6 @@ public:
     };
     link_quality_stats link_quality;
 
-    // Accessor function for recently_read also performs resequencing
-    bool record_incoming_packet(mavlink_message_t &msg);
-    // Helper functions for record_incoming_packet()
-    boost::posix_time::time_duration max_delay();
-    void flush_recently_read();
-
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};
@@ -135,6 +129,15 @@ protected:
     // Each sysID is the key to a map of the bytes received in a packet
     static std::unordered_map<uint8_t, std::map<uint16_t, boost::posix_time::ptime> > recently_received;
     static std::mutex recently_received_mutex;
+
+    // Accessor function for recently_read also performs resequencing
+    bool record_incoming_packet(mavlink_message_t &msg);
+    // Helper functions for record_incoming_packet()
+    boost::posix_time::time_duration max_delay();
+    void flush_recently_read();
+    void record_packets_lost(mavlink_message_t &msg);
+    void resequence_msg(mavlink_message_t &msg, uint8_t *buffer);
+    void find_crc_extra(mavlink_message_t &msg, uint8_t *buffer, uint8_t *crc_extras);
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;
