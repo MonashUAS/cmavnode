@@ -9,7 +9,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
     std::vector<std::string> sections = _configFile.GetSections();
     LOG(INFO) << "Found " << sections.size() << " links";
 
-    for (int i = 0; i < sections.size(); i++)
+    for (uint i = 0; i < sections.size(); i++)
     {
         std::string thisSection = sections.at(i);
         std::string type;
@@ -108,7 +108,7 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
     }
 
     // Enable or disable packet dropping
-    _configFile->boolValue(thisSection, "packet_drop_enable", &_info->packet_drop_enable);
+    _configFile->boolValue(thisSection, "reject_repeat_packets", &_info->reject_repeat_packets);
 
 
 }

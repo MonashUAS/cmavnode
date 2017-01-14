@@ -270,7 +270,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
     // Don't drop heartbeats and only drop when enabled
-    if (msg.msgid == 0 || info.packet_drop_enable == false)
+    if (msg.msgid == 0 || info.reject_repeat_packets == false)
         return true;
 
     // Check for repeated packets by comparing checksums

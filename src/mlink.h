@@ -41,7 +41,7 @@ struct link_info
     std::vector<int> output_only_from;
     bool sim_enable = false;
     int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
-    bool packet_drop_enable = 1;
+    bool reject_repeat_packets = false;
 };
 
 class mlink
