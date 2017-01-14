@@ -60,9 +60,6 @@ public:
 
     void printHeartbeatStats();
 
-    //update the public mapping based on private one
-    void getSysID_thisLink();
-
     //remove dead systems from private mapping
     void checkForDeadSysID();
 

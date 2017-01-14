@@ -44,11 +44,6 @@ bool mlink::qReadIncoming(mavlink_message_t *msg)
     return qMavIn.pop(*msg);
 }
 
-void mlink::getSysID_thisLink()
-{
-
-}
-
 bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
     recentPacketCount++;
