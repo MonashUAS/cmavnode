@@ -81,7 +81,7 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
         }
 
     }
-    else if(!linestring.compare(0,5,"heart"))
+    else if(!linestring.compare(0,5,"packet"))
     {
         if(linestring.size() >= 7)
         {
@@ -92,7 +92,7 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
             if(findlink(link_to_do, &linkfound, links))
             {
 
-                linkfound->printHeartbeatStats();
+                linkfound->printPacketStats();
             }
             else std::cout << "Link " << link_to_do << " not found" << std::endl;
 

@@ -44,15 +44,27 @@ bool mlink::qReadIncoming(mavlink_message_t *msg)
     return qMavIn.pop(*msg);
 }
 
+bool mlink::seenSysID(const uint8_t sysid) const
+{
+    // returns true if this system ID has been seen on this link
+    for (auto iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
+    {
+        uint8_t this_id = iter->first;
+        if (this_id == sysid)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
     recentPacketCount++;
-    // If the message was a heartbeat, update (or add) that system ID
-    if(msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)
-    {
-        onHeartbeatRecv(msg->sysid);
-    }
-    else if (msg->msgid == 109)  // If the message is about the link, update the link stats
+
+    updateRouting(*msg);
+
+    if (msg->msgid == 109)  // If the message is about the link, update the link stats
     {
       // Update link quality stats for this link
       link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
@@ -79,27 +91,28 @@ bool mlink::shouldDropPacket()
     return false;
 }
 
-void mlink::printHeartbeatStats()
+void mlink::printPacketStats()
 {
-    std::cout << "HEARTBEAT STATS FOR LINK: " << info.link_name << std::endl;
+    std::cout << "PACKET STATS FOR LINK: " << info.link_name << std::endl;
 
-    std::map<uint8_t, heartbeat_stats>::iterator iter;
+    std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
         std::cout << "sysID: " << (int)iter->first
-                  << " # heartbeats: " << iter->second.num_heartbeats_received
+                  << " # heartbeats: " << iter->second.num_packets_received
                   << std::endl;
     }
 }
 
-void mlink::onHeartbeatRecv(uint8_t sysID)
+void mlink::updateRouting(mavlink_message_t &msg)
 {
+    uint8_t sysID = msg.sysid;
     // Search for the given system ID
-    std::map<uint8_t, heartbeat_stats>::iterator iter;
-    std::pair<std::map<uint8_t, heartbeat_stats>::iterator, bool> ret;
+    std::map<uint8_t, packet_stats>::iterator iter;
+    std::pair<std::map<uint8_t, packet_stats>::iterator, bool> ret;
     // If the system ID is new, add it to the map and set.
     // Return the position of the new or existing element
-    ret = sysID_stats.insert(std::pair<uint8_t,heartbeat_stats>(sysID,heartbeat_stats()));
+    ret = sysID_stats.insert(std::pair<uint8_t,packet_stats>(sysID,packet_stats()));
     sysIDs_all_links.insert(sysIDs_all_links.end(), sysID);
 
     iter = ret.first;
@@ -108,8 +121,8 @@ void mlink::onHeartbeatRecv(uint8_t sysID)
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Update the map for this system ID
-    iter->second.num_heartbeats_received++;
-    iter->second.last_heartbeat_time = nowTime;
+    iter->second.num_packets_received++;
+    iter->second.last_packet_time = nowTime;
 
     // Also update the link delay
     boost::posix_time::time_duration delay = nowTime
@@ -143,13 +156,13 @@ void mlink::checkForDeadSysID()
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Iterating through the map
-    std::map<uint8_t, heartbeat_stats>::iterator iter;
+    std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      boost::posix_time::time_duration dur = nowTime - iter->second.last_heartbeat_time;
+      boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
       long time_between_heartbeats = dur.total_milliseconds();
 
-      if(time_between_heartbeats > MAV_HEARTBEAT_TIMEOUT_MS)  // Check for timeout
+      if(time_between_heartbeats > MAV_PACKET_TIMEOUT_MS)  // Check for timeout
       {
         // Clarify why links drop out due to timing out
         LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_heartbeats/1000 << " s.";

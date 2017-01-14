@@ -32,7 +32,7 @@
 #define MAV_OUTGOING_LENGTH 1000
 #define OUT_QUEUE_EMPTY_SLEEP 50
 #define MAV_INCOMING_BUFFER_LENGTH 2041
-#define MAV_HEARTBEAT_TIMEOUT_MS 10000
+#define MAV_PACKET_TIMEOUT_MS 10000
 
 struct link_info
 {
@@ -58,13 +58,15 @@ public:
     void qAddOutgoing(mavlink_message_t msg);
     bool qReadIncoming(mavlink_message_t *msg);
 
-    void printHeartbeatStats();
+    void printPacketStats();
+
+    bool seenSysID(uint8_t sysid) const;
 
     //remove dead systems from private mapping
     void checkForDeadSysID();
 
 
-    void onHeartbeatRecv(uint8_t sysID);
+    void updateRouting(mavlink_message_t &msg);
     bool onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
 
     bool shouldDropPacket();
@@ -84,13 +86,6 @@ public:
     long recentPacketCount = 0;
     long recentPacketSent = 0;
 
-    struct heartbeat_stats {
-      int num_heartbeats_received = 0;
-      boost::posix_time::ptime last_heartbeat_time;
-    };
-    // Track heartbeat stats for each system ID.
-    std::map<uint8_t, heartbeat_stats> sysID_stats;
-
     // Track link quality for the link
     struct link_quality_stats {
       int local_rssi = 0;
@@ -108,6 +103,14 @@ public:
       int packets_dropped = 0;
     };
     link_quality_stats link_quality;
+
+    struct packet_stats {
+      int num_packets_received = 0;
+      boost::posix_time::ptime last_packet_time;
+    };
+
+    // Track heartbeat stats for each system ID.
+    std::map<uint8_t, packet_stats> sysID_stats;
 
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
