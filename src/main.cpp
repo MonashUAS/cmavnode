@@ -293,40 +293,50 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
         buffer << "\nLink: " << (*curr_link)->link_id
                << "   (" << (*curr_link)->info.link_name << ")\n";
 
-        // Convert link delay into an easier-to-read format
-        std::string delay;
-        if (to_simple_string((*curr_link)->link_quality.link_delay).compare("not-a-date-time") == 0)
-            delay = "0";
-        else
-            delay = to_simple_string((*curr_link)->link_quality.link_delay).substr(7,5);
-        buffer  << std::setw(17)
-                << "Link delay: "<< std::setw(5) << delay << " s\n"
-                << std::setw(17)
-                << "Local RSSI: " << std::setw(5) << (*curr_link)->link_quality.local_rssi
-                << std::setw(23)
-                << "Remote RSSI: " << std::setw(5) << (*curr_link)->link_quality.remote_rssi << "\n"
-                << std::setw(17)
-                << "Local noise: " << std::setw(5) << (*curr_link)->link_quality.local_noise
-                << std::setw(23)
-                << "Remote noise: " << std::setw(5) << (*curr_link)->link_quality.remote_noise << "\n"
-                << std::setw(17)
-                << "RX errors: " << std::setw(5) << (*curr_link)->link_quality.rx_errors
-                << std::setw(23)
-                << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
-                << std::setw(17)
-                << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n";
-        // for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
-        // {
-        //     buffer << "System ID: " << (int)iter->first << "\n"
-        //            << "Packets lost: " << std::setw(5) << iter->second.packets_lost << "\t"
-        //            << "Packets dropped: " << std::setw(5) << iter->second.packets_dropped << "\n";
-        //     iter->second.packets_lost = 0;
-        //     iter->second.packets_dropped = 0;
-        // }
+        // Don't print radio stats when none have been received
+        if ((*curr_link)->link_quality.link_delay +
+            (*curr_link)->link_quality.local_rssi +
+            (*curr_link)->link_quality.remote_rssi +
+            (*curr_link)->link_quality.local_noise +
+            (*curr_link)->link_quality.remote_noise +
+            (*curr_link)->link_quality.rx_errors +
+            (*curr_link)->link_quality.corrected_packets +
+            (*curr_link)->link_quality.tx_buffer != 0)
+        {
+            buffer  << std::setw(17)
+                    << "Link delay: "<< std::setw(5) << (*curr_link)->link_quality.link_delay << " s\n"
+                    << std::setw(17)
+                    << "Local RSSI: " << std::setw(5) << (*curr_link)->link_quality.local_rssi
+                    << std::setw(23)
+                    << "Remote RSSI: " << std::setw(5) << (*curr_link)->link_quality.remote_rssi << "\n"
+                    << std::setw(17)
+                    << "Local noise: " << std::setw(5) << (*curr_link)->link_quality.local_noise
+                    << std::setw(23)
+                    << "Remote noise: " << std::setw(5) << (*curr_link)->link_quality.remote_noise << "\n"
+                    << std::setw(17)
+                    << "RX errors: " << std::setw(5) << (*curr_link)->link_quality.rx_errors
+                    << std::setw(23)
+                    << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
+                    << std::setw(17)
+                    << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n\n";
+        }
+        if ((*curr_link)->sysID_stats.size() != 0)
+            buffer << std::setw(15) <<"System ID"
+                   << std::setw(19) <<"Packets Lost"
+                   << std::setw(19) <<"Packets Dropped" << "\n";
+        for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
+        {
+            buffer << std::setw(15) << (int)iter->first
+                   << std::setw(19) << iter->second.packets_lost
+                   << std::setw(19) << iter->second.packets_dropped << "\n";
+
+            iter->second.packets_lost = 0;
+            iter->second.packets_dropped = 0;
+        }
     }
-    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               << buffer.str()
-              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 
 }
 

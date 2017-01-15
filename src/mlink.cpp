@@ -107,37 +107,25 @@ void mlink::printPacketStats()
 
 void mlink::updateRouting(mavlink_message_t &msg)
 {
-    uint8_t sysID = msg.sysid;
-    // Search for the given system ID
-    std::map<uint8_t, packet_stats>::iterator iter;
-    std::pair<std::map<uint8_t, packet_stats>::iterator, bool> ret;
-    // If the system ID is new, add it to the map and set.
-    // Return the position of the new or existing element
-    ret = sysID_stats.insert(std::pair<uint8_t,packet_stats>(sysID,packet_stats()));
-    sysIDs_all_links.insert(sysIDs_all_links.end(), sysID);
+    // New sysid on link
+    if (sysID_stats[msg.sysid].num_packets_received++ == 0)
+    {
+        LOG(INFO) << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name;
+        sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
+    }
 
-    iter = ret.first;
-
-    // Record when the heartbeat was received
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
+    sysID_stats[msg.sysid].last_packet_time = nowTime;
 
-    // Update the map for this system ID
-    iter->second.num_packets_received++;
-    iter->second.last_packet_time = nowTime;
-
-    // Also update the link delay
-    boost::posix_time::time_duration delay = nowTime
-                                                - link_quality.last_heartbeat
-                                                - boost::posix_time::time_duration(0,0,1,0);
-    // Don't allow negative delay
-    if (delay < boost::posix_time::time_duration(0,0,0,0))
-        delay = boost::posix_time::time_duration(0,0,0,0);
-    link_quality.link_delay = delay;
-    link_quality.last_heartbeat = nowTime;
-
-    // Check whether the system ID is new and log if it is
-    if (ret.second == true)
-        LOG(INFO) << "Adding sysID: " << (int)sysID << " to the mapping on link: " << info.link_name;
+    // Track link delay using heartbeats
+    if (msg.msgid == 0)
+    {
+        boost::posix_time::time_duration delay = nowTime
+                                                    - link_quality.last_heartbeat
+                                                    - boost::posix_time::time_duration(0,0,1,0);
+        link_quality.link_delay = delay.seconds();
+        link_quality.last_heartbeat = nowTime;
+    }
 
     // Clear out old sysIDs
     checkForDeadSysID();
@@ -160,7 +148,7 @@ void mlink::checkForDeadSysID()
     std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
+      boost::posix_time::time_duration dur = nowTime - link_quality.last_heartbeat;
       long time_between_heartbeats = dur.total_milliseconds();
 
       if(time_between_heartbeats > MAV_PACKET_TIMEOUT_MS)  // Check for timeout
@@ -213,7 +201,8 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     } else
     {
         // Old packet - drop it
-        ++sysID_stats[msg.sysid].packets_dropped;
+        if (sysID_stats.find(msg.sysid) != sysID_stats.end())
+            ++sysID_stats[msg.sysid].packets_dropped;
         return false;
     }
 }

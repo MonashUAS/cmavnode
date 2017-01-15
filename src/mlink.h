@@ -96,8 +96,8 @@ public:
       int remote_noise = 0;
       int rx_errors = 0;
       int corrected_packets = 0;
-      boost::posix_time::ptime last_heartbeat;
-      boost::posix_time::time_duration link_delay;
+      boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
+      long link_delay = 0;
     };
     link_quality_stats link_quality;
 
