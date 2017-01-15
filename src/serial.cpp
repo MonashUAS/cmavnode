@@ -25,8 +25,6 @@ serial::serial(const std::string& port,
         //configure the port
         port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
 
-        port_.set_option(boost::asio::serial_port_base::character_size(8));
-
         if(flowcontrol){
           port_.set_option(boost::asio::serial_port_base::flow_control(
                               boost::asio::serial_port_base::flow_control::hardware));
@@ -35,6 +33,10 @@ serial::serial(const std::string& port,
           port_.set_option(boost::asio::serial_port_base::flow_control(
                                                                      boost::asio::serial_port_base::flow_control::none));
         }
+
+
+        // Setup 8N1
+        port_.set_option(boost::asio::serial_port_base::character_size(8));
 
         port_.set_option(boost::asio::serial_port_base::parity(
                              boost::asio::serial_port_base::parity::none));
