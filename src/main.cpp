@@ -314,15 +314,15 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                 << std::setw(23)
                 << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
                 << std::setw(17)
-                << "Lost packets: " << std::setw(5) << (*curr_link)->link_quality.packets_lost
-                << std::setw(23)
-                << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n"
-                << std::setw(17)
-                << "Packets dropped: " << std::setw(5) << (*curr_link)->link_quality.packets_dropped << "\n";
-
-        // Reset some link quality values
-        (*curr_link)->link_quality.packets_lost = 0;
-        (*curr_link)->link_quality.packets_dropped = 0;
+                << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n";
+        // for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
+        // {
+        //     buffer << "System ID: " << (int)iter->first << "\n"
+        //            << "Packets lost: " << std::setw(5) << iter->second.packets_lost << "\t"
+        //            << "Packets dropped: " << std::setw(5) << iter->second.packets_dropped << "\n";
+        //     iter->second.packets_lost = 0;
+        //     iter->second.packets_dropped = 0;
+        // }
     }
     LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
               << buffer.str()

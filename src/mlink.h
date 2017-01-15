@@ -98,16 +98,16 @@ public:
       int corrected_packets = 0;
       boost::posix_time::ptime last_heartbeat;
       boost::posix_time::time_duration link_delay;
-      uint8_t last_packet_sequence = -1;
-      uint8_t out_packet_sequence = 0;
-      int packets_lost = 0;
-      int packets_dropped = 0;
     };
     link_quality_stats link_quality;
 
     struct packet_stats {
       int num_packets_received = 0;
       boost::posix_time::ptime last_packet_time;
+      uint8_t last_packet_sequence = -1;
+      uint8_t out_packet_sequence = 0;
+      int packets_lost = 0;
+      int packets_dropped = 0;
     };
 
     // Track heartbeat stats for each system ID.

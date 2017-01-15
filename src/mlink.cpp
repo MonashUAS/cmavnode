@@ -213,7 +213,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     } else
     {
         // Old packet - drop it
-        ++link_quality.packets_dropped;
+        ++sysID_stats[msg.sysid].packets_dropped;
         return false;
     }
 }
@@ -252,15 +252,19 @@ void mlink::record_packets_lost(mavlink_message_t &msg)
     if (msg.msgid != 109 && msg.msgid != 166)
     {
         // Ignore packet sequences from RFDs
-        if (link_quality.last_packet_sequence > msg.seq)
-            link_quality.packets_lost += msg.seq
-                                        - link_quality.last_packet_sequence
-                                        + 255;
+        if (sysID_stats[msg.sysid].last_packet_sequence > msg.seq)
+        {
+            sysID_stats[msg.sysid].packets_lost += msg.seq
+                                - sysID_stats[msg.sysid].last_packet_sequence
+                                + 255;
+        }
         else
-            link_quality.packets_lost += msg.seq
-                                        - link_quality.last_packet_sequence
-                                        - 1;
-        link_quality.last_packet_sequence = msg.seq;
+        {
+            sysID_stats[msg.sysid].packets_lost += msg.seq
+                                - sysID_stats[msg.sysid].last_packet_sequence
+                                - 1;
+        }
+        sysID_stats[msg.sysid].last_packet_sequence = msg.seq;
     }
 }
 
@@ -304,8 +308,8 @@ void mlink::resequence_msg(mavlink_message_t &msg, uint8_t *buffer)
     if (149 < msg.msgid && msg.msgid < 230 && mavlink_message_crc_extras[msg.msgid] == 0)
         find_crc_extra(msg, buffer, mavlink_message_crc_extras);
 
-    msg.seq = ++link_quality.out_packet_sequence;
-    buffer[2] = link_quality.out_packet_sequence;
+    msg.seq = ++sysID_stats[msg.sysid].out_packet_sequence;
+    buffer[2] = sysID_stats[msg.sysid].out_packet_sequence;
     uint16_t checksum = crc_calculate(buffer + 1, msg.len + 5);
     crc_accumulate(mavlink_message_crc_extras[msg.msgid], &checksum); // crc extra
     msg.checksum = checksum;
