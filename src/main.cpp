@@ -165,6 +165,12 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return false;
     }
 
+    // Don't forward SiK radio info
+    if ((*incoming_link)->info.SiK_radio && msg.sysid == 51)
+    {
+        return false;
+    }
+
     // If the current link being checked is designated to receive
     // from a non-zero system ID and that system ID isn't present on
     // this link, don't send on this link.
@@ -209,6 +215,9 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
     mavlink_message_t msg;
     for (auto incoming_link = links->begin(); incoming_link != links->end(); ++incoming_link)
     {
+        // Clear out dead links
+        (*incoming_link)->checkForDeadSysID();
+
         // Try to read from the buffer for this link
         while ((*incoming_link)->qReadIncoming(&msg))
         {
@@ -250,7 +259,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 {
-    LOG(INFO) << "---------------------------------------------------------------------";
+    LOG(INFO) << "---------------------------------------------------------------";
     // Print stats for each known link
     for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
     {
@@ -281,7 +290,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         LOG(INFO) << buffer.str();
     }
-    LOG(INFO) << "---------------------------------------------------------------------";
+    LOG(INFO) << "---------------------------------------------------------------";
 }
 
 void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
@@ -293,15 +302,8 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
         buffer << "\nLink: " << (*curr_link)->link_id
                << "   (" << (*curr_link)->info.link_name << ")\n";
 
-        // Don't print radio stats when none have been received
-        if ((*curr_link)->link_quality.link_delay +
-            (*curr_link)->link_quality.local_rssi +
-            (*curr_link)->link_quality.remote_rssi +
-            (*curr_link)->link_quality.local_noise +
-            (*curr_link)->link_quality.remote_noise +
-            (*curr_link)->link_quality.rx_errors +
-            (*curr_link)->link_quality.corrected_packets +
-            (*curr_link)->link_quality.tx_buffer != 0)
+        // Only print radio stats when the link is connected to a SiK radio
+        if ((*curr_link)->info.SiK_radio)
         {
             buffer  << std::setw(17)
                     << "Link delay: "<< std::setw(5) << (*curr_link)->link_quality.link_delay << " s\n"
@@ -326,17 +328,25 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                    << std::setw(19) <<"Packets Dropped" << "\n";
         for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
         {
-            buffer << std::setw(15) << (int)iter->first
-                   << std::setw(19) << iter->second.packets_lost
+            if ((*curr_link)->info.SiK_radio && iter->first == 51)
+            {
+                buffer << std::setw(11) << "(SiK)"
+                       << std::setw(4) << (int)iter->first;
+            }
+            else
+            {
+                buffer << std::setw(15) << (int)iter->first;
+            }
+            buffer << std::setw(19) << iter->second.packets_lost
                    << std::setw(19) << iter->second.packets_dropped << "\n";
 
             iter->second.packets_lost = 0;
             iter->second.packets_dropped = 0;
         }
     }
-    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               << buffer.str()
-              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 
 }
 

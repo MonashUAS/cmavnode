@@ -42,6 +42,7 @@ struct link_info
     bool sim_enable = false;
     int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
     bool reject_repeat_packets = false;
+    bool SiK_radio = false;
 };
 
 class mlink

@@ -64,7 +64,8 @@ bool mlink::onMessageRecv(mavlink_message_t *msg)
 
     updateRouting(*msg);
 
-    if (msg->msgid == 109)  // If the message is about the link, update the link stats
+    // SiK radio info
+    if (info.SiK_radio && (msg->msgid == 109 || msg->msgid == 166))
     {
       // Update link quality stats for this link
       link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
@@ -107,32 +108,31 @@ void mlink::printPacketStats()
 
 void mlink::updateRouting(mavlink_message_t &msg)
 {
+    bool newSysID;
     // New sysid on link
     if (sysID_stats[msg.sysid].num_packets_received++ == 0)
     {
         LOG(INFO) << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name;
         sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
+        newSysID = true;
     }
 
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
     sysID_stats[msg.sysid].last_packet_time = nowTime;
 
     // Track link delay using heartbeats
-    if (msg.msgid == 0)
+    if (msg.msgid == 0 && newSysID == false)
     {
         boost::posix_time::time_duration delay = nowTime
                                                     - link_quality.last_heartbeat
                                                     - boost::posix_time::time_duration(0,0,1,0);
         link_quality.link_delay = delay.seconds();
         link_quality.last_heartbeat = nowTime;
+
+        // Remove old packets from recently_received
+        std::lock_guard<std::mutex> lock(recently_received_mutex);
+        flush_recently_read();
     }
-
-    // Clear out old sysIDs
-    checkForDeadSysID();
-
-    // Remove old packets from recently_received
-    std::lock_guard<std::mutex> lock(recently_received_mutex);
-    flush_recently_read();
 }
 
 
@@ -148,13 +148,13 @@ void mlink::checkForDeadSysID()
     std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      boost::posix_time::time_duration dur = nowTime - link_quality.last_heartbeat;
-      long time_between_heartbeats = dur.total_milliseconds();
+      boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
+      long time_between_packets = dur.total_milliseconds();
 
-      if(time_between_heartbeats > MAV_PACKET_TIMEOUT_MS)  // Check for timeout
+      if(time_between_packets > MAV_PACKET_TIMEOUT_MS)  // Check for timeout
       {
         // Clarify why links drop out due to timing out
-        LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_heartbeats/1000 << " s.";
+        LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
         // Log then erase
         LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
         sysID_stats.erase(iter);
