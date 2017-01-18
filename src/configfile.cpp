@@ -111,7 +111,7 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
     _configFile->boolValue(thisSection, "reject_repeat_packets", &_info->reject_repeat_packets);
 
     // Identify SiK radio links
-    _configFile->boolValue(thisSection, "SiK_radio", &_info->SiK_radio);
+    _configFile->boolValue(thisSection, "sik_radio", &_info->SiK_radio);
 }
 
 std::string trim(std::string const& source, char const* delims = " \t\r\n")
