@@ -22,17 +22,20 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
 
     if(!linestring.compare("stat"))
         printLinkStats(&links);
+    else if(!linestring.compare("linkquality"))
+        printLinkQuality(&links);
     else if(!linestring.compare("quit"))
         exitMainLoop = true;
     else if(!linestring.compare("help"))
-    {
-        std::cout << "Supported commands:" <<std::endl;
-        std::cout << "stat		give link stats and system ids on each line" <<std::endl;
-        std::cout << "heart <link>	list heartbeat count for the link" <<std::endl;
-        std::cout << "down <link>	stop sending on this link" <<std::endl;
-        std::cout << "up <link>		start sending on this link" <<std::endl;
-        std::cout << "quit" <<std::endl;
-    }
+	{
+		std::cout << "Supported commands:" <<std::endl;
+		std::cout << "\tstat\t\t\tgive link stats and system ids on each line." <<std::endl;
+        std::cout << "\tlinkquality\t\tgive link quality stats for each link." << std::endl;
+		std::cout << "\theart <link>\t\tlist heartbeat count for the link." <<std::endl;
+		std::cout << "\tdown <link>\t\tstop sending on this link." <<std::endl;
+		std::cout << "\tup <link>\t\tstart sending on this link." <<std::endl;
+		std::cout << "\tquit" <<std::endl;
+	}
     else if(!linestring.compare(0,4,"down"))
     {
         if(linestring.size() >= 6)

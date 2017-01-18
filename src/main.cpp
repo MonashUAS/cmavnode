@@ -2,6 +2,7 @@
  * Monash UAS
  */
 
+#include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
@@ -10,6 +11,7 @@
 #include <ostream>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
+#include <iomanip>
 
 // CMAVNode headers
 #include "mlink.h"
@@ -27,6 +29,7 @@ boost::program_options::options_description add_program_options(std::string &fil
 int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links);
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
@@ -67,7 +70,7 @@ int main(int argc, char** argv)
     LOG(INFO) << "Links Initialized, routing loop starting.";
 
     // Number the links
-    for (int i = 0; i != links.size(); ++i)
+    for (uint16_t i = 0; i != links.size(); ++i)
     {
         links.at(i)->link_id = i;
     }
@@ -153,12 +156,17 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 
 }
 
-
 bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
 {
 
     // If the packet came from this link, don't bother
     if (outgoing_link == incoming_link)
+    {
+        return false;
+    }
+
+    // Don't forward SiK radio info
+    if ((*incoming_link)->info.SiK_radio && msg.sysid == 51)
     {
         return false;
     }
@@ -187,7 +195,7 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return true;
     }
 
-    // if we get this far then the packet it routable; if we can't
+    // if we get this far then the packet is routable; if we can't
     // find a route for it then we drop the message.
     if (!((*outgoing_link)->seenSysID(sysIDmsg))) {
         return false;
@@ -207,8 +215,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
     mavlink_message_t msg;
     for (auto incoming_link = links->begin(); incoming_link != links->end(); ++incoming_link)
     {
-        // Update the link's public system IDs
-        (*incoming_link)->getSysID_thisLink();
+        // Clear out dead links
+        (*incoming_link)->checkForDeadSysID();
 
         // Try to read from the buffer for this link
         while ((*incoming_link)->qReadIncoming(&msg))
@@ -251,7 +259,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 {
-    LOG(INFO) << "---------------------------------------------------------------------";
+    LOG(INFO) << "---------------------------------------------------------------";
     // Print stats for each known link
     for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
     {
@@ -274,7 +282,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         buffer << "Received: " << (*curr_link)->recentPacketCount << " "
                << "Sent: " << (*curr_link)->recentPacketSent << " "
-               << "Systems on link: " << (*curr_link)->sysIDpub.size();
+               << "Systems on link: " << (*curr_link)->sysID_stats.size();
 
         // Reset the recent packet counts
         (*curr_link)->recentPacketCount = 0;
@@ -282,8 +290,66 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         LOG(INFO) << buffer.str();
     }
-    LOG(INFO) << "---------------------------------------------------------------------";
+    LOG(INFO) << "---------------------------------------------------------------";
 }
+
+void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
+{
+    // Create a line of link quality
+    std::ostringstream buffer;
+    for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
+    {
+        buffer << "\nLink: " << (*curr_link)->link_id
+               << "   (" << (*curr_link)->info.link_name << ")\n";
+
+        // Only print radio stats when the link is connected to a SiK radio
+        if ((*curr_link)->info.SiK_radio)
+        {
+            buffer  << std::setw(17)
+                    << "Link delay: "<< std::setw(5) << (*curr_link)->link_quality.link_delay << " s\n"
+                    << std::setw(17)
+                    << "Local RSSI: " << std::setw(5) << (*curr_link)->link_quality.local_rssi
+                    << std::setw(23)
+                    << "Remote RSSI: " << std::setw(5) << (*curr_link)->link_quality.remote_rssi << "\n"
+                    << std::setw(17)
+                    << "Local noise: " << std::setw(5) << (*curr_link)->link_quality.local_noise
+                    << std::setw(23)
+                    << "Remote noise: " << std::setw(5) << (*curr_link)->link_quality.remote_noise << "\n"
+                    << std::setw(17)
+                    << "RX errors: " << std::setw(5) << (*curr_link)->link_quality.rx_errors
+                    << std::setw(23)
+                    << "Corrected packets: " << std::setw(5) << (*curr_link)->link_quality.corrected_packets << "\n"
+                    << std::setw(17)
+                    << "TX buffer: " << std::setw(5) << (*curr_link)->link_quality.tx_buffer << "%\n\n";
+        }
+        if ((*curr_link)->sysID_stats.size() != 0)
+            buffer << std::setw(15) <<"System ID"
+                   << std::setw(19) <<"Packets Lost"
+                   << std::setw(19) <<"Packets Dropped" << "\n";
+        for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
+        {
+            if ((*curr_link)->info.SiK_radio && iter->first == 51)
+            {
+                buffer << std::setw(11) << "(SiK)"
+                       << std::setw(4) << (int)iter->first;
+            }
+            else
+            {
+                buffer << std::setw(15) << (int)iter->first;
+            }
+            buffer << std::setw(19) << iter->second.packets_lost
+                   << std::setw(19) << iter->second.packets_dropped << "\n";
+
+            iter->second.packets_lost = 0;
+            iter->second.packets_dropped = 0;
+        }
+    }
+    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              << buffer.str()
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+
+}
+
 
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 {

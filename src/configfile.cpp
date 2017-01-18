@@ -9,7 +9,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
     std::vector<std::string> sections = _configFile.GetSections();
     LOG(INFO) << "Found " << sections.size() << " links";
 
-    for (int i = 0; i < sections.size(); i++)
+    for (uint i = 0; i < sections.size(); i++)
     {
         std::string thisSection = sections.at(i);
         std::string type;
@@ -107,7 +107,11 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
         }
     }
 
+    // Enable or disable packet dropping
+    _configFile->boolValue(thisSection, "reject_repeat_packets", &_info->reject_repeat_packets);
 
+    // Identify SiK radio links
+    _configFile->boolValue(thisSection, "SiK_radio", &_info->SiK_radio);
 }
 
 std::string trim(std::string const& source, char const* delims = " \t\r\n")

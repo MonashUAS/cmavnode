@@ -85,8 +85,9 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
     //ERROR HANDLING?
 
     bool should_drop = shouldDropPacket();
-    //send on socket
-    send(data_out_, tmplen);
+    //send on serial
+    if(!should_drop)
+        send(data_out_, tmplen);
 }
 
 //Async post send callback
@@ -119,23 +120,25 @@ void serial::handleReceiveFrom(const boost::system::error_code& error,
         //do something
         mavlink_message_t msg;
         mavlink_status_t status;
-        unsigned int temp;
 
         for (size_t i = 0; i < bytes_recvd; i++)
         {
-            temp = data_in_[i];
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                bool should_drop = shouldDropPacket();
-                //Try to push it onto the queue
-                if(!should_drop)
+                if (shouldDropPacket()) // Simulate packet loss
+                    continue;
+
+                if (record_incoming_packet(msg) == false) // Drop repeated packets
+                    continue;
+
+                onMessageRecv(&msg);
+
+                // Try to push it onto the queue
+                bool returnCheck = qMavIn.push(msg);
+
+                if(!returnCheck)   //then the queue is full
                 {
-                    onMessageRecv(&msg);
-                    bool returnCheck = qMavIn.push(msg);
-                    if(!returnCheck)   //then the queue is full
-                    {
-                        throw Exception("Serial: The incoming message queue is full");
-                    }
+                    throw Exception("Serial: The incoming message queue is full");
                 }
             }
         }
