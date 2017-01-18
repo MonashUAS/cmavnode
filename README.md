@@ -26,13 +26,9 @@ cmavnode treats each link equally unless specified otherwise, and does not diffe
          cmake ..
          make
 - OPTIONAL: Install cmavnode to /opt/cmavnode and add to path:
+
          sudo make install
          echo "alias cmavnode='/opt/cmavnode/cmavnode" >> ~/.bashrc
-- OPTIONAL: Build cmavnode for debuging:
-         (All messages will be printed to stdout and logged)
-         mkdir debug && cd debug
-         cmake .. -DCMAKE_BUILD_TYPE=Debug
-         make
 
 ## Usage
 
@@ -74,6 +70,8 @@ The following flags can be applied to any type of link and are optional
         sim_enable=true #enables simulation options
         sim_packet_loss=25 #simulates packet loss of 25% on this link (incoming and outgoing)
         output_only_from=1,2,3 #only sends packets from sysID's 1, 2, and 3 on this link
+        reject_repeat_packets=true #enables detection and removal of duplicate packets from different links
+        sik_radio=true #enable this to be able to see radio stats (rssi, noise etc) on the console interface
 
 
 ## Licence
