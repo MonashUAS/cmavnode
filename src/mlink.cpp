@@ -180,8 +180,7 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
 
     record_packets_lost(msg);
-    // Uncomment when resequencing has been proven to be stable
-    // resequence_msg(msg, snapshot_array);
+    resequence_msg(msg, snapshot_array);
 
     // Don't drop heartbeats and only drop when enabled
     if (msg.msgid == 0 || info.reject_repeat_packets == false)
