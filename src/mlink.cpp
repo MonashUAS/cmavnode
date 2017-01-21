@@ -151,7 +151,7 @@ void mlink::checkForDeadSysID()
       boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
       long time_between_packets = dur.total_milliseconds();
 
-      if(time_between_packets > MAV_PACKET_TIMEOUT_MS)  // Check for timeout
+      if(time_between_packets > MAV_PACKET_TIMEOUT_MS && recentPacketCount > 0)
       {
         // Clarify why links drop out due to timing out
         LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
