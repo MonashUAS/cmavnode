@@ -89,26 +89,28 @@ public:
     long recentPacketSent = 0;
 
     // Track link quality for the link
-    struct link_quality_stats {
-      int local_rssi = 0;
-      int remote_rssi = 0;
-      int tx_buffer = 0;
-      int local_noise = 0;
-      int remote_noise = 0;
-      int rx_errors = 0;
-      int corrected_packets = 0;
-      boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
-      long link_delay = 0;
+    struct link_quality_stats
+    {
+        int local_rssi = 0;
+        int remote_rssi = 0;
+        int tx_buffer = 0;
+        int local_noise = 0;
+        int remote_noise = 0;
+        int rx_errors = 0;
+        int corrected_packets = 0;
+        boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
+        long link_delay = 0;
     };
     link_quality_stats link_quality;
 
-    struct packet_stats {
-      int num_packets_received = 0;
-      boost::posix_time::ptime last_packet_time;
-      uint8_t last_packet_sequence = -1;
-      uint8_t out_packet_sequence = 0;
-      int packets_lost = 0;
-      int packets_dropped = 0;
+    struct packet_stats
+    {
+        int num_packets_received = 0;
+        boost::posix_time::ptime last_packet_time;
+        uint8_t last_packet_sequence = -1;
+        uint8_t out_packet_sequence = 0;
+        int packets_lost = 0;
+        int packets_dropped = 0;
     };
 
     // Track heartbeat stats for each system ID.

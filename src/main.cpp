@@ -175,9 +175,9 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
     // from a non-zero system ID and that system ID isn't present on
     // this link, don't send on this link.
     if ((*outgoing_link)->info.output_only_from[0] != 0 &&
-        std::find((*outgoing_link)->info.output_only_from.begin(),
-                  (*outgoing_link)->info.output_only_from.end(),
-                  msg.sysid) == (*outgoing_link)->info.output_only_from.end())
+            std::find((*outgoing_link)->info.output_only_from.begin(),
+                      (*outgoing_link)->info.output_only_from.end(),
+                      msg.sysid) == (*outgoing_link)->info.output_only_from.end())
     {
         return false;
     }
@@ -185,19 +185,23 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
     int16_t sysIDmsg = -1;
     int16_t compIDmsg = -1;
     getTargets(&msg, sysIDmsg, compIDmsg);
-    if (sysIDmsg == -1) {
+    if (sysIDmsg == -1)
+    {
         return true;
     }
-    if (compIDmsg == -1) {
+    if (compIDmsg == -1)
+    {
         return true;
     }
-    if (sysIDmsg == 0) {
+    if (sysIDmsg == 0)
+    {
         return true;
     }
 
     // if we get this far then the packet is routable; if we can't
     // find a route for it then we drop the message.
-    if (!((*outgoing_link)->seenSysID(sysIDmsg))) {
+    if (!((*outgoing_link)->seenSysID(sysIDmsg)))
+    {
         return false;
     }
 
@@ -234,7 +238,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             {
                 // mavlink routing.  See comment in MAVLink_routing.cpp
                 // for logic
-                if (!should_forward_message(msg, &(*incoming_link), &(*outgoing_link))) {
+                if (!should_forward_message(msg, &(*incoming_link), &(*outgoing_link)))
+                {
                     continue;
                 }
 
@@ -282,7 +287,14 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         buffer << "Received: " << (*curr_link)->recentPacketCount << " "
                << "Sent: " << (*curr_link)->recentPacketSent << " "
-               << "Systems on link: " << (*curr_link)->sysID_stats.size();
+               << "Systems on link: ";
+
+        std::map<uint8_t, mlink::packet_stats>* sysID_map = &((*curr_link)->sysID_stats);
+
+        for(auto iter = sysID_map->begin(); iter != sysID_map->end(); iter++)
+        {
+            buffer << (int)iter->first << " ";
+        }
 
         // Reset the recent packet counts
         (*curr_link)->recentPacketCount = 0;
