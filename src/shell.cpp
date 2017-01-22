@@ -27,15 +27,15 @@ void executeLine(char *line, bool &exitMainLoop, std::vector<std::shared_ptr<mli
     else if(!linestring.compare("quit"))
         exitMainLoop = true;
     else if(!linestring.compare("help"))
-	{
-		std::cout << "Supported commands:" <<std::endl;
-		std::cout << "\tstat\t\t\tgive link stats and system ids on each line." <<std::endl;
+    {
+        std::cout << "Supported commands:" <<std::endl;
+        std::cout << "\tstat\t\t\tgive link stats and system ids on each line." <<std::endl;
         std::cout << "\tlinkquality\t\tgive link quality stats for each link." << std::endl;
-		std::cout << "\tpacket <link>\t\tlist packet count for the link." <<std::endl;
-		std::cout << "\tdown <link>\t\tstop sending on this link." <<std::endl;
-		std::cout << "\tup <link>\t\tstart sending on this link." <<std::endl;
-		std::cout << "\tquit" <<std::endl;
-	}
+        std::cout << "\tpacket <link>\t\tlist packet count for the link." <<std::endl;
+        std::cout << "\tdown <link>\t\tstop sending on this link." <<std::endl;
+        std::cout << "\tup <link>\t\tstart sending on this link." <<std::endl;
+        std::cout << "\tquit" <<std::endl;
+    }
     else if(!linestring.compare(0,4,"down"))
     {
         if(linestring.size() >= 6)

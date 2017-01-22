@@ -67,14 +67,14 @@ bool mlink::onMessageRecv(mavlink_message_t *msg)
     // SiK radio info
     if (info.SiK_radio && (msg->msgid == 109 || msg->msgid == 166))
     {
-      // Update link quality stats for this link
-      link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
-      link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
-      link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
-      link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
-      link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
-      link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
-      link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+        // Update link quality stats for this link
+        link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+        link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+        link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+        link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+        link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+        link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+        link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
     }
 
     return true;
@@ -124,8 +124,8 @@ void mlink::updateRouting(mavlink_message_t &msg)
     if (msg.msgid == 0 && newSysID == false)
     {
         boost::posix_time::time_duration delay = nowTime
-                                                    - link_quality.last_heartbeat
-                                                    - boost::posix_time::time_duration(0,0,1,0);
+                - link_quality.last_heartbeat
+                - boost::posix_time::time_duration(0,0,1,0);
         link_quality.link_delay = delay.seconds();
         link_quality.last_heartbeat = nowTime;
 
@@ -148,17 +148,17 @@ void mlink::checkForDeadSysID()
     std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
-      boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
-      long time_between_packets = dur.total_milliseconds();
+        boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
+        long time_between_packets = dur.total_milliseconds();
 
-      if(time_between_packets > MAV_PACKET_TIMEOUT_MS && recentPacketCount > 0)
-      {
-        // Clarify why links drop out due to timing out
-        LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
-        // Log then erase
-        LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
-        sysID_stats.erase(iter);
-      }
+        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && recentPacketCount > 0)
+        {
+            // Clarify why links drop out due to timing out
+            LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
+            // Log then erase
+            LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
+            sysID_stats.erase(iter);
+        }
     }
 }
 
@@ -199,7 +199,8 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
         recently_received[msg.sysid].insert({payload_crc, nowTime});
         return true;
-    } else
+    }
+    else
     {
         // Old packet - drop it
         if (sysID_stats.find(msg.sysid) != sysID_stats.end())
@@ -217,7 +218,7 @@ void mlink::flush_recently_read()
         {
             boost::posix_time::time_duration elapsed_time = boost::posix_time::microsec_clock::local_time() - packet->second;
             if (elapsed_time > boost::posix_time::time_duration(0,0,1,0) &&
-                elapsed_time > max_delay())
+                    elapsed_time > max_delay())
             {
                 recent_packet_map->erase(packet);
             }
@@ -245,14 +246,14 @@ void mlink::record_packets_lost(mavlink_message_t &msg)
         if (sysID_stats[msg.sysid].last_packet_sequence > msg.seq)
         {
             sysID_stats[msg.sysid].packets_lost += msg.seq
-                                - sysID_stats[msg.sysid].last_packet_sequence
-                                + 255;
+                                                   - sysID_stats[msg.sysid].last_packet_sequence
+                                                   + 255;
         }
         else
         {
             sysID_stats[msg.sysid].packets_lost += msg.seq
-                                - sysID_stats[msg.sysid].last_packet_sequence
-                                - 1;
+                                                   - sysID_stats[msg.sysid].last_packet_sequence
+                                                   - 1;
         }
         sysID_stats[msg.sysid].last_packet_sequence = msg.seq;
     }
@@ -263,37 +264,38 @@ void mlink::resequence_msg(mavlink_message_t &msg, uint8_t *buffer)
 {
     // Note that custom messages have had their crcs found by brute force
     static uint8_t mavlink_message_crc_extras[256] = { 50, 124, 137,   0, 237, 217, 104, 119,
-                                                  0,   0,   0,  89,   0,   0,   0,   0,
-                                                  0,   0,   0,   0, 214, 159, 220, 168,
-                                                 24,  23, 170, 144,  67, 115,  39, 246,
-                                                185, 104, 237, 244, 222, 212,   9, 254,
-                                                230,  28,  28, 132, 221, 232,  11, 153,
-                                                 41,  39,  78, 196,   0,   0,  15,   3,
-                                                  0,   0,   0,   0,   0, 167, 183, 119,
-                                                191, 118, 148,  21,   0, 243, 124,   0,
-                                                  0,  38,  20, 158, 152, 143,   0,   0,
-                                                  0, 106,  49,  22, 143, 140,   5, 150,
-                                                  0, 231, 183,  63,  54,  47,   0,   0,
-                                                  0,   0,   0,   0, 175, 102, 158, 208,
-                                                 56,  93, 138, 108,  32, 185,  84,  34,
-                                                174, 124, 237,   4,  76, 128,  56, 116,
-                                                134, 237, 203, 250,  87, 203, 220,  25,
-                                                226,  46,  29, 223,  85,   6, 229, 203,
-                                                  1, 195, 109, 168, 181,  47,  72, 131,
-                                                127,   0, 103, 154, 178, 200, 134,   0,
-                                                208,   0,   0,   0,   0,   0,   0,   0,
-                                                  0,   0,   0, 127, 154,  21,  22,   0,
-                                                  1,   0,   0,   0,   0,   0, 167,   0,
-                                                  0,   0,  47,   0,   0,   0, 229,   0,
-                                                  0,   0,   0,   0,   0,   0,   0,   0,
-                                                  0,  71,   0,   0,   0,   0,   0,   0,
-                                                  0,   0,   0,   0,   0,   0,   0,   0,
-                                                  0,   0,   0,   0,   0,   0,   0,   0,
-                                                  0,   0,   0,   0,   0,   0,   0,   0,
-                                                  0,   0,   0,   0,   0,   0, 163, 105,
-                                                151,  35, 150,   0,   0,   0,   0,   0,
-                                                  0,  90, 104,  85,  95, 130, 184,  81,
-                                                  8, 204,  49, 170,  44,  83,  46,   0};
+                                                       0,   0,   0,  89,   0,   0,   0,   0,
+                                                       0,   0,   0,   0, 214, 159, 220, 168,
+                                                       24,  23, 170, 144,  67, 115,  39, 246,
+                                                       185, 104, 237, 244, 222, 212,   9, 254,
+                                                       230,  28,  28, 132, 221, 232,  11, 153,
+                                                       41,  39,  78, 196,   0,   0,  15,   3,
+                                                       0,   0,   0,   0,   0, 167, 183, 119,
+                                                       191, 118, 148,  21,   0, 243, 124,   0,
+                                                       0,  38,  20, 158, 152, 143,   0,   0,
+                                                       0, 106,  49,  22, 143, 140,   5, 150,
+                                                       0, 231, 183,  63,  54,  47,   0,   0,
+                                                       0,   0,   0,   0, 175, 102, 158, 208,
+                                                       56,  93, 138, 108,  32, 185,  84,  34,
+                                                       174, 124, 237,   4,  76, 128,  56, 116,
+                                                       134, 237, 203, 250,  87, 203, 220,  25,
+                                                       226,  46,  29, 223,  85,   6, 229, 203,
+                                                       1, 195, 109, 168, 181,  47,  72, 131,
+                                                       127,   0, 103, 154, 178, 200, 134,   0,
+                                                       208,   0,   0,   0,   0,   0,   0,   0,
+                                                       0,   0,   0, 127, 154,  21,  22,   0,
+                                                       1,   0,   0,   0,   0,   0, 167,   0,
+                                                       0,   0,  47,   0,   0,   0, 229,   0,
+                                                       0,   0,   0,   0,   0,   0,   0,   0,
+                                                       0,  71,   0,   0,   0,   0,   0,   0,
+                                                       0,   0,   0,   0,   0,   0,   0,   0,
+                                                       0,   0,   0,   0,   0,   0,   0,   0,
+                                                       0,   0,   0,   0,   0,   0,   0,   0,
+                                                       0,   0,   0,   0,   0,   0, 163, 105,
+                                                       151,  35, 150,   0,   0,   0,   0,   0,
+                                                       0,  90, 104,  85,  95, 130, 184,  81,
+                                                       8, 204,  49, 170,  44,  83,  46,   0
+                                                     };
 
     if (149 < msg.msgid && msg.msgid < 230 && mavlink_message_crc_extras[msg.msgid] == 0)
         find_crc_extra(msg, buffer, mavlink_message_crc_extras);
