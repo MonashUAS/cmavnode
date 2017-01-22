@@ -282,7 +282,13 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         buffer << "Received: " << (*curr_link)->recentPacketCount << " "
                << "Sent: " << (*curr_link)->recentPacketSent << " "
-               << "Systems on link: " << (*curr_link)->sysID_stats.size();
+               << "Systems on link: ";
+
+        std::map<uint8_t, mlink::packet_stats>* sysID_map = &((*curr_link)->sysID_stats);
+
+        for(auto iter = sysID_map->begin(); iter != sysID_map->end(); iter++){
+            buffer << (int)iter->first << " ";
+        }
 
         // Reset the recent packet counts
         (*curr_link)->recentPacketCount = 0;

@@ -101,7 +101,7 @@ void mlink::printPacketStats()
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
         std::cout << "sysID: " << (int)iter->first
-                  << " # heartbeats: " << iter->second.num_packets_received
+                  << " # packets: " << iter->second.num_packets_received
                   << std::endl;
     }
 }
