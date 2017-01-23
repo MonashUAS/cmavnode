@@ -347,7 +347,7 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                 buffer << std::setw(15) << (int)iter->first;
             }
             buffer << std::setw(19) << iter->second.packets_lost
-                   << std::setw(19) << iter->second.packets_dropped 
+                   << std::setw(19) << iter->second.packets_dropped
                    << std::setw(19) << iter->second.packet_loss_percent << "\n";
 
         }

@@ -143,8 +143,6 @@ protected:
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();
     void record_packet_stats(mavlink_message_t *msg);
-    void resequence_msg(mavlink_message_t &msg, uint8_t *buffer);
-    void find_crc_extra(mavlink_message_t &msg, uint8_t *buffer, uint8_t *crc_extras);
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;
