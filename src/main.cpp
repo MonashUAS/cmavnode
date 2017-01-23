@@ -285,8 +285,8 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
             buffer << "DOWN ";
         }
 
-        buffer << "Received: " << (*curr_link)->recentPacketCount << " "
-               << "Sent: " << (*curr_link)->recentPacketSent << " "
+        buffer << "Received: " << (*curr_link)->totalPacketCount << " "
+               << "Sent: " << (*curr_link)->totalPacketSent << " "
                << "Systems on link: ";
 
         std::map<uint8_t, mlink::packet_stats>* sysID_map = &((*curr_link)->sysID_stats);
@@ -295,10 +295,6 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
         {
             buffer << (int)iter->first << " ";
         }
-
-        // Reset the recent packet counts
-        (*curr_link)->recentPacketCount = 0;
-        (*curr_link)->recentPacketSent = 0;
 
         LOG(INFO) << buffer.str();
     }
@@ -337,7 +333,8 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
         if ((*curr_link)->sysID_stats.size() != 0)
             buffer << std::setw(15) <<"System ID"
                    << std::setw(19) <<"Packets Lost"
-                   << std::setw(19) <<"Packets Dropped" << "\n";
+                   << std::setw(19) <<"Packets Dropped"
+                   << std::setw(19) <<"Packet Loss %" << "\n";
         for (auto iter = (*curr_link)->sysID_stats.begin(); iter != (*curr_link)->sysID_stats.end(); ++iter)
         {
             if ((*curr_link)->info.SiK_radio && iter->first == 51)
@@ -350,10 +347,9 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
                 buffer << std::setw(15) << (int)iter->first;
             }
             buffer << std::setw(19) << iter->second.packets_lost
-                   << std::setw(19) << iter->second.packets_dropped << "\n";
+                   << std::setw(19) << iter->second.packets_dropped 
+                   << std::setw(19) << iter->second.packet_loss_percent << "\n";
 
-            iter->second.packets_lost = 0;
-            iter->second.packets_dropped = 0;
         }
     }
     LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"

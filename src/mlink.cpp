@@ -28,7 +28,7 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
     if(!is_kill)
     {
         bool returnCheck = qMavOut.push(msg);
-        recentPacketSent++;
+        totalPacketSent++;
 
         if(!returnCheck) //Then the queue is full
         {
@@ -60,7 +60,8 @@ bool mlink::seenSysID(const uint8_t sysid) const
 
 bool mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    recentPacketCount++;
+
+    record_packet_stats(msg);
 
     updateRouting(*msg);
 
@@ -151,7 +152,7 @@ void mlink::checkForDeadSysID()
         boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
         long time_between_packets = dur.total_milliseconds();
 
-        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && recentPacketCount > 0)
+        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
         {
             // Clarify why links drop out due to timing out
             LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
@@ -179,7 +180,6 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     snapshot_array[5] = msg.msgid;
     _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
 
-    record_packets_lost(msg);
     // Uncomment when resequencing has been proven to be stable
     // resequence_msg(msg, snapshot_array);
 
@@ -237,26 +237,48 @@ boost::posix_time::time_duration mlink::max_delay()
     return ret;
 }
 
-void mlink::record_packets_lost(mavlink_message_t &msg)
+void mlink::record_packet_stats(mavlink_message_t *msg)
 {
+
+    totalPacketCount++;
+
+    sysID_stats[msg->sysid].recent_packets_received++;
     // Deal with wrapping of 8 bit integer
-    if (msg.msgid != 109 && msg.msgid != 166)
+    if (msg->msgid != 109 && msg->msgid != 166)
     {
         // Ignore packet sequences from RFDs
-        if (sysID_stats[msg.sysid].last_packet_sequence > msg.seq)
+        if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
         {
-            sysID_stats[msg.sysid].packets_lost += msg.seq
-                                                   - sysID_stats[msg.sysid].last_packet_sequence
+            sysID_stats[msg->sysid].packets_lost += msg->seq
+                                                   - sysID_stats[msg->sysid].last_packet_sequence
                                                    + 255;
+            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
+              - sysID_stats[msg->sysid].last_packet_sequence
+              + 255;
         }
         else
         {
-            sysID_stats[msg.sysid].packets_lost += msg.seq
-                                                   - sysID_stats[msg.sysid].last_packet_sequence
+            sysID_stats[msg->sysid].packets_lost += msg->seq
+                                                   - sysID_stats[msg->sysid].last_packet_sequence
                                                    - 1;
+            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
+              - sysID_stats[msg->sysid].last_packet_sequence
+              - 1;
         }
-        sysID_stats[msg.sysid].last_packet_sequence = msg.seq;
+        sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
+
+        if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0){
+          float packet_loss_percent_ = (float)sysID_stats[msg->sysid].recent_packets_lost/((float)sysID_stats[msg->sysid].recent_packets_received + (float)sysID_stats[msg->sysid].recent_packets_lost);
+          packet_loss_percent_ *= 100.0f;
+          sysID_stats[msg->sysid].recent_packets_lost = 0;
+          sysID_stats[msg->sysid].recent_packets_received = 0;
+
+          sysID_stats[msg->sysid].packet_loss_percent = packet_loss_percent_;
+
+        }
     }
+
+
 }
 
 
