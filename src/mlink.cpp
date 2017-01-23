@@ -240,40 +240,43 @@ boost::posix_time::time_duration mlink::max_delay()
 void mlink::record_packet_stats(mavlink_message_t *msg)
 {
 
+    //increment link packet counter and sysid packet counter
     totalPacketCount++;
-
     sysID_stats[msg->sysid].recent_packets_received++;
-    // Deal with wrapping of 8 bit integer
+
     if (msg->msgid != 109 && msg->msgid != 166)
     {
-        // Ignore packet sequences from RFDs
         if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
         {
+            //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
-                                                    - sysID_stats[msg->sysid].last_packet_sequence
-                                                    + 255;
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    + 255;
+            //update recent packet loss
             sysID_stats[msg->sysid].recent_packets_lost += msg->seq
                     - sysID_stats[msg->sysid].last_packet_sequence
                     + 255;
         }
         else
         {
+            //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
-                                                    - sysID_stats[msg->sysid].last_packet_sequence
-                                                    - 1;
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    - 1;
+            //update recent packet loss
             sysID_stats[msg->sysid].recent_packets_lost += msg->seq
                     - sysID_stats[msg->sysid].last_packet_sequence
                     - 1;
         }
         sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
 
+        //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage
         if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0)
         {
             float packet_loss_percent_ = (float)sysID_stats[msg->sysid].recent_packets_lost/((float)sysID_stats[msg->sysid].recent_packets_received + (float)sysID_stats[msg->sysid].recent_packets_lost);
             packet_loss_percent_ *= 100.0f;
             sysID_stats[msg->sysid].recent_packets_lost = 0;
             sysID_stats[msg->sysid].recent_packets_received = 0;
-
             sysID_stats[msg->sysid].packet_loss_percent = packet_loss_percent_;
 
         }
