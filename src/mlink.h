@@ -69,7 +69,7 @@ public:
 
 
     void updateRouting(mavlink_message_t &msg);
-    bool onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
+    void onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
 
     bool shouldDropPacket();
 
@@ -138,11 +138,12 @@ protected:
     static std::mutex recently_received_mutex;
 
     // Accessor function for recently_read also performs resequencing
-    bool record_incoming_packet(mavlink_message_t &msg);
+    bool record_incoming_packet(mavlink_message_t *msg);
     // Helper functions for record_incoming_packet()
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();
     void record_packet_stats(mavlink_message_t *msg);
+    void handleSiKRadioPacket(mavlink_message_t *msg);
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;

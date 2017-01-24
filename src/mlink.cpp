@@ -58,8 +58,13 @@ bool mlink::seenSysID(const uint8_t sysid) const
     return false;
 }
 
-bool mlink::onMessageRecv(mavlink_message_t *msg)
+void mlink::onMessageRecv(mavlink_message_t *msg)
 {
+    //Simulate Packet Loss
+    if (shouldDropPacket())
+    {
+        return;
+    }
 
     record_packet_stats(msg);
 
@@ -68,17 +73,36 @@ bool mlink::onMessageRecv(mavlink_message_t *msg)
     // SiK radio info
     if (info.SiK_radio && (msg->msgid == 109 || msg->msgid == 166))
     {
-        // Update link quality stats for this link
-        link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
-        link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
-        link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
-        link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
-        link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
-        link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
-        link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+        //This packet contains info about the radio link. Use the info then discard
+        handleSiKRadioPacket(msg);
+        return;
     }
 
-    return true;
+    if (record_incoming_packet(msg) == false)
+    {
+        return;
+    }
+
+    //We have made it this far, no reason to drop packet so add to queue
+    bool returnCheck = qMavIn.push(*msg);
+
+    if(!returnCheck)
+    {
+        throw Exception("The incoming message queue is full");
+    }
+
+    return;
+}
+
+void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
+{
+    link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+    link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+    link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+    link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+    link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+    link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+    link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
 }
 
 bool mlink::shouldDropPacket()
@@ -164,7 +188,7 @@ void mlink::checkForDeadSysID()
 }
 
 
-bool mlink::record_incoming_packet(mavlink_message_t &msg)
+bool mlink::record_incoming_packet(mavlink_message_t *msg)
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
@@ -173,38 +197,38 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     // Extract the mavlink packet into a buffer
     static uint8_t snapshot_array[263];
     snapshot_array[0] = 254;
-    snapshot_array[1] = msg.len;
-    snapshot_array[2] = msg.seq;
-    snapshot_array[3] = msg.sysid;
-    snapshot_array[4] = msg.compid;
-    snapshot_array[5] = msg.msgid;
-    _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
+    snapshot_array[1] = msg->len;
+    snapshot_array[2] = msg->seq;
+    snapshot_array[3] = msg->sysid;
+    snapshot_array[4] = msg->compid;
+    snapshot_array[5] = msg->msgid;
+    _MAV_RETURN_uint8_t_array(msg, snapshot_array + 6, msg->len, 0);
 
     // Uncomment when resequencing has been proven to be stable
     // resequence_msg(msg, snapshot_array);
 
     // Don't drop heartbeats and only drop when enabled
-    if (msg.msgid == 0 || info.reject_repeat_packets == false)
+    if (msg->msgid == 0 || info.reject_repeat_packets == false)
         return true;
 
     // Ensure link threads don't cause seg faults
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
     // Check for repeated packets by comparing checksums
-    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg.len);
+    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg->len);
     // Check whether this packet has been seen before
-    if (recently_received[msg.sysid].find(payload_crc) == recently_received[msg.sysid].end())
+    if (recently_received[msg->sysid].find(payload_crc) == recently_received[msg->sysid].end())
     {
         // New packet - add it
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        recently_received[msg.sysid].insert({payload_crc, nowTime});
+        recently_received[msg->sysid].insert({payload_crc, nowTime});
         return true;
     }
     else
     {
         // Old packet - drop it
-        if (sysID_stats.find(msg.sysid) != sysID_stats.end())
-            ++sysID_stats[msg.sysid].packets_dropped;
+        if (sysID_stats.find(msg->sysid) != sysID_stats.end())
+            ++sysID_stats[msg->sysid].packets_dropped;
         return false;
     }
 }
