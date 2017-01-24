@@ -28,7 +28,7 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
     if(!is_kill)
     {
         bool returnCheck = qMavOut.push(msg);
-        recentPacketSent++;
+        totalPacketSent++;
 
         if(!returnCheck) //Then the queue is full
         {
@@ -58,26 +58,51 @@ bool mlink::seenSysID(const uint8_t sysid) const
     return false;
 }
 
-bool mlink::onMessageRecv(mavlink_message_t *msg)
+void mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    recentPacketCount++;
+    //Simulate Packet Loss
+    if (shouldDropPacket())
+    {
+        return;
+    }
+
+    record_packet_stats(msg);
 
     updateRouting(*msg);
 
     // SiK radio info
     if (info.SiK_radio && (msg->msgid == 109 || msg->msgid == 166))
     {
-        // Update link quality stats for this link
-        link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
-        link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
-        link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
-        link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
-        link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
-        link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
-        link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+        //This packet contains info about the radio link. Use the info then discard
+        handleSiKRadioPacket(msg);
+        return;
     }
 
-    return true;
+    if (record_incoming_packet(msg) == false)
+    {
+        return;
+    }
+
+    //We have made it this far, no reason to drop packet so add to queue
+    bool returnCheck = qMavIn.push(*msg);
+
+    if(!returnCheck)
+    {
+        throw Exception("The incoming message queue is full");
+    }
+
+    return;
+}
+
+void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
+{
+    link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+    link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+    link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+    link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+    link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+    link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+    link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
 }
 
 bool mlink::shouldDropPacket()
@@ -151,7 +176,7 @@ void mlink::checkForDeadSysID()
         boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
         long time_between_packets = dur.total_milliseconds();
 
-        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && recentPacketCount > 0)
+        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
         {
             // Clarify why links drop out due to timing out
             LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
@@ -163,7 +188,7 @@ void mlink::checkForDeadSysID()
 }
 
 
-bool mlink::record_incoming_packet(mavlink_message_t &msg)
+bool mlink::record_incoming_packet(mavlink_message_t *msg)
 {
     // Check incoming bytes for parts of a mavlink packet
     // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
@@ -172,39 +197,38 @@ bool mlink::record_incoming_packet(mavlink_message_t &msg)
     // Extract the mavlink packet into a buffer
     static uint8_t snapshot_array[263];
     snapshot_array[0] = 254;
-    snapshot_array[1] = msg.len;
-    snapshot_array[2] = msg.seq;
-    snapshot_array[3] = msg.sysid;
-    snapshot_array[4] = msg.compid;
-    snapshot_array[5] = msg.msgid;
-    _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
+    snapshot_array[1] = msg->len;
+    snapshot_array[2] = msg->seq;
+    snapshot_array[3] = msg->sysid;
+    snapshot_array[4] = msg->compid;
+    snapshot_array[5] = msg->msgid;
+    _MAV_RETURN_uint8_t_array(msg, snapshot_array + 6, msg->len, 0);
 
-    record_packets_lost(msg);
     // Uncomment when resequencing has been proven to be stable
     // resequence_msg(msg, snapshot_array);
 
     // Don't drop heartbeats and only drop when enabled
-    if (msg.msgid == 0 || info.reject_repeat_packets == false)
+    if (msg->msgid == 0 || info.reject_repeat_packets == false)
         return true;
 
     // Ensure link threads don't cause seg faults
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
     // Check for repeated packets by comparing checksums
-    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg.len);
+    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg->len);
     // Check whether this packet has been seen before
-    if (recently_received[msg.sysid].find(payload_crc) == recently_received[msg.sysid].end())
+    if (recently_received[msg->sysid].find(payload_crc) == recently_received[msg->sysid].end())
     {
         // New packet - add it
         boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-        recently_received[msg.sysid].insert({payload_crc, nowTime});
+        recently_received[msg->sysid].insert({payload_crc, nowTime});
         return true;
     }
     else
     {
         // Old packet - drop it
-        if (sysID_stats.find(msg.sysid) != sysID_stats.end())
-            ++sysID_stats[msg.sysid].packets_dropped;
+        if (sysID_stats.find(msg->sysid) != sysID_stats.end())
+            ++sysID_stats[msg->sysid].packets_dropped;
         return false;
     }
 }
@@ -237,100 +261,50 @@ boost::posix_time::time_duration mlink::max_delay()
     return ret;
 }
 
-void mlink::record_packets_lost(mavlink_message_t &msg)
+void mlink::record_packet_stats(mavlink_message_t *msg)
 {
-    // Deal with wrapping of 8 bit integer
-    if (msg.msgid != 109 && msg.msgid != 166)
+
+    //increment link packet counter and sysid packet counter
+    totalPacketCount++;
+    sysID_stats[msg->sysid].recent_packets_received++;
+
+    if (msg->msgid != 109 && msg->msgid != 166)
     {
-        // Ignore packet sequences from RFDs
-        if (sysID_stats[msg.sysid].last_packet_sequence > msg.seq)
+        if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
         {
-            sysID_stats[msg.sysid].packets_lost += msg.seq
-                                                   - sysID_stats[msg.sysid].last_packet_sequence
-                                                   + 255;
+            //update total packet loss
+            sysID_stats[msg->sysid].packets_lost += msg->seq
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    + 255;
+            //update recent packet loss
+            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    + 255;
         }
         else
         {
-            sysID_stats[msg.sysid].packets_lost += msg.seq
-                                                   - sysID_stats[msg.sysid].last_packet_sequence
-                                                   - 1;
+            //update total packet loss
+            sysID_stats[msg->sysid].packets_lost += msg->seq
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    - 1;
+            //update recent packet loss
+            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
+                    - sysID_stats[msg->sysid].last_packet_sequence
+                    - 1;
         }
-        sysID_stats[msg.sysid].last_packet_sequence = msg.seq;
+        sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
+
+        //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage
+        if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0)
+        {
+            float packet_loss_percent_ = (float)sysID_stats[msg->sysid].recent_packets_lost/((float)sysID_stats[msg->sysid].recent_packets_received + (float)sysID_stats[msg->sysid].recent_packets_lost);
+            packet_loss_percent_ *= 100.0f;
+            sysID_stats[msg->sysid].recent_packets_lost = 0;
+            sysID_stats[msg->sysid].recent_packets_received = 0;
+            sysID_stats[msg->sysid].packet_loss_percent = packet_loss_percent_;
+
+        }
     }
-}
 
 
-void mlink::resequence_msg(mavlink_message_t &msg, uint8_t *buffer)
-{
-    // Note that custom messages have had their crcs found by brute force
-    static uint8_t mavlink_message_crc_extras[256] = { 50, 124, 137,   0, 237, 217, 104, 119,
-                                                       0,   0,   0,  89,   0,   0,   0,   0,
-                                                       0,   0,   0,   0, 214, 159, 220, 168,
-                                                       24,  23, 170, 144,  67, 115,  39, 246,
-                                                       185, 104, 237, 244, 222, 212,   9, 254,
-                                                       230,  28,  28, 132, 221, 232,  11, 153,
-                                                       41,  39,  78, 196,   0,   0,  15,   3,
-                                                       0,   0,   0,   0,   0, 167, 183, 119,
-                                                       191, 118, 148,  21,   0, 243, 124,   0,
-                                                       0,  38,  20, 158, 152, 143,   0,   0,
-                                                       0, 106,  49,  22, 143, 140,   5, 150,
-                                                       0, 231, 183,  63,  54,  47,   0,   0,
-                                                       0,   0,   0,   0, 175, 102, 158, 208,
-                                                       56,  93, 138, 108,  32, 185,  84,  34,
-                                                       174, 124, 237,   4,  76, 128,  56, 116,
-                                                       134, 237, 203, 250,  87, 203, 220,  25,
-                                                       226,  46,  29, 223,  85,   6, 229, 203,
-                                                       1, 195, 109, 168, 181,  47,  72, 131,
-                                                       127,   0, 103, 154, 178, 200, 134,   0,
-                                                       208,   0,   0,   0,   0,   0,   0,   0,
-                                                       0,   0,   0, 127, 154,  21,  22,   0,
-                                                       1,   0,   0,   0,   0,   0, 167,   0,
-                                                       0,   0,  47,   0,   0,   0, 229,   0,
-                                                       0,   0,   0,   0,   0,   0,   0,   0,
-                                                       0,  71,   0,   0,   0,   0,   0,   0,
-                                                       0,   0,   0,   0,   0,   0,   0,   0,
-                                                       0,   0,   0,   0,   0,   0,   0,   0,
-                                                       0,   0,   0,   0,   0,   0,   0,   0,
-                                                       0,   0,   0,   0,   0,   0, 163, 105,
-                                                       151,  35, 150,   0,   0,   0,   0,   0,
-                                                       0,  90, 104,  85,  95, 130, 184,  81,
-                                                       8, 204,  49, 170,  44,  83,  46,   0
-                                                     };
-
-    if (149 < msg.msgid && msg.msgid < 230 && mavlink_message_crc_extras[msg.msgid] == 0)
-        find_crc_extra(msg, buffer, mavlink_message_crc_extras);
-
-    msg.seq = ++sysID_stats[msg.sysid].out_packet_sequence;
-    buffer[2] = sysID_stats[msg.sysid].out_packet_sequence;
-    uint16_t checksum = crc_calculate(buffer + 1, msg.len + 5);
-    crc_accumulate(mavlink_message_crc_extras[msg.msgid], &checksum); // crc extra
-    msg.checksum = checksum;
-}
-
-void mlink::find_crc_extra(mavlink_message_t &msg, uint8_t *buffer, uint8_t *crc_extras)
-{
-    // These custom messages have not been encountered before and need their
-    // crcs to be added to mavlink_message_crcs
-    static std::set<uint8_t> msgid_crc_extras_found;
-
-    // When the crc_extra is actually 0, don't repeat these operations
-    if (msgid_crc_extras_found.find(msg.msgid) != msgid_crc_extras_found.end())
-        return;
-
-    // Brute-force to find the correct crc
-    uint8_t crc_extra_guess = 0;
-    uint16_t tryChecksum = 0;
-    while (msg.checksum != tryChecksum)
-    {
-        tryChecksum = crc_calculate(buffer + 1, msg.len + 5);
-        crc_accumulate(crc_extra_guess++, &tryChecksum);
-    }
-    msgid_crc_extras_found.insert(msgid_crc_extras_found.end(), msg.msgid);
-    LOG(ERROR) << "Custom mavlink packet with msgID " << (int)msg.msgid
-               << " detected. This packet did not have a known crc"
-               << " extra byte, however it has been calculated to be "
-               << (int)crc_extra_guess << ". Please add this value to the"
-               << " \"mavlink_message_crcs\" array to avoid this error"
-               << " in future.";
-    crc_extras[msg.msgid] = crc_extra_guess;
 }

@@ -87,21 +87,7 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, data_in_[i], &msg, &status))
             {
-                if (shouldDropPacket()) // Simulate packet loss
-                    continue;
-
-                if (record_incoming_packet(msg) == false) // Drop repeated packets
-                    continue;
-
                 onMessageRecv(&msg);
-
-                // Try to push it onto the queue
-                bool returnCheck = qMavIn.push(msg);
-
-                if(!returnCheck)   //then the queue is full
-                {
-                    throw Exception("AsyncSocket: The incoming message queue is full");
-                }
             }
         }
 

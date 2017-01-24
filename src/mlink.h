@@ -69,7 +69,7 @@ public:
 
 
     void updateRouting(mavlink_message_t &msg);
-    bool onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
+    void onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
 
     bool shouldDropPacket();
 
@@ -85,8 +85,8 @@ public:
     link_info info;
 
     bool is_kill = false;
-    long recentPacketCount = 0;
-    long recentPacketSent = 0;
+    long totalPacketCount = 0;
+    long totalPacketSent = 0;
 
     // Track link quality for the link
     struct link_quality_stats
@@ -106,11 +106,14 @@ public:
     struct packet_stats
     {
         int num_packets_received = 0;
+        int recent_packets_received = 0;
+        int recent_packets_lost = 0;
         boost::posix_time::ptime last_packet_time;
         uint8_t last_packet_sequence = -1;
         uint8_t out_packet_sequence = 0;
         int packets_lost = 0;
         int packets_dropped = 0;
+        float packet_loss_percent = 0;
     };
 
     // Track heartbeat stats for each system ID.
@@ -135,13 +138,12 @@ protected:
     static std::mutex recently_received_mutex;
 
     // Accessor function for recently_read also performs resequencing
-    bool record_incoming_packet(mavlink_message_t &msg);
+    bool record_incoming_packet(mavlink_message_t *msg);
     // Helper functions for record_incoming_packet()
     boost::posix_time::time_duration max_delay();
     void flush_recently_read();
-    void record_packets_lost(mavlink_message_t &msg);
-    void resequence_msg(mavlink_message_t &msg, uint8_t *buffer);
-    void find_crc_extra(mavlink_message_t &msg, uint8_t *buffer, uint8_t *crc_extras);
+    void record_packet_stats(mavlink_message_t *msg);
+    void handleSiKRadioPacket(mavlink_message_t *msg);
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;
