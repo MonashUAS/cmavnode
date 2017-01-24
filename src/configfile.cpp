@@ -23,6 +23,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         std::string serialport;
         int baud;
         std::string targetip;
+        bool flowcontrol = false;
         int targetport, localport;
 
         if( type.compare("serial") == 0)
@@ -32,6 +33,9 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                 LOG(ERROR) << "Link: " << thisSection << " is specified as serial but does not have valid port and baud";
                 continue;
             }
+
+            //Try to get flow control
+            _configFile.boolValue(thisSection, "flow_control", &flowcontrol);
             isSerial = true;
             LOG(INFO) << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud;
         }
@@ -59,7 +63,8 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         if(isSerial)
         {
             links.push_back(std::shared_ptr<mlink>(new serial(serialport
-                                                   ,std::to_string(baud)
+                                                              ,std::to_string(baud)
+                                                              ,flowcontrol
                                                    ,_info)));
         }
         else if (isUDP)

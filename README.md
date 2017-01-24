@@ -55,6 +55,10 @@ This is the minimum configuration needed for a serial port
             port=/dev/ttyUSB0
             baud=57600
 
+By default hardware flow control (RTS,CTS) is disabled, to enable it use:
+
+        flow_control=true
+
 ### UDP
 This is the minimum configuration needed for a UDP socket
 
