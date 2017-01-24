@@ -196,14 +196,15 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
 
     // Extract the mavlink packet into a buffer
     static uint8_t snapshot_array[263];
-    snapshot_array[0] = 254;
-    snapshot_array[1] = msg->len;
-    snapshot_array[2] = msg->seq;
-    snapshot_array[3] = msg->sysid;
-    snapshot_array[4] = msg->compid;
-    snapshot_array[5] = msg->msgid;
-    _MAV_RETURN_uint8_t_array(msg, snapshot_array + 6, msg->len, 0);
+    snapshot_array[0] = msg.magic;
+    snapshot_array[1] = msg.len;
+    snapshot_array[2] = msg.seq;
+    snapshot_array[3] = msg.sysid;
+    snapshot_array[4] = msg.compid;
+    snapshot_array[5] = msg.msgid;
+    _MAV_RETURN_uint8_t_array(&msg, snapshot_array + 6, msg.len, 0);
 
+    record_packets_lost(msg);
     // Uncomment when resequencing has been proven to be stable
     // resequence_msg(msg, snapshot_array);
 
