@@ -18,12 +18,23 @@
 class asyncsocket: public mlink
 {
 public:
-    //Construct
+    //Construct specifying all
     asyncsocket(
         const std::string& host,
         const std::string& hostport,
         const std::string& listenport,
         link_info info_);
+
+    //Specify only receive
+    //    asyncsocket(
+    //           const std::string& listenport,
+    //           link_info info_);
+
+    //Specify only target
+    asyncsocket(
+                const std::string& host,
+                const std::string& hostport,
+                link_info info_);
 
     ~asyncsocket();
 
