@@ -193,12 +193,10 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
     // Returns false if the packet has already been seen and won't be forwarded
 
     // Extract the mavlink packet into a buffer
-    uint8_t snapshot_array[msg.len + 24];
-    mavlink_msg_to_send_buffer(snapshot_array, &msg);
+    uint8_t snapshot_array[msg->len + 24];
+    mavlink_msg_to_send_buffer(snapshot_array, msg);
 
-    record_packets_lost(msg);
-    // Uncomment when resequencing has been proven to be stable
-    // resequence_msg(msg, snapshot_array);
+    record_packet_stats(msg);
 
     // Don't drop heartbeats and only drop when enabled
     if (msg->msgid == 0 || info.reject_repeat_packets == false)
@@ -208,20 +206,16 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
     // Check for repeated packets by comparing checksums
-<<<<<<< HEAD
-    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg->len);
-=======
     uint16_t payload_crc;
-    if (msg.magic == 254)
+    if (msg->magic == 254)
     {
-        payload_crc = crc_calculate(snapshot_array + 6, msg.len);
+        payload_crc = crc_calculate(snapshot_array + 6, msg->len);
     }
-    else if (msg.magic == 253)
+    else if (msg->magic == 253)
     {
-        payload_crc = crc_calculate(snapshot_array + 11, msg.len);
+        payload_crc = crc_calculate(snapshot_array + 11, msg->len);
     }
 
->>>>>>> Packet rejection now works with mavlink 2. Packets lost no longer displays initial sequencing error between nodes.
     // Check whether this packet has been seen before
     if (recently_received[msg->sysid].find(payload_crc) == recently_received[msg->sysid].end())
     {
