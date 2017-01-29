@@ -61,6 +61,24 @@ asyncsocket::asyncsocket(
     read_thread = boost::thread(&asyncsocket::runReadThread, this);
 }
 
+asyncsocket::asyncsocket(
+    const std::string& listenport,
+    link_info info_) : io_service_(), mlink(info_),
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
+{
+    //Start the read and write threads
+    write_thread = boost::thread(&asyncsocket::runWriteThread, this);
+
+    //Start the receive
+    socket_.async_receive_from(
+        boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
+        boost::bind(&asyncsocket::handleReceiveFrom, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred));
+
+    read_thread = boost::thread(&asyncsocket::runReadThread, this);
+}
+
 asyncsocket::~asyncsocket()
 {
     //Force run() to return then join thread
@@ -142,7 +160,6 @@ void asyncsocket::handleSendTo(const boost::system::error_code& error,
     else
     {
         //There was an error
-        throw Exception("UDPClient: Error in handle_send_to");
     }
 }
 

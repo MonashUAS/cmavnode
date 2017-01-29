@@ -26,9 +26,9 @@ public:
         link_info info_);
 
     //Specify only receive
-    //    asyncsocket(
-    //           const std::string& listenport,
-    //           link_info info_);
+        asyncsocket(
+               const std::string& listenport,
+               link_info info_);
 
     //Specify only target
     asyncsocket(

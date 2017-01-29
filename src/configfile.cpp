@@ -56,6 +56,11 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             {
                 udp_type_ = UDP_TYPE_CLIENT;
             }
+            else if(_configFile.intValue(thisSection, "targetport", &targetport))
+                {
+                    targetip = "localhost";
+                    udp_type_ = UDP_TYPE_CLIENT;
+                }
             else
             {
                 LOG(ERROR) << "Link: " << thisSection << " is specified as udp but does not have valid ip and port";
@@ -93,7 +98,9 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                     }
                 case UDP_TYPE_SERVER:
                     {
-                        
+                        links.push_back(
+                                        std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
+                                                                               ,_info)));
                     }
                 case UDP_TYPE_CLIENT:
                     {
