@@ -73,10 +73,6 @@ public:
 
     bool shouldDropPacket();
 
-#ifdef MUASMAV
-    void hackSysID(mavlink_message_t *msg);
-#endif
-
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop
     virtual void runWriteThread() {};
