@@ -268,7 +268,7 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
     totalPacketCount++;
     sysID_stats[msg->sysid].recent_packets_received++;
 
-    if (msg->msgid != 109 && msg->msgid != 166)
+    if (msg->msgid != 109 && msg->msgid != 166 && totalPacketCount > 1)
     {
         if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
         {
@@ -281,7 +281,7 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
                     - sysID_stats[msg->sysid].last_packet_sequence
                     + 255;
         }
-        else
+        else if (sysID_stats[msg->sysid].last_packet_sequence < msg->seq)
         {
             //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
@@ -292,7 +292,6 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
                     - sysID_stats[msg->sysid].last_packet_sequence
                     - 1;
         }
-        sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
 
         //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage
         if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0)
@@ -305,6 +304,8 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
 
         }
     }
+
+    sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
 
 
 }
