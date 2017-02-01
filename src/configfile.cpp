@@ -39,7 +39,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             isSerial = true;
             LOG(INFO) << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud;
         }
-        else if(type.compare("udp") == 0)
+        else if(type.compare("udp") == 0 || type.compare("socket") == 0)
         {
             if(_configFile.strValue(thisSection, "targetip", &targetip)
                     && _configFile.intValue(thisSection, "targetport", &targetport)
