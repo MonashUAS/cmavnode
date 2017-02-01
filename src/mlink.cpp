@@ -196,8 +196,6 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
     uint8_t snapshot_array[msg->len + 24];
     mavlink_msg_to_send_buffer(snapshot_array, msg);
 
-    record_packet_stats(msg);
-
     // Don't drop heartbeats and only drop when enabled
     if (msg->msgid == 0 || info.reject_repeat_packets == false)
         return true;
