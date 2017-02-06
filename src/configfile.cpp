@@ -89,26 +89,23 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             switch(udp_type_)
                 {
                 case UDP_TYPE_FULLY_SPECIFIED:
-                    {
                         links.push_back(
                                         std::shared_ptr<mlink>(new asyncsocket(targetip,
                                                                                std::to_string(targetport)
                                                                                ,std::to_string(localport)
                                                                                ,_info)));
-                    }
+                        break;
                 case UDP_TYPE_SERVER:
-                    {
                         links.push_back(
                                         std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
                                                                                ,_info)));
-                    }
+                        break;
                 case UDP_TYPE_CLIENT:
-                    {
                         links.push_back(
                                         std::shared_ptr<mlink>(new asyncsocket(targetip,
                                                                                std::to_string(targetport)
                                                                                ,_info)));
-                    }
+                        break;
                 }
         }
     }
