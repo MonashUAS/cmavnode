@@ -60,13 +60,31 @@ By default hardware flow control (RTS,CTS) is disabled, to enable it use:
         flow_control=true
 
 ### UDP
-This is the minimum configuration needed for a UDP socket
+UDP can operate in different ways.
+
+#### Fully Specified
+The first simple way is to specify all the connection information, as follows.
 
         [linkname]
             type=socket
             targetip=127.0.0.1
             targetport=14553
             localport=14550
+
+#### UDP Server
+Specify only the localport. Cmavnode will lock onto the first endpoint that sends to it.
+
+        [linkname]
+            type=socket
+            localport=14550
+
+#### UDP Client
+Specify only targetip and targetport, and the local port will be asigned by the kernel. If you don't specify target ip it will default to "localhost".
+
+        [linkname]
+            type=socket
+            targetip=192.168.1.1
+            targetport=14550
 
 ### Optional Flags
 The following flags can be applied to any type of link and are optional

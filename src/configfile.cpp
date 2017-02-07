@@ -14,7 +14,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         std::string thisSection = sections.at(i);
         std::string type;
         bool isSerial = false;
-        bool isUDP = false;
+        UDP_type udp_type_ = UDP_TYPE_NONE;
         if(!_configFile.strValue(thisSection, "type", &type))
         {
             LOG(ERROR) << "Link has no type - skipping";
@@ -39,16 +39,33 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             isSerial = true;
             LOG(INFO) << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud;
         }
-        else if(type.compare("udp") == 0)
+        else if(type.compare("udp") == 0 || type.compare("socket") == 0)
         {
-            if(!_configFile.strValue(thisSection, "targetip", &targetip)
-                    || !_configFile.intValue(thisSection, "targetport", &targetport)
-                    || !_configFile.intValue(thisSection, "localport", &localport))
+            if(_configFile.strValue(thisSection, "targetip", &targetip)
+                    && _configFile.intValue(thisSection, "targetport", &targetport)
+                    && _configFile.intValue(thisSection, "localport", &localport))
+            {
+                udp_type_ = UDP_TYPE_FULLY_SPECIFIED;
+            }
+            else if(_configFile.intValue(thisSection, "localport", &localport))
+            {
+                udp_type_ = UDP_TYPE_SERVER;
+            }
+            else if(_configFile.strValue(thisSection, "targetip", &targetip)
+                    && _configFile.intValue(thisSection, "targetport", &targetport))
+            {
+                udp_type_ = UDP_TYPE_CLIENT;
+            }
+            else if(_configFile.intValue(thisSection, "targetport", &targetport))
+                {
+                    targetip = "localhost";
+                    udp_type_ = UDP_TYPE_CLIENT;
+                }
+            else
             {
                 LOG(ERROR) << "Link: " << thisSection << " is specified as udp but does not have valid ip and port";
                 continue;
             }
-            isUDP = true;
             LOG(INFO) << "Valid UDP Link: " << thisSection << " Found at " << targetip << ":" << targetport << " -> " << localport;
         }
         else
@@ -67,13 +84,29 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                                                               ,flowcontrol
                                                    ,_info)));
         }
-        else if (isUDP)
+        else if (udp_type_ != UDP_TYPE_NONE)
         {
-            links.push_back(
-                std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                       std::to_string(targetport)
-                                       ,std::to_string(localport)
-                                       ,_info)));
+            switch(udp_type_)
+                {
+                case UDP_TYPE_FULLY_SPECIFIED:
+                        links.push_back(
+                                        std::shared_ptr<mlink>(new asyncsocket(targetip,
+                                                                               std::to_string(targetport)
+                                                                               ,std::to_string(localport)
+                                                                               ,_info)));
+                        break;
+                case UDP_TYPE_SERVER:
+                        links.push_back(
+                                        std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
+                                                                               ,_info)));
+                        break;
+                case UDP_TYPE_CLIENT:
+                        links.push_back(
+                                        std::shared_ptr<mlink>(new asyncsocket(targetip,
+                                                                               std::to_string(targetport)
+                                                                               ,_info)));
+                        break;
+                }
         }
     }
     return 0;

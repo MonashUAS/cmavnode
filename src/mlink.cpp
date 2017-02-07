@@ -190,22 +190,11 @@ void mlink::checkForDeadSysID()
 
 bool mlink::record_incoming_packet(mavlink_message_t *msg)
 {
-    // Check incoming bytes for parts of a mavlink packet
-    // See http://qgroundcontrol.org/mavlink/start for mavlink packet anatomy
-    // Returns false if the packet has already been seen and won't be recorded
+    // Returns false if the packet has already been seen and won't be forwarded
 
     // Extract the mavlink packet into a buffer
-    static uint8_t snapshot_array[263];
-    snapshot_array[0] = 254;
-    snapshot_array[1] = msg->len;
-    snapshot_array[2] = msg->seq;
-    snapshot_array[3] = msg->sysid;
-    snapshot_array[4] = msg->compid;
-    snapshot_array[5] = msg->msgid;
-    _MAV_RETURN_uint8_t_array(msg, snapshot_array + 6, msg->len, 0);
-
-    // Uncomment when resequencing has been proven to be stable
-    // resequence_msg(msg, snapshot_array);
+    uint8_t snapshot_array[msg->len + 24];
+    mavlink_msg_to_send_buffer(snapshot_array, msg);
 
     // Don't drop heartbeats and only drop when enabled
     if (msg->msgid == 0 || info.reject_repeat_packets == false)
@@ -215,7 +204,16 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
     std::lock_guard<std::mutex> lock(recently_received_mutex);
 
     // Check for repeated packets by comparing checksums
-    uint16_t payload_crc = crc_calculate(snapshot_array + 6, msg->len);
+    uint16_t payload_crc;
+    if (msg->magic == 254)
+    {
+        payload_crc = crc_calculate(snapshot_array + 6, msg->len);
+    }
+    else if (msg->magic == 253)
+    {
+        payload_crc = crc_calculate(snapshot_array + 11, msg->len);
+    }
+
     // Check whether this packet has been seen before
     if (recently_received[msg->sysid].find(payload_crc) == recently_received[msg->sysid].end())
     {
@@ -268,7 +266,7 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
     totalPacketCount++;
     sysID_stats[msg->sysid].recent_packets_received++;
 
-    if (msg->msgid != 109 && msg->msgid != 166)
+    if (msg->msgid != 109 && msg->msgid != 166 && totalPacketCount > 1)
     {
         if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
         {
@@ -281,7 +279,7 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
                     - sysID_stats[msg->sysid].last_packet_sequence
                     + 255;
         }
-        else
+        else if (sysID_stats[msg->sysid].last_packet_sequence < msg->seq)
         {
             //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
@@ -292,7 +290,6 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
                     - sysID_stats[msg->sysid].last_packet_sequence
                     - 1;
         }
-        sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
 
         //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage
         if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0)
@@ -305,6 +302,8 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
 
         }
     }
+
+    sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
 
 
 }
