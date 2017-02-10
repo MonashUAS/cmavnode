@@ -30,6 +30,11 @@ public:
                const std::string& listenport,
                link_info info_);
 
+        //bcast
+        asyncsocket(bool isbcast,
+                    const std::string& bcastport,
+                    link_info info_);
+
     //Specify only target
     asyncsocket(
                 const std::string& host,

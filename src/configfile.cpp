@@ -24,7 +24,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         int baud;
         std::string targetip;
         bool flowcontrol = false;
-        int targetport, localport;
+        int targetport, localport, bcastport;
 
         if( type.compare("serial") == 0)
         {
@@ -39,9 +39,13 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             isSerial = true;
             LOG(INFO) << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud;
         }
-        else if(type.compare("udp") == 0 || type.compare("socket") == 0)
+        else if(type.compare("udp") == 0 || type.compare("socket") == 0 || type.compare("udpbcast") == 0)
         {
-            if(_configFile.strValue(thisSection, "targetip", &targetip)
+            if(type.compare("udpbcast") == 0 && _configFile.intValue(thisSection, "bcastport", &bcastport))
+            {
+                udp_type_ = UDP_TYPE_BROADCAST;
+            }
+            else if(_configFile.strValue(thisSection, "targetip", &targetip)
                     && _configFile.intValue(thisSection, "targetport", &targetport)
                     && _configFile.intValue(thisSection, "localport", &localport))
             {
@@ -106,6 +110,12 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                                                                                std::to_string(targetport)
                                                                                ,_info)));
                         break;
+                case UDP_TYPE_BROADCAST:
+                    links.push_back(
+                                    std::shared_ptr<mlink>(new asyncsocket(true,
+                                                                           std::to_string(bcastport)
+                                                                           ,_info)));
+                    break;
                 }
         }
     }

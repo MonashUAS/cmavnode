@@ -7,6 +7,7 @@
 
 #include "asyncsocket.h"
 
+// Fully defined constructor
 asyncsocket::asyncsocket(
     const std::string& host,
     const std::string& hostport,
@@ -35,6 +36,7 @@ asyncsocket::asyncsocket(
     read_thread = boost::thread(&asyncsocket::runReadThread, this);
 }
 
+// Client constructor
 asyncsocket::asyncsocket(
     const std::string& host,
     const std::string& hostport,
@@ -61,6 +63,7 @@ asyncsocket::asyncsocket(
     read_thread = boost::thread(&asyncsocket::runReadThread, this);
 }
 
+// Server constructor
 asyncsocket::asyncsocket(
     const std::string& listenport,
     link_info info_) : io_service_(), mlink(info_),
@@ -75,6 +78,31 @@ asyncsocket::asyncsocket(
         boost::bind(&asyncsocket::handleReceiveFrom, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
+
+    read_thread = boost::thread(&asyncsocket::runReadThread, this);
+}
+
+// Broadcast constructor
+asyncsocket::asyncsocket(bool isbcast,
+                         const std::string& bcastport,
+                         link_info info_) : io_service_(), mlink(info_),
+                                            socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("192.168.1.15"), 0))
+{
+    socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+    socket_.set_option(boost::asio::socket_base::broadcast(true));
+
+    boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::broadcast(), std::stoi(bcastport));
+    endpoint_ = senderEndpoint;
+
+    //Start the read and write threads
+    write_thread = boost::thread(&asyncsocket::runWriteThread, this);
+
+    //Start the receive
+    socket_.async_receive_from(
+                               boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
+                               boost::bind(&asyncsocket::handleReceiveFrom, this,
+                                           boost::asio::placeholders::error,
+                                           boost::asio::placeholders::bytes_transferred));
 
     read_thread = boost::thread(&asyncsocket::runReadThread, this);
 }
