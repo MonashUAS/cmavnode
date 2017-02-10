@@ -1,6 +1,9 @@
 # cmavnode
 MAVLink forwarding node written in C++
 
+For help with or discussions about cmavnode come to our gitter room. Issues and pull requests welcome.
+https://gitter.im/cmavnode/cmavnode
+
 This program can forward packets between an arbitrary number of MAVLink connections.
 Supports UDP, and Serial.
 
