@@ -33,6 +33,7 @@ public:
         //bcast
         asyncsocket(bool bcastlock,
                     const std::string& bindaddress,
+                    const std::string& bcastaddress,
                     const std::string& bcastport,
                     link_info info_);
 

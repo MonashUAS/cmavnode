@@ -90,12 +90,13 @@ Specify only targetip and targetport, and the local port will be asigned by the 
             targetport=14550
             
 #### UDP Broadcast
-Will broadcast to a port on the subnet. You can choose to bind on a specific ip rather than 0.0.0.0
-By default the link will broadcast to every device, until a device responds, then the link will stop broadcasting and turn into a normal udp socket with the device.
+Will broadcast to a specified broadcast address using a specified port. You can choose to bind on a specific ip rather than 0.0.0.0, this will only affect whether you receive from all interfaces.
+By default the link will broadcast to every device, until a device responds, then the link will stop broadcasting and turn into a normal udp socket with the device. (Like mavproxy does with udpbcast option)
 If you want to keep broadcasting and support connections to multiple devices, set bcastlock to false.
 
         [linkname]
             type=udpbcast
+            bcastip=192.168.0.255
             bcastport=14553
             bcastlock=false #optional, default true
             bindip=192.168.0.30 #optional, default 0.0.0.0
