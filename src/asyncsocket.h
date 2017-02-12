@@ -31,7 +31,8 @@ public:
                link_info info_);
 
         //bcast
-        asyncsocket(bool isbcast,
+        asyncsocket(bool bcastlock,
+                    const std::string& bindaddress,
                     const std::string& bcastport,
                     link_info info_);
 
@@ -60,11 +61,14 @@ private:
     boost::asio::ip::udp::socket socket_;
     boost::asio::ip::udp::endpoint endpoint_;
 
+    bool endpointlock = true;
+
     //takes message, puts onto buff and calls send
     void processAndSend(mavlink_message_t *msgToConvert);
 
     //Actually sends
     void send(uint8_t *buf, std::size_t buf_size);
+    void receive(); //Starts a async receive
 };
 
 #endif
