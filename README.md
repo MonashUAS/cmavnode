@@ -85,6 +85,17 @@ Specify only targetip and targetport, and the local port will be asigned by the 
             type=socket
             targetip=192.168.1.1
             targetport=14550
+            
+#### UDP Broadcast
+Will broadcast to a port on the subnet. You can choose to bind on a specific ip rather than 0.0.0.0
+By default the link will broadcast to every device, until a device responds, then the link will stop broadcasting and turn into a normal udp socket with the device.
+If you want to keep broadcasting and support connections to multiple devices, set bcastlock to false.
+
+        [linkname]
+            type=udpbcast
+            bcastport=14553
+            bcastlock=false #optional, default true
+            bindip=192.168.0.30 #optional, default 0.0.0.0
 
 ### Optional Flags
 The following flags can be applied to any type of link and are optional
