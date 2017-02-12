@@ -24,6 +24,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         int baud;
         std::string targetip;
         std::string bindip;
+        std::string bcastip;
         bool flowcontrol = false;
         bool bcastlock = true;
         int targetport = 0;
@@ -45,11 +46,16 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         }
         else if(type.compare("udp") == 0 || type.compare("socket") == 0 || type.compare("udpbcast") == 0)
         {
-            if(type.compare("udpbcast") == 0 && _configFile.intValue(thisSection, "bcastport", &bcastport))
+            if(type.compare("udpbcast") == 0 && _configFile.intValue(thisSection, "bcastport", &bcastport) && _configFile.strValue(thisSection, "bcastip", &bcastip))
             {
                 if(!_configFile.strValue(thisSection, "bindip", &bindip)){
                     // setting bindip in config file specifies interface to broadcast on
                     bindip = "0.0.0.0"; //If bind ip not specified use 0.0.0.0... ipv4_any()
+                }
+
+                if(bcastip.find("255") == std::string::npos){
+                    LOG(ERROR) << "Link: " << thisSection << " does not have a valid broadcast address";
+                    continue;
                 }
                 _configFile.boolValue(thisSection, "bcastlock", &bcastlock);
                 udp_type_ = UDP_TYPE_BROADCAST;
@@ -128,6 +134,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                     links.push_back(
                                     std::shared_ptr<mlink>(new asyncsocket(bcastlock,
                                                                            bindip,
+                                                                           bcastip,
                                                                            std::to_string(bcastport)
                                                                            ,_info)));
                     break;
