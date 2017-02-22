@@ -2,7 +2,6 @@
  * Monash UAS
  */
 
-#include "../include/logging/src/easylogging++.h"
 #include <boost/program_options.hpp>
 #include <string>
 #include <vector>
@@ -35,8 +34,6 @@ void exitGracefully(int a);
 
 bool exitMainLoop = false;
 
-INITIALIZE_EASYLOGGINGPP
-
 int main(int argc, char** argv)
 {
     signal(SIGINT, exitGracefully);
@@ -45,10 +42,6 @@ int main(int argc, char** argv)
     // Default mode selections
     bool shellen = true;
     bool verbose = false;
-
-    // Begin logging
-    START_EASYLOGGINGPP(argc, argv);
-    el::Loggers::configureFromGlobal("log.conf");
 
     std::string filename;
     boost::program_options::options_description desc = add_program_options(filename, shellen, verbose);
@@ -62,12 +55,12 @@ int main(int argc, char** argv)
     ret = readConfigFile(filename, links);
     if (links.size() == 0)
     {
-        LOG(ERROR) << "No Valid Links found";
+        std::cout << "No Valid Links found" << std::endl;
         return 1; // Catch other errors
     }
 
-    LOG(INFO) << "Command line arguments parsed succesfully.";
-    LOG(INFO) << "Links Initialized, routing loop starting.";
+    std::cout << "Command line arguments parsed succesfully." << std::endl;
+    std::cout << "Links Initialized, routing loop starting." << std::endl;
 
     // Number the links
     for (uint16_t i = 0; i != links.size(); ++i)
@@ -94,7 +87,7 @@ int main(int argc, char** argv)
         shell.join();
 
     // Report successful exit from main()
-    LOG(INFO) << "Links deallocated, stack unwound, exiting.";
+    std::cout << "Links deallocated, stack unwound, exiting." << std::endl;
     return 0;
 }
 
@@ -120,7 +113,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
     }
     catch (boost::program_options::error& e)
     {
-        LOG(ERROR) << "ERROR: " << e.what();
+        std::cout << "ERROR: " << e.what() << std::endl;
         std::cerr << desc << std::endl;
         return 1; // Error in command line
     }
@@ -140,7 +133,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
     }
     catch (boost::program_options::error& e)
     {
-        LOG(ERROR) << "ERROR: " << e.what();
+        std::cerr << "ERROR: " << e.what() << std::endl;
         std::cerr << desc << std::endl;
         return 1; // Error in command line
     }
@@ -148,7 +141,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
     // If no known option were given, return an error
     if( !vm.count("socket") && !vm.count("serial") && !vm.count("file") )
     {
-        LOG(ERROR) << "Program cannot be run without arguments.";
+        std::cerr << "Program cannot be run without arguments." << std::endl;
         std::cerr << desc << std::endl;
         return 1; // Error in command line
     }
@@ -230,8 +223,6 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             int16_t compIDmsg = -1;
             getTargets(&msg, sysIDmsg, compIDmsg);
 
-            // Use the system ID to determine where to send the message
-            LOG(DEBUG) << "Message received from sysID: " << (int)msg.sysid << " msgID: " << (int)msg.msgid << " target system: " << (int)sysIDmsg;
 
             // Iterate through each link to send to the correct target
             for (auto outgoing_link = links->begin(); outgoing_link != links->end(); ++outgoing_link)
@@ -251,10 +242,10 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
                 }
                 else if (verbose)
                 {
-                    LOG(ERROR) << "Packet dropped from sysID: " << (int)msg.sysid
-                               << " msgID: " << (int)msg.msgid
-                               << " target system: " << (int)sysIDmsg
-                               << " link name: " << (*incoming_link)->info.link_name;
+                    std::cout << "Packet dropped from sysID: " << (int)msg.sysid
+                              << " msgID: " << (int)msg.msgid
+                              << " target system: " << (int)sysIDmsg
+                              << " link name: " << (*incoming_link)->info.link_name << std::endl;
                 }
             }
         }
@@ -264,7 +255,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 {
-    LOG(INFO) << "---------------------------------------------------------------";
+    std::cout << "---------------------------------------------------------------" << std::endl;
     // Print stats for each known link
     for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
     {
@@ -296,9 +287,9 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
             buffer << (int)iter->first << " ";
         }
 
-        LOG(INFO) << buffer.str();
+        std::cout << buffer.str() << std::endl;
     }
-    LOG(INFO) << "---------------------------------------------------------------";
+    std::cout << "---------------------------------------------------------------" << std::endl;
 }
 
 void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
@@ -352,9 +343,9 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
 
         }
     }
-    LOG(INFO) << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    std::cout << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               << buffer.str()
-              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+              <<   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 
 }
 
@@ -577,6 +568,6 @@ void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
 void exitGracefully(int a)
 {
     std::cout << "Exit code " << a << std::endl;
-    LOG(INFO) << "SIGINT caught, deconstructing links and exiting";
+    std::cout << "SIGINT caught, deconstructing links and exiting" << std::endl;
     exitMainLoop = true;
 }

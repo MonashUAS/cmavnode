@@ -76,7 +76,7 @@ asyncsocket::asyncsocket(bool bcastlock,
                          const std::string& bcastaddress,
                          const std::string& bcastport,
                          link_info info_) : io_service_(), mlink(info_),
-                                            socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(bindaddress), 0))
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(bindaddress), 0))
 {
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     socket_.set_option(boost::asio::socket_base::broadcast(true));
@@ -120,20 +120,22 @@ void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 void asyncsocket::receive()
 {
     // async_receive_from will override endpoint_ so if we want to receive from multiple clients use async_receive
-    if(!endpointlock){
+    if(!endpointlock)
+    {
         //this one only gets used for broadcast when we want to support multiple clients
         socket_.async_receive(
-                              boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-                              boost::bind(&asyncsocket::handleReceiveFrom, this,
-                                          boost::asio::placeholders::error,
-                                          boost::asio::placeholders::bytes_transferred));
+            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+            boost::bind(&asyncsocket::handleReceiveFrom, this,
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred));
     }
-    else{
+    else
+    {
         socket_.async_receive_from(
-                            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
-                              boost::bind(&asyncsocket::handleReceiveFrom, this,
-                                          boost::asio::placeholders::error,
-                                          boost::asio::placeholders::bytes_transferred));
+            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
+            boost::bind(&asyncsocket::handleReceiveFrom, this,
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred));
     }
 }
 

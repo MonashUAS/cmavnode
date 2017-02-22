@@ -15,7 +15,6 @@
 #include <boost/thread.hpp>
 #include "../include/mavlink2/ardupilotmega/mavlink.h"
 #include "../include/mavlink2/checksum.h"
-#include "../include/logging/src/easylogging++.h"
 #include <iostream>
 #include <tuple>
 #include <unordered_map>

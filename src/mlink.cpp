@@ -32,7 +32,7 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
 
         if(!returnCheck) //Then the queue is full
         {
-            LOG(ERROR) << "MLINK: The outgoing queue is full";
+            std::cout << "MLINK: The outgoing queue is full" << std::endl;
         }
     }
 }
@@ -137,7 +137,7 @@ void mlink::updateRouting(mavlink_message_t &msg)
     // New sysid on link
     if (sysID_stats[msg.sysid].num_packets_received++ == 0)
     {
-        LOG(INFO) << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name;
+        std::cout << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name << std::endl;
         sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
         newSysID = true;
     }
@@ -179,9 +179,9 @@ void mlink::checkForDeadSysID()
         if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
         {
             // Clarify why links drop out due to timing out
-            LOG(INFO) << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s.";
+            std::cout << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s." << std::endl;
             // Log then erase
-            LOG(INFO) << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name;
+            std::cout << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name << std::endl;
             sysID_stats.erase(iter);
         }
     }
@@ -272,8 +272,8 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
         {
             //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
-                    - sysID_stats[msg->sysid].last_packet_sequence
-                    + 255;
+                                                    - sysID_stats[msg->sysid].last_packet_sequence
+                                                    + 255;
             //update recent packet loss
             sysID_stats[msg->sysid].recent_packets_lost += msg->seq
                     - sysID_stats[msg->sysid].last_packet_sequence
@@ -283,8 +283,8 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
         {
             //update total packet loss
             sysID_stats[msg->sysid].packets_lost += msg->seq
-                    - sysID_stats[msg->sysid].last_packet_sequence
-                    - 1;
+                                                    - sysID_stats[msg->sysid].last_packet_sequence
+                                                    - 1;
             //update recent packet loss
             sysID_stats[msg->sysid].recent_packets_lost += msg->seq
                     - sysID_stats[msg->sysid].last_packet_sequence
