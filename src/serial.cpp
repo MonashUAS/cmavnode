@@ -177,7 +177,7 @@ void serial::runReadThread()
 
 void serial::runWriteThread()
 {
-    //block so we dont send before the socket is initialized
+    //block so we dont send before the port is initialized
     boost::this_thread::sleep(boost::posix_time::milliseconds(50));
     //busy wait on the spsc_queue
     mavlink_message_t tmpMsg;
@@ -185,19 +185,11 @@ void serial::runWriteThread()
     //thread loop
     while(!exitFlag)
     {
-        if(qMavOut.pop(tmpMsg))
+        while(qMavOut.pop(tmpMsg))
         {
             processAndSend(&tmpMsg);
-            //keep going
-            while(qMavOut.pop(tmpMsg))
-            {
-                processAndSend(&tmpMsg);
-            }
         }
-        else
-        {
-            //queue is empty sleep the write thread
-            boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
-        }
+        //queue is empty sleep the write thread
+        boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
 }
