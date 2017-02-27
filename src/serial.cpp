@@ -187,6 +187,7 @@ void serial::runWriteThread()
     {
         while(qMavOut.pop(tmpMsg))
         {
+            out_counter.decrement();
             processAndSend(&tmpMsg);
         }
         //queue is empty sleep the write thread

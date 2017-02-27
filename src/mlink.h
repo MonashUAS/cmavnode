@@ -33,6 +33,26 @@
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_PACKET_TIMEOUT_MS 10000
 
+struct queue_counter
+{
+    std::atomic<int> value = 0;
+
+    void increment()
+    {
+        ++value;
+    }
+
+    void decrement()
+    {
+        --value;
+    }
+
+    int get()
+    {
+        return value.load();
+    }
+};
+
 struct link_info
 {
     std::string link_name;
@@ -78,6 +98,9 @@ public:
     virtual void runReadThread() {};
 
     link_info info;
+
+    queue_counter out_counter;
+    queue_counter in_counter;
 
     bool is_kill = false;
     long totalPacketCount = 0;

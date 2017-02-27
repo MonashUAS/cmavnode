@@ -27,12 +27,14 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
 {
     if(!is_kill)
     {
-        bool returnCheck = qMavOut.push(msg);
-        totalPacketSent++;
-
-        if(!returnCheck) //Then the queue is full
+        if(qMavOut.push(msg))
         {
-            std::cout << "MLINK: The outgoing queue is full" << std::endl;
+            out_counter.increment();
+            totalPacketSent++;
+        }
+        else
+        {
+                std::cout << "MLINK: The outgoing queue is full" << std::endl;
         }
     }
 }
@@ -41,7 +43,12 @@ bool mlink::qReadIncoming(mavlink_message_t *msg)
 {
     //Will return true if a message was returned by refference
     //false if the incoming queue is empty
-    return qMavIn.pop(*msg);
+    if(qMavIn.pop(*msg))
+    {
+        in_counter.decrement();
+        return true;
+    }
+    else return false;
 }
 
 bool mlink::seenSysID(const uint8_t sysid) const
@@ -84,11 +91,13 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
     }
 
     //We have made it this far, no reason to drop packet so add to queue
-    bool returnCheck = qMavIn.push(*msg);
-
-    if(!returnCheck)
+    if(qMavIn.push(*msg))
     {
-        throw Exception("The incoming message queue is full");
+        in_counter.increment();
+    }
+    else
+    {
+        std::cout << "The incoming message queue is full" << std::endl;
     }
 
     return;

@@ -215,6 +215,7 @@ void asyncsocket::runWriteThread()
     {
         while (qMavOut.pop(tmpMsg))
         {
+            out_counter.decrement();
             processAndSend(&tmpMsg);
         }
         boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
