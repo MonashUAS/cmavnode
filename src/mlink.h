@@ -10,6 +10,7 @@
 #define MLINK_H
 
 #include <vector>
+#include <atomic>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
@@ -29,13 +30,13 @@
 
 #define MAV_INCOMING_LENGTH 1000
 #define MAV_OUTGOING_LENGTH 1000
-#define OUT_QUEUE_EMPTY_SLEEP 50
+#define OUT_QUEUE_EMPTY_SLEEP 10
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_PACKET_TIMEOUT_MS 10000
 
 struct queue_counter
 {
-    std::atomic<int> value = 0;
+    std::atomic<int> value{0};
 
     void increment()
     {

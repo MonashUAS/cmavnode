@@ -21,7 +21,7 @@
 #include "configfile.h"
 
 //Periodic function timings
-#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
+#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 1
 
 // Functions in this file
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
@@ -286,6 +286,9 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
         {
             buffer << (int)iter->first << " ";
         }
+
+        buffer << "InQueue: " << (*curr_link)->in_counter.get();
+        buffer << " OutQueue: " << (*curr_link)->out_counter.get();
 
         std::cout << buffer.str() << std::endl;
     }
