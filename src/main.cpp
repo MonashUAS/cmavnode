@@ -21,7 +21,7 @@
 #include "configfile.h"
 
 //Periodic function timings
-#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 1
+#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
 
 // Functions in this file
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
