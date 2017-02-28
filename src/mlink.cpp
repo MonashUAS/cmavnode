@@ -169,7 +169,6 @@ void mlink::updateRouting(mavlink_message_t &msg)
     }
 }
 
-
 void mlink::checkForDeadSysID()
 {
     //Check that no links have timed out
@@ -179,6 +178,7 @@ void mlink::checkForDeadSysID()
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     // Iterating through the map
+    std::vector<std::map<uint8_t, packet_stats>::iterator> links_to_remove;
     std::map<uint8_t, packet_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
@@ -187,15 +187,26 @@ void mlink::checkForDeadSysID()
 
         if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
         {
+            links_to_remove.push_back(iter);
+        }
+    }
+
+    // Remove dead links
+    for (auto link : links_to_remove)
+    {
+        boost::posix_time::time_duration dur = nowTime - link->second.last_packet_time;
+        long time_between_packets = dur.total_milliseconds();
+
+        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
+        {
             // Clarify why links drop out due to timing out
             std::cout << "sysID: " << (int)(iter->first) << " timed out after " << (double)time_between_packets/1000 << " s." << std::endl;
             // Log then erase
             std::cout << "Removing sysID: " << (int)(iter->first) << " from the mapping on link: " << info.link_name << std::endl;
-            sysID_stats.erase(iter);
+            sysID_stats.erase(link);
         }
     }
 }
-
 
 bool mlink::record_incoming_packet(mavlink_message_t *msg)
 {
