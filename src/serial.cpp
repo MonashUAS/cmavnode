@@ -25,13 +25,15 @@ serial::serial(const std::string& port,
         //configure the port
         port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
 
-        if(flowcontrol){
-          port_.set_option(boost::asio::serial_port_base::flow_control(
-                              boost::asio::serial_port_base::flow_control::hardware));
+        if(flowcontrol)
+        {
+            port_.set_option(boost::asio::serial_port_base::flow_control(
+                                 boost::asio::serial_port_base::flow_control::hardware));
         }
-        else{
-          port_.set_option(boost::asio::serial_port_base::flow_control(
-                                                                     boost::asio::serial_port_base::flow_control::none));
+        else
+        {
+            port_.set_option(boost::asio::serial_port_base::flow_control(
+                                 boost::asio::serial_port_base::flow_control::none));
         }
 
 
@@ -47,9 +49,9 @@ serial::serial(const std::string& port,
     }
     catch (boost::system::system_error &error)
     {
-      LOG(ERROR) << "Error opening Serial Port: " << port << " " << error.what();
-      LOG(ERROR) << "Link: " << info.link_name << " failed to initialise and is dead";
-      exitFlag = true;
+        std::cerr << "Error opening Serial Port: " << port << " " << error.what() << std::endl;
+        std::cerr << "Link: " << info.link_name << " failed to initialise and is dead" << std::endl;
+        exitFlag = true;
     }
 
     //Start the read and write threads
@@ -82,7 +84,7 @@ serial::~serial()
 void serial::send(uint8_t *buf, std::size_t buf_size)
 {
     port_.write_some(
-                boost::asio::buffer(buf, buf_size));
+        boost::asio::buffer(buf, buf_size));
 }
 
 void serial::processAndSend(mavlink_message_t *msgToConvert)
@@ -112,7 +114,7 @@ void serial::handleSendTo(const boost::system::error_code& error,
         if(errorcount++ > SERIAL_PORT_MAX_ERROR_BEFORE_KILL)
         {
             is_kill = true;
-            LOG(INFO) << "Link " << info.link_name << " is dead";
+            std::cout << "Link " << info.link_name << " is dead" << std::endl;
         }
     }
 }
@@ -175,7 +177,7 @@ void serial::runReadThread()
 
 void serial::runWriteThread()
 {
-    //block so we dont send before the socket is initialized
+    //block so we dont send before the port is initialized
     boost::this_thread::sleep(boost::posix_time::milliseconds(50));
     //busy wait on the spsc_queue
     mavlink_message_t tmpMsg;
@@ -183,19 +185,12 @@ void serial::runWriteThread()
     //thread loop
     while(!exitFlag)
     {
-        if(qMavOut.pop(tmpMsg))
+        while(qMavOut.pop(tmpMsg))
         {
+            out_counter.decrement();
             processAndSend(&tmpMsg);
-            //keep going
-            while(qMavOut.pop(tmpMsg))
-            {
-                processAndSend(&tmpMsg);
-            }
         }
-        else
-        {
-            //queue is empty sleep the write thread
-            boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
-        }
+        //queue is empty sleep the write thread
+        boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
 }

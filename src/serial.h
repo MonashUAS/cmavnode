@@ -9,7 +9,6 @@
 
 #include <string>
 #include <boost/asio.hpp>
-#include "../include/logging/src/easylogging++.h"
 
 #include "mlink.h"
 

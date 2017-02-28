@@ -10,12 +10,12 @@
 #define MLINK_H
 
 #include <vector>
+#include <atomic>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
 #include "../include/mavlink2/ardupilotmega/mavlink.h"
 #include "../include/mavlink2/checksum.h"
-#include "../include/logging/src/easylogging++.h"
 #include <iostream>
 #include <tuple>
 #include <unordered_map>
@@ -28,11 +28,31 @@
 
 #include "exception.h"
 
-#define MAV_INCOMING_LENGTH 1000
-#define MAV_OUTGOING_LENGTH 1000
-#define OUT_QUEUE_EMPTY_SLEEP 50
+#define MAV_INCOMING_LENGTH 2000
+#define MAV_OUTGOING_LENGTH 2000
+#define OUT_QUEUE_EMPTY_SLEEP 10
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_PACKET_TIMEOUT_MS 10000
+
+struct queue_counter
+{
+    std::atomic<int> value{0};
+
+    void increment()
+    {
+        ++value;
+    }
+
+    void decrement()
+    {
+        --value;
+    }
+
+    int get()
+    {
+        return value.load();
+    }
+};
 
 struct link_info
 {
@@ -79,6 +99,9 @@ public:
     virtual void runReadThread() {};
 
     link_info info;
+
+    queue_counter out_counter;
+    queue_counter in_counter;
 
     bool is_kill = false;
     long totalPacketCount = 0;

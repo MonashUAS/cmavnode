@@ -7,8 +7,6 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
-configure_file(log.conf log.conf COPYONLY)
-
 set(Boost_USE_STATIC_LIBS ON)
 
 find_package( Boost 1.40 COMPONENTS program_options thread system REQUIRED )
@@ -25,9 +23,7 @@ add_executable(cmavnode ${cmavnode_SRC})
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
 
-target_compile_options(cmavnode PRIVATE -std=c++11 -ggdb -DMUASMAV -DELPP_NO_DEFAULT_LOG_FILE -DELP_STACKTRACE_ON_CRASH -DELPP_THREAD_SAFE )
+target_compile_options(cmavnode PRIVATE -std=c++11 -ggdb)
 TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} -lpthread -lreadline)
 
-install(TARGETS cmavnode DESTINATION /opt/cmavnode)
-install(DIRECTORY DESTINATION /opt/cmavnode/log)
-install(FILES log.conf DESTINATION /opt/cmavnode)
+install(TARGETS cmavnode DESTINATION bin)

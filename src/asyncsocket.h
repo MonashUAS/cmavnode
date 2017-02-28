@@ -12,7 +12,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 
-#include "../include/logging/src/easylogging++.h"
 #include "mlink.h"
 
 class asyncsocket: public mlink
@@ -26,22 +25,22 @@ public:
         link_info info_);
 
     //Specify only receive
-        asyncsocket(
-               const std::string& listenport,
-               link_info info_);
+    asyncsocket(
+        const std::string& listenport,
+        link_info info_);
 
-        //bcast
-        asyncsocket(bool bcastlock,
-                    const std::string& bindaddress,
-                    const std::string& bcastaddress,
-                    const std::string& bcastport,
-                    link_info info_);
+    //bcast
+    asyncsocket(bool bcastlock,
+                const std::string& bindaddress,
+                const std::string& bcastaddress,
+                const std::string& bcastport,
+                link_info info_);
 
     //Specify only target
     asyncsocket(
-                const std::string& host,
-                const std::string& hostport,
-                link_info info_);
+        const std::string& host,
+        const std::string& hostport,
+        link_info info_);
 
     ~asyncsocket();
 

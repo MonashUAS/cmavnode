@@ -7,7 +7,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
     ConfigFile _configFile = ConfigFile(filename);
 
     std::vector<std::string> sections = _configFile.GetSections();
-    LOG(INFO) << "Found " << sections.size() << " links";
+    std::cout << "Found " << sections.size() << " links" << std::endl;
 
     for (uint i = 0; i < sections.size(); i++)
     {
@@ -17,7 +17,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         UDP_type udp_type_ = UDP_TYPE_NONE;
         if(!_configFile.strValue(thisSection, "type", &type))
         {
-            LOG(ERROR) << "Link has no type - skipping";
+            std::cerr << "Link has no type - skipping" << std::endl;
             continue;
         }
         std::string serialport;
@@ -35,26 +35,28 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         {
             if(!_configFile.strValue(thisSection, "port",&serialport) || !_configFile.intValue(thisSection, "baud", &baud))
             {
-                LOG(ERROR) << "Link: " << thisSection << " is specified as serial but does not have valid port and baud";
+                std::cerr << "Link: " << thisSection << " is specified as serial but does not have valid port and baud" << std::endl;
                 continue;
             }
 
             //Try to get flow control
             _configFile.boolValue(thisSection, "flow_control", &flowcontrol);
             isSerial = true;
-            LOG(INFO) << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud;
+            std::cout << "Valid Serial Link: " << thisSection << " Found at: " << serialport << ", baud: " << baud << std::endl;
         }
         else if(type.compare("udp") == 0 || type.compare("socket") == 0 || type.compare("udpbcast") == 0)
         {
             if(type.compare("udpbcast") == 0 && _configFile.intValue(thisSection, "bcastport", &bcastport) && _configFile.strValue(thisSection, "bcastip", &bcastip))
             {
-                if(!_configFile.strValue(thisSection, "bindip", &bindip)){
+                if(!_configFile.strValue(thisSection, "bindip", &bindip))
+                {
                     // setting bindip in config file specifies interface to broadcast on
                     bindip = "0.0.0.0"; //If bind ip not specified use 0.0.0.0... ipv4_any()
                 }
 
-                if(bcastip.find("255") == std::string::npos){
-                    LOG(ERROR) << "Link: " << thisSection << " does not have a valid broadcast address";
+                if(bcastip.find("255") == std::string::npos)
+                {
+                    std::cerr << "Link: " << thisSection << " does not have a valid broadcast address" << std::endl;
                     continue;
                 }
                 _configFile.boolValue(thisSection, "bcastlock", &bcastlock);
@@ -76,25 +78,27 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                 udp_type_ = UDP_TYPE_CLIENT;
             }
             else if(_configFile.intValue(thisSection, "targetport", &targetport))
-                {
-                    targetip = "localhost";
-                    udp_type_ = UDP_TYPE_CLIENT;
-                }
+            {
+                targetip = "localhost";
+                udp_type_ = UDP_TYPE_CLIENT;
+            }
             else
             {
-                LOG(ERROR) << "Link: " << thisSection << " is specified as udp but does not have valid ip and port";
+                std::cerr << "Link: " << thisSection << " is specified as udp but does not have valid ip and port" << std::endl;
                 continue;
             }
-            if(udp_type_ != UDP_TYPE_BROADCAST){
-                LOG(INFO) << "Valid UDP Link: " << thisSection << " Found at " << targetip << ":" << targetport << " -> " << localport;
+            if(udp_type_ != UDP_TYPE_BROADCAST)
+            {
+                std::cout << "Valid UDP Link: " << thisSection << " Found at " << targetip << ":" << targetport << " -> " << localport << std::endl;
             }
-            else {
-                LOG(INFO) << "Valid UDPBroadcast Link: " << thisSection << " Found, broadcasting on port " << bcastport << " bound to: " << bindip;
+            else
+            {
+                std::cout << "Valid UDPBroadcast Link: " << thisSection << " Found, broadcasting on port " << bcastport << " bound to: " << bindip << std::endl;
             }
         }
         else
         {
-            LOG(ERROR) << "Link: " << thisSection << " has invalid link type: " << type;
+            std::cerr << "Link: " << thisSection << " has invalid link type: " << type << std::endl;
             continue;
         }
 
@@ -104,41 +108,41 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         if(isSerial)
         {
             links.push_back(std::shared_ptr<mlink>(new serial(serialport
-                                                              ,std::to_string(baud)
-                                                              ,flowcontrol
+                                                   ,std::to_string(baud)
+                                                   ,flowcontrol
                                                    ,_info)));
         }
         else if (udp_type_ != UDP_TYPE_NONE)
         {
             switch(udp_type_)
-                {
-                case UDP_TYPE_FULLY_SPECIFIED:
-                        links.push_back(
-                                        std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                                                               std::to_string(targetport)
-                                                                               ,std::to_string(localport)
-                                                                               ,_info)));
-                        break;
-                case UDP_TYPE_SERVER:
-                        links.push_back(
-                                        std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
-                                                                               ,_info)));
-                        break;
-                case UDP_TYPE_CLIENT:
-                        links.push_back(
-                                        std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                                                               std::to_string(targetport)
-                                                                               ,_info)));
-                        break;
-                case UDP_TYPE_BROADCAST:
-                    links.push_back(
-                                    std::shared_ptr<mlink>(new asyncsocket(bcastlock,
-                                                                           bindip,
-                                                                           bcastip,
-                                                                           std::to_string(bcastport)
-                                                                           ,_info)));
-                    break;
-                }
+            {
+            case UDP_TYPE_FULLY_SPECIFIED:
+                links.push_back(
+                    std::shared_ptr<mlink>(new asyncsocket(targetip,
+                                           std::to_string(targetport)
+                                           ,std::to_string(localport)
+                                           ,_info)));
+                break;
+            case UDP_TYPE_SERVER:
+                links.push_back(
+                    std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
+                                           ,_info)));
+                break;
+            case UDP_TYPE_CLIENT:
+                links.push_back(
+                    std::shared_ptr<mlink>(new asyncsocket(targetip,
+                                           std::to_string(targetport)
+                                           ,_info)));
+                break;
+            case UDP_TYPE_BROADCAST:
+                links.push_back(
+                    std::shared_ptr<mlink>(new asyncsocket(bcastlock,
+                                           bindip,
+                                           bcastip,
+                                           std::to_string(bcastport)
+                                           ,_info)));
+                break;
+            }
         }
     }
     return 0;
@@ -170,10 +174,10 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
     if(_info->sim_enable)
     {
         //then sim_enable is true
-        LOG(INFO) << "WARNING: Link has simulation options enabled";
+        std::cout << "WARNING: Link has simulation options enabled" << std::endl;
         if(_configFile->intValue(thisSection, "sim_packet_loss", &_info->sim_packet_loss))
         {
-            LOG(INFO) << "Packet loss set to " << _info->sim_packet_loss << "%";
+            std::cout << "Packet loss set to " << _info->sim_packet_loss << "%" << std::endl;
         }
     }
 
