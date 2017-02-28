@@ -28,10 +28,7 @@ cmavnode treats each link equally unless specified otherwise, and does not diffe
          mkdir build && cd build
          cmake ..
          make
-- OPTIONAL: Install cmavnode to /opt/cmavnode and add to path:
-
          sudo make install
-         echo "alias cmavnode='/opt/cmavnode/cmavnode" >> ~/.bashrc
 
 ## Usage
 
