@@ -73,9 +73,9 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
         return;
     }
 
-    record_packet_stats(msg);
-
     updateRouting(*msg);
+
+    record_packet_stats(msg);
 
     // SiK radio info
     if (info.SiK_radio && (msg->msgid == 109 || msg->msgid == 166))
@@ -143,16 +143,21 @@ void mlink::printPacketStats()
 void mlink::updateRouting(mavlink_message_t &msg)
 {
     bool newSysID;
-    // New sysid on link
-    if (sysID_stats[msg.sysid].num_packets_received++ == 0)
-    {
+    auto found = sysID_stats.find(msg.sysid);
+    if (found == sysID_stats.end()) {
         std::cout << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name << std::endl;
+        sysID_stats[msg.sysid].num_packets_received = 0;
         sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
         newSysID = true;
+        found = sysID_stats.find(msg.sysid);
     }
 
+    struct packet_stats &stats = found->second;
+
+    stats.num_packets_received++;
+
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
-    sysID_stats[msg.sysid].last_packet_time = nowTime;
+    stats.last_packet_time = nowTime;
 
     // Track link delay using heartbeats
     if (msg.msgid == 0 && newSysID == false)
@@ -231,6 +236,8 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
         // Old packet - drop it
         if (sysID_stats.find(msg->sysid) != sysID_stats.end())
             ++sysID_stats[msg->sysid].packets_dropped;
+        else
+            std::cout << "Failed to find sysid when dropping packet" << std::endl;
         return false;
     }
 }
@@ -268,46 +275,55 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
 
     //increment link packet counter and sysid packet counter
     totalPacketCount++;
-    sysID_stats[msg->sysid].recent_packets_received++;
+
+    auto found = sysID_stats.find(msg->sysid);
+    if (found == sysID_stats.end()) {
+        std::cout << "Failed to find sysid " << (int)msg->sysid << " on link" << info.link_name << " when recording packet stats" << std::endl;
+        return;
+    }
+
+    struct packet_stats &stats = found->second;
+
+    stats.recent_packets_received++;
 
     if (msg->msgid != 109 && msg->msgid != 166 && totalPacketCount > 1)
     {
-        if (sysID_stats[msg->sysid].last_packet_sequence > msg->seq)
+        if (stats.last_packet_sequence > msg->seq)
         {
             //update total packet loss
-            sysID_stats[msg->sysid].packets_lost += msg->seq
-                                                    - sysID_stats[msg->sysid].last_packet_sequence
+            stats.packets_lost += msg->seq
+                                                    - stats.last_packet_sequence
                                                     + 255;
             //update recent packet loss
-            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
-                    - sysID_stats[msg->sysid].last_packet_sequence
+            stats.recent_packets_lost += msg->seq
+                    - stats.last_packet_sequence
                     + 255;
         }
-        else if (sysID_stats[msg->sysid].last_packet_sequence < msg->seq)
+        else if (stats.last_packet_sequence < msg->seq)
         {
             //update total packet loss
-            sysID_stats[msg->sysid].packets_lost += msg->seq
-                                                    - sysID_stats[msg->sysid].last_packet_sequence
+            stats.packets_lost += msg->seq
+                                                    - stats.last_packet_sequence
                                                     - 1;
             //update recent packet loss
-            sysID_stats[msg->sysid].recent_packets_lost += msg->seq
-                    - sysID_stats[msg->sysid].last_packet_sequence
+            stats.recent_packets_lost += msg->seq
+                    - stats.last_packet_sequence
                     - 1;
         }
 
         //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage
-        if((sysID_stats[msg->sysid].num_packets_received & 0x1F) == 0)
+        if((stats.num_packets_received & 0x1F) == 0)
         {
-            float packet_loss_percent_ = (float)sysID_stats[msg->sysid].recent_packets_lost/((float)sysID_stats[msg->sysid].recent_packets_received + (float)sysID_stats[msg->sysid].recent_packets_lost);
+            float packet_loss_percent_ = (float)stats.recent_packets_lost/((float)stats.recent_packets_received + (float)stats.recent_packets_lost);
             packet_loss_percent_ *= 100.0f;
-            sysID_stats[msg->sysid].recent_packets_lost = 0;
-            sysID_stats[msg->sysid].recent_packets_received = 0;
-            sysID_stats[msg->sysid].packet_loss_percent = packet_loss_percent_;
+            stats.recent_packets_lost = 0;
+            stats.recent_packets_received = 0;
+            stats.packet_loss_percent = packet_loss_percent_;
 
         }
     }
 
-    sysID_stats[msg->sysid].last_packet_sequence = msg->seq;
+    stats.last_packet_sequence = msg->seq;
 
 
 }
