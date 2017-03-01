@@ -23,12 +23,22 @@ cmavnode treats each link equally unless specified otherwise, and does not diffe
          Ubuntu 14.04: sudo apt-get install libboost-all-dev cmake libconfig++ libreadline-dev
          Ubuntu 16.04: sudo apt-get install libboost-all-dev cmake libconfig++-dev libreadline-dev
          Debian Stretch: sudo apt-get install libboost-all-dev cmake libconfig++-dev libreadline-dev
-* Build cmavnode
+
+- Build cmavnode
 
          mkdir build && cd build
          cmake ..
          make
          sudo make install
+
+### Install Notes
+By default cmavnode will be installed into /usr/local/bin. To change this, set CMAKE_INSTALL_PREFIX as below:
+        
+        cmake .. -DCMAKE_INSTALL_PREFIX=/opt
+
+cmavnode comes with a default service file for systemd which will start cmavnode on boot using the config file in /etc/cmavnode.conf. To install this service file, set the parameter SYSTEMD_SERVICE_DIR as below:
+
+        cmake .. -DSYSTEMD_SERVICE_DIR=/etc/systemd/system
 
 ## Usage
 
