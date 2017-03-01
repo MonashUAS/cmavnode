@@ -119,23 +119,19 @@ void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 
 void asyncsocket::receive()
 {
-    // async_receive_from will override endpoint_ so if we want to receive from multiple clients use async_receive
+// async_receive_from will override endpoint_ so if we want to receive from multiple clients use async_receive
+    auto bound = boost::bind(&asyncsocket::handleReceiveFrom, this,
+                             boost::asio::placeholders::error,
+                             boost::asio::placeholders::bytes_transferred);
+    auto buffer = boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH);
     if(!endpointlock)
     {
         //this one only gets used for broadcast when we want to support multiple clients
-        socket_.async_receive(
-            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-            boost::bind(&asyncsocket::handleReceiveFrom, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+        socket_.async_receive(buffer, bound);
     }
     else
     {
-        socket_.async_receive_from(
-            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
-            boost::bind(&asyncsocket::handleReceiveFrom, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+        socket_.async_receive_from(buffer, endpoint_, bound);
     }
 }
 
