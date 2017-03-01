@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <atomic>
+#include <boost/asio.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
@@ -138,6 +139,10 @@ public:
     // Track heartbeat stats for each system ID.
     std::map<uint8_t, packet_stats> sysID_stats;
 
+    // return endpoint corresponding to sender (if any)
+    virtual boost::asio::ip::udp::endpoint *sender_endpoint() {
+        return nullptr;
+    }
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};

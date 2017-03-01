@@ -298,6 +298,10 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
 
         buffer << "InQueue: " << (*curr_link)->in_counter.get();
         buffer << " OutQueue: " << (*curr_link)->out_counter.get();
+        boost::asio::ip::udp::endpoint *ep = (*curr_link)->sender_endpoint();
+        if (ep) {
+            buffer << " Host: " << ep->address().to_string().c_str() << ":" << (int)ep->port();
+        }
 
         std::cout << buffer.str() << std::endl;
     }
