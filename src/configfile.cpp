@@ -84,7 +84,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             }
             else
             {
-                std::cerr << "Link: " << thisSection << " is specified as udp but does not have valid ip and port" << std::endl;
+                std::cerr << "Link: " << thisSection << " is specified as " << type << " but does not have valid ip and port" << std::endl;
                 continue;
             }
             if(udp_type_ != UDP_TYPE_BROADCAST)
