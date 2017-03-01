@@ -210,6 +210,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 
     // Iterate through each link
     mavlink_message_t msg;
+    bool should_sleep = true;
     for (auto incoming_link = links->begin(); incoming_link != links->end(); ++incoming_link)
     {
         // Clear out dead links
@@ -218,6 +219,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
         // Try to read from the buffer for this link
         while ((*incoming_link)->qReadIncoming(&msg))
         {
+            should_sleep = false;
             // Determine the correct target system ID for this message
             int16_t sysIDmsg = -1;
             int16_t compIDmsg = -1;
@@ -250,7 +252,9 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             }
         }
     }
-    boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+    if (should_sleep) {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+    }
 }
 
 void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
