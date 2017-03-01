@@ -175,6 +175,11 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return false;
     }
 
+    // heartbeats are always forwarded
+    if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+        return true;
+    }
+
     int16_t sysIDmsg = -1;
     int16_t compIDmsg = -1;
     getTargets(&msg, sysIDmsg, compIDmsg);
