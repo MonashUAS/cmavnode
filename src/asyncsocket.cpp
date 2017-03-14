@@ -34,11 +34,20 @@ void asyncsocket::prep(
     const std::string& hostport
     )
 {
-
-    boost::asio::ip::udp::resolver resolver(io_service_);
-    boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
-    boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
-    endpoint_ = *iter;
+    try
+    {
+        boost::asio::ip::address addr = boost::asio::ip::address::from_string(host);
+        endpoint_.address(addr);
+        endpoint_.port(std::stoi(hostport));
+    }
+    catch(std::exception e)
+    {
+        // probably not supplied an IP address; try resolving it:
+        boost::asio::ip::udp::resolver resolver(io_service_);
+        boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
+        boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
+        endpoint_ = *iter;
+    }
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
