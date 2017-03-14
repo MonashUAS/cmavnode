@@ -15,21 +15,7 @@ asyncsocket::asyncsocket(
     link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
 {
-
-    boost::asio::ip::udp::resolver resolver(io_service_);
-    boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
-    boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
-    endpoint_ = *iter;
-
-
-
-    //Start the read and write threads
-    write_thread = boost::thread(&asyncsocket::runWriteThread, this);
-
-    //Start the receive
-    receive();
-
-    read_thread = boost::thread(&asyncsocket::runReadThread, this);
+    prep(host, hostport);
 }
 
 // Client constructor
@@ -39,12 +25,20 @@ asyncsocket::asyncsocket(
     link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
 {
+    prep(host, hostport);
+}
+
+// helper function for client constructors
+void asyncsocket::prep(
+    const std::string& host,
+    const std::string& hostport
+    )
+{
 
     boost::asio::ip::udp::resolver resolver(io_service_);
     boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
     boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
     endpoint_ = *iter;
-
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);

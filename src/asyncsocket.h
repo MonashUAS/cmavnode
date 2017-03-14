@@ -75,6 +75,8 @@ private:
     //Actually sends
     void send(uint8_t *buf, std::size_t buf_size);
     void receive(); //Starts a async receive
+
+    void prep(const std::string& host, const std::string& hostport);
 };
 
 #endif
