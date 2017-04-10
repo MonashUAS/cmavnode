@@ -140,7 +140,8 @@ public:
     std::map<uint8_t, packet_stats> sysID_stats;
 
     // return endpoint corresponding to sender (if any)
-    virtual boost::asio::ip::udp::endpoint *sender_endpoint() {
+    virtual boost::asio::ip::udp::endpoint *sender_endpoint()
+    {
         return nullptr;
     }
 protected:

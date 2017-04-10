@@ -34,7 +34,7 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
         }
         else
         {
-                std::cout << "MLINK: The outgoing queue is full" << std::endl;
+            std::cout << "MLINK: The outgoing queue is full" << std::endl;
         }
     }
 }
@@ -144,7 +144,8 @@ void mlink::updateRouting(mavlink_message_t &msg)
 {
     bool newSysID;
     auto found = sysID_stats.find(msg.sysid);
-    if (found == sysID_stats.end()) {
+    if (found == sysID_stats.end())
+    {
         std::cout << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name << std::endl;
         sysID_stats[msg.sysid].num_packets_received = 0;
         sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
@@ -183,7 +184,8 @@ void mlink::checkForDeadSysID()
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
     auto next = sysID_stats.begin();
-    while (next != sysID_stats.end()) {
+    while (next != sysID_stats.end())
+    {
         auto iter = next;
         next++;
         boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
@@ -277,7 +279,8 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
     totalPacketCount++;
 
     auto found = sysID_stats.find(msg->sysid);
-    if (found == sysID_stats.end()) {
+    if (found == sysID_stats.end())
+    {
         std::cout << "Failed to find sysid " << (int)msg->sysid << " on link" << info.link_name << " when recording packet stats" << std::endl;
         return;
     }
@@ -292,23 +295,23 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
         {
             //update total packet loss
             stats.packets_lost += msg->seq
-                                                    - stats.last_packet_sequence
-                                                    + 255;
+                                  - stats.last_packet_sequence
+                                  + 255;
             //update recent packet loss
             stats.recent_packets_lost += msg->seq
-                    - stats.last_packet_sequence
-                    + 255;
+                                         - stats.last_packet_sequence
+                                         + 255;
         }
         else if (stats.last_packet_sequence < msg->seq)
         {
             //update total packet loss
             stats.packets_lost += msg->seq
-                                                    - stats.last_packet_sequence
-                                                    - 1;
+                                  - stats.last_packet_sequence
+                                  - 1;
             //update recent packet loss
             stats.recent_packets_lost += msg->seq
-                    - stats.last_packet_sequence
-                    - 1;
+                                         - stats.last_packet_sequence
+                                         - 1;
         }
 
         //Every 32 packets, use recent packets lost and recent packets received to calculate packet loss percentage

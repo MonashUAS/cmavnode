@@ -176,7 +176,8 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
     }
 
     // heartbeats are always forwarded
-    if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+    if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+    {
         return true;
     }
 
@@ -257,7 +258,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             }
         }
     }
-    if (should_sleep) {
+    if (should_sleep)
+    {
         boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
 }
@@ -299,7 +301,8 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
         buffer << "InQueue: " << (*curr_link)->in_counter.get();
         buffer << " OutQueue: " << (*curr_link)->out_counter.get();
         boost::asio::ip::udp::endpoint *ep = (*curr_link)->sender_endpoint();
-        if (ep) {
+        if (ep)
+        {
             buffer << " Host: " << ep->address().to_string().c_str() << ":" << (int)ep->port();
         }
 

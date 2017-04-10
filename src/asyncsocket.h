@@ -49,7 +49,8 @@ public:
     void runReadThread();
 
     // return endpoint corresponding to sender (if any)
-    boost::asio::ip::udp::endpoint *sender_endpoint() override {
+    boost::asio::ip::udp::endpoint *sender_endpoint() override
+    {
         return sender_endpoint_;
     }
 

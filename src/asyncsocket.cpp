@@ -32,7 +32,7 @@ asyncsocket::asyncsocket(
 void asyncsocket::prep(
     const std::string& host,
     const std::string& hostport
-    )
+)
 {
     try
     {
@@ -135,7 +135,8 @@ void asyncsocket::receive()
     else
     {
         socket_.async_receive_from(buffer, endpoint_, bound);
-        if (sender_endpoint_ == nullptr) {
+        if (sender_endpoint_ == nullptr)
+        {
             sender_endpoint_ = new boost::asio::ip::udp::endpoint();
         }
         (*sender_endpoint_) = endpoint_;
