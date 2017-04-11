@@ -81,6 +81,11 @@ asyncsocket::asyncsocket(bool bcastlock,
                          link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(bindaddress), 0))
 {
+
+    std::vector<bcastiface> bcastvec;
+    getBroadcastInterfaces(bcastvec);
+
+
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     socket_.set_option(boost::asio::socket_base::broadcast(true));
 
@@ -224,4 +229,74 @@ void asyncsocket::runWriteThread()
         }
         boost::this_thread::sleep(boost::posix_time::milliseconds(OUT_QUEUE_EMPTY_SLEEP));
     }
+}
+
+void asyncsocket::getBroadcastInterfaces(std::vector<bcastiface> &ifaces)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s, n;
+    char host[NI_MAXHOST];
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        exit(EXIT_FAILURE);
+    }
+
+    for (ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        family = ifa->ifa_addr->sa_family;
+
+        if (family == AF_INET || family == AF_INET6) {
+            s = getnameinfo(ifa->ifa_addr,
+                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
+                            sizeof(struct sockaddr_in6),
+                            host, NI_MAXHOST,
+                            NULL, 0, NI_NUMERICHOST);
+            if (s != 0) {
+                printf("getnameinfo() failed: %s\n", gai_strerror(s));
+                exit(EXIT_FAILURE);
+            }
+
+            if(family == AF_INET){
+                struct sockaddr_in *struct_mask;
+                char *netmask;
+                struct_mask = (struct sockaddr_in *) ifa->ifa_netmask;
+                netmask = inet_ntoa(struct_mask->sin_addr);
+
+                struct in_addr hoststr, maskstr, broadcaststr;
+                char broadcast_address[INET_ADDRSTRLEN];
+                if (inet_pton(AF_INET, host, &hoststr) == 1 &&
+                    inet_pton(AF_INET, netmask, &maskstr) == 1)
+                    broadcaststr.s_addr = hoststr.s_addr | ~maskstr.s_addr;
+                else {
+                    std::cerr << "Error resolving broadcast address" << std::endl;
+                }
+                if (inet_ntop(AF_INET, &broadcaststr, broadcast_address, INET_ADDRSTRLEN) != NULL)
+                {
+                    printf("Broadcast address of %s  %s with netmask %s is %s\n",
+                           ifa->ifa_name, host, netmask, broadcast_address);
+
+                    bcastiface tmpiface;
+                    tmpiface.if_name = std::string(ifa->ifa_name);
+                    tmpiface.if_addr = std::string(host);
+                    tmpiface.if_mask = std::string(netmask);
+                    tmpiface.if_bcastaddr = std::string(broadcast_address);
+
+                    ifaces.push_back(tmpiface);
+                }
+
+                else {
+                    std::cerr << "Error resolving broadcast address" << std::endl;
+                }
+        }
+
+    }
+
+    }
+
+    freeifaddrs(ifaddr);
+
+
 }

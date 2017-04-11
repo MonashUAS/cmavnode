@@ -7,12 +7,27 @@
 #ifndef ASYNCSOCKET_H
 #define ASYNCSOCKET_H
 
+#define _GNU_SOURCE     /* To get defns of NI_MAXSERV and NI_MAXHOST */
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <linux/if_link.h>
+#include <sys/types.h>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 
 #include "mlink.h"
+
+struct bcastiface {
+    std::string if_name, if_addr, if_mask, if_bcastaddr;
+};
 
 class asyncsocket: public mlink
 {
@@ -78,6 +93,7 @@ private:
     void receive(); //Starts a async receive
 
     void prep(const std::string& host, const std::string& hostport);
+    void getBroadcastInterfaces(std::vector<bcastiface> &ifaces);
 };
 
 #endif
