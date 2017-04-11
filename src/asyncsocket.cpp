@@ -79,8 +79,9 @@ asyncsocket::asyncsocket(bool bcastlock,
                          const std::string& bcastaddress,
                          const std::string& bcastport,
                          link_info info_) : io_service_(), mlink(info_),
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(bindaddress), 0))
+                                            socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::any(), 0))
 {
+    isbcast = true;
 
     std::vector<bcastiface> bcastvec;
     getBroadcastInterfaces(bcastvec);
@@ -89,8 +90,14 @@ asyncsocket::asyncsocket(bool bcastlock,
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     socket_.set_option(boost::asio::socket_base::broadcast(true));
 
-    boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::from_string(bcastaddress), std::stoi(bcastport));
-    endpoint_ = senderEndpoint;
+    for(int i = 0; i < bcastvec.size(); i++)
+    {
+        boost::asio::ip::udp::endpoint tmpbcast_ep(boost::asio::ip::address_v4::from_string(bcastvec.at(i).if_bcastaddr), std::stoi(bcastport));
+        bcast_endpoints_.push_back(tmpbcast_ep);
+    }
+
+    //boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::from_string(bcastaddress), std::stoi(bcastport));
+    //endpoint_ = senderEndpoint;
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
@@ -118,11 +125,24 @@ asyncsocket::~asyncsocket()
 
 void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 {
+    if(isbcast){
+        //send on all interfaces
+        for(int i = 0; i < bcast_endpoints_.size(); i ++){
+            socket_.async_send_to(
+                                  boost::asio::buffer(buf, buf_size), bcast_endpoints_.at(i),
+                                  boost::bind(&asyncsocket::handleSendTo, this,
+                                              boost::asio::placeholders::error,
+                                              boost::asio::placeholders::bytes_transferred));
+        }
+    }
+    else{
+        //send to one endpoint
     socket_.async_send_to(
         boost::asio::buffer(buf, buf_size), endpoint_,
         boost::bind(&asyncsocket::handleSendTo, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
+    }
 }
 
 void asyncsocket::receive()

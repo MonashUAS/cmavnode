@@ -83,6 +83,8 @@ private:
 
     boost::asio::ip::udp::endpoint *sender_endpoint_;
 
+    std::vector<boost::asio::ip::udp::endpoint> bcast_endpoints_;
+    bool isbcast = false;
     bool endpointlock = true;
 
     //takes message, puts onto buff and calls send
