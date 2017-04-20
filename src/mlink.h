@@ -64,6 +64,9 @@ struct link_info
     int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
     bool reject_repeat_packets = false;
     bool SiK_radio = false;
+    bool passthrough = false; //should this link ignore routing and pass all messages through to another link
+    std::string passthrough_to; //which link should we pass to
+    int passthrough_to_id = -1; //which link number should we pass to (populated automatically in main)
 };
 
 class mlink

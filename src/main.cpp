@@ -61,9 +61,32 @@ int main(int argc, char** argv)
     std::cout << "Links Initialized, routing loop starting." << std::endl;
 
     // Number the links
-    for (uint16_t i = 0; i != links.size(); ++i)
+    for (uint16_t i = 0; i < links.size(); i++)
     {
         links.at(i)->link_id = i;
+    }
+
+    //assign pass through link id's so we can address them fast in main loop
+    for(uint16_t i = 0; i < links.size(); i++)
+    {
+        if(links.at(i)->info.passthrough)
+        {
+            //then search for matching link
+            bool found = false;
+            std::string passthrough_to_ = links.at(i)->info.passthrough_to;
+            for(int k = 0; k < links.size(); k++)
+            {
+                if(!passthrough_to_.compare(links.at(k)->info.link_name))
+                    {
+                        found = true;
+                        // this is the link you are looking for
+                        links.at(i)->info.passthrough_to_id = k;
+                        std::cout << "the link " << links.at(i)->info.link_name << " is being passed directly through to " << links.at(i)->info.passthrough_to << " which has id " << links.at(i)->info.passthrough_to_id << std::endl;
+                        break;
+                    }
+            }
+            if(!found) std::cout << links.at(i)->info.link_name << " has an invalid passthrough setting" << std::endl;
+        }
     }
 
     // Run the shell thread
@@ -149,7 +172,6 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 
 bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
 {
-
     // If the packet came from this link, don't bother
     if (outgoing_link == incoming_link)
     {
@@ -160,6 +182,21 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
     if ((*incoming_link)->info.SiK_radio && msg.sysid == 51)
     {
         return false;
+    }
+
+    // If passthrough is enabled, see if this is the right link otherwise drop
+    if((*incoming_link)->info.passthrough)
+    {
+        if((*incoming_link)->info.passthrough_to_id == (*outgoing_link)->link_id)
+        {
+            //then this is the specified link to pass through to
+            return true;
+        }
+        else
+        {
+            //this link has been specified for passthrough but this is the wrong link
+            return false;
+        }
     }
 
     // If the current link being checked is designated to receive

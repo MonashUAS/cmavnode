@@ -186,6 +186,10 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
 
     // Identify SiK radio links
     _configFile->boolValue(thisSection, "sik_radio", &_info->SiK_radio);
+
+    //if a direct passthrough link has been specified, get the name and set the flag
+    if(_configFile->strValue(thisSection, "passthrough_to", &_info->passthrough_to))
+        _info->passthrough = true;
 }
 
 std::string trim(std::string const& source, char const* delims = " \t\r\n")
