@@ -15,21 +15,7 @@ asyncsocket::asyncsocket(
     link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
 {
-
-    boost::asio::ip::udp::resolver resolver(io_service_);
-    boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
-    boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
-    endpoint_ = *iter;
-
-
-
-    //Start the read and write threads
-    write_thread = boost::thread(&asyncsocket::runWriteThread, this);
-
-    //Start the receive
-    receive();
-
-    read_thread = boost::thread(&asyncsocket::runReadThread, this);
+    prep(host, hostport);
 }
 
 // Client constructor
@@ -39,12 +25,29 @@ asyncsocket::asyncsocket(
     link_info info_) : io_service_(), mlink(info_),
     socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
 {
+    prep(host, hostport);
+}
 
-    boost::asio::ip::udp::resolver resolver(io_service_);
-    boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
-    boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
-    endpoint_ = *iter;
-
+// helper function for client constructors
+void asyncsocket::prep(
+    const std::string& host,
+    const std::string& hostport
+)
+{
+    try
+    {
+        boost::asio::ip::address addr = boost::asio::ip::address::from_string(host);
+        endpoint_.address(addr);
+        endpoint_.port(std::stoi(hostport));
+    }
+    catch(std::exception e)
+    {
+        // probably not supplied an IP address; try resolving it:
+        boost::asio::ip::udp::resolver resolver(io_service_);
+        boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
+        boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
+        endpoint_ = *iter;
+    }
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
@@ -119,23 +122,24 @@ void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 
 void asyncsocket::receive()
 {
-    // async_receive_from will override endpoint_ so if we want to receive from multiple clients use async_receive
+// async_receive_from will override endpoint_ so if we want to receive from multiple clients use async_receive
+    auto bound = boost::bind(&asyncsocket::handleReceiveFrom, this,
+                             boost::asio::placeholders::error,
+                             boost::asio::placeholders::bytes_transferred);
+    auto buffer = boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH);
     if(!endpointlock)
     {
         //this one only gets used for broadcast when we want to support multiple clients
-        socket_.async_receive(
-            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-            boost::bind(&asyncsocket::handleReceiveFrom, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+        socket_.async_receive(buffer, bound);
     }
     else
     {
-        socket_.async_receive_from(
-            boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH), endpoint_,
-            boost::bind(&asyncsocket::handleReceiveFrom, this,
-                        boost::asio::placeholders::error,
-                        boost::asio::placeholders::bytes_transferred));
+        socket_.async_receive_from(buffer, endpoint_, bound);
+        if (sender_endpoint_ == nullptr)
+        {
+            sender_endpoint_ = new boost::asio::ip::udp::endpoint();
+        }
+        (*sender_endpoint_) = endpoint_;
     }
 }
 

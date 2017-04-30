@@ -48,6 +48,11 @@ public:
     void runWriteThread();
     void runReadThread();
 
+    // return endpoint corresponding to sender (if any)
+    boost::asio::ip::udp::endpoint *sender_endpoint() override
+    {
+        return sender_endpoint_;
+    }
 
 private:
     //Callbacks for async send/recv
@@ -61,6 +66,8 @@ private:
     boost::asio::ip::udp::socket socket_;
     boost::asio::ip::udp::endpoint endpoint_;
 
+    boost::asio::ip::udp::endpoint *sender_endpoint_;
+
     bool endpointlock = true;
 
     //takes message, puts onto buff and calls send
@@ -69,6 +76,8 @@ private:
     //Actually sends
     void send(uint8_t *buf, std::size_t buf_size);
     void receive(); //Starts a async receive
+
+    void prep(const std::string& host, const std::string& hostport);
 };
 
 #endif
