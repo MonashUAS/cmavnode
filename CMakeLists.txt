@@ -7,13 +7,19 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
+# Include find files
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 set(Boost_USE_STATIC_LIBS ON)
 
 find_package( Boost 1.40 COMPONENTS program_options thread system REQUIRED )
-find_package( Threads )
+find_package( Threads REQUIRED)
+find_package( Readline REQUIRED)
 
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( ${READLINE_INCLUDE_DIR})
 
+# glob source files
 file(GLOB cmavnode_SRC
     "src/*.cpp"
     )
@@ -22,8 +28,8 @@ file(GLOB cmavnode_SRC
 add_executable(cmavnode ${cmavnode_SRC})
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
+set(CMAKE_CXX_FLAGS "-std=c++11")
 
-target_compile_options(cmavnode PRIVATE -std=c++11 -ggdb)
-TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} -lpthread -lreadline)
+TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${READLINE_LIBRARY})
 
 install(TARGETS cmavnode DESTINATION bin)
