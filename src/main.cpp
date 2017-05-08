@@ -19,7 +19,6 @@
 #include "exception.h"
 #include "shell.h"
 #include "configfile.h"
-#include "mavhelper.h"
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
@@ -28,6 +27,7 @@
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
 int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
+void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
 bool exitMainLoop = false;
@@ -259,6 +259,21 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
     if (should_sleep)
     {
         boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+    }
+}
+
+void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
+{
+    /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
+    const mavlink_msg_entry_t *msg_entry = mavlink_get_msg_entry(msg->msgid);
+    if (msg_entry == nullptr) {
+        return;
+    }
+    if (msg_entry->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+        sysid = _MAV_RETURN_uint8_t(msg,  msg_entry->target_system_ofs);
+    }
+    if (msg_entry->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+        compid = _MAV_RETURN_uint8_t(msg,  msg_entry->target_component_ofs);
     }
 }
 
