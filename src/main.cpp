@@ -150,21 +150,22 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
 {
 
-    // If the packet came from this link, don't bother
+    // First check for reasons to drop the packet
+    
+    // If the packet came from this link drop 
     if (outgoing_link == incoming_link)
     {
         return false;
     }
 
-    // Don't forward SiK radio info
+    // If the packet is from a SiK Radio, drop 
     if ((*incoming_link)->info.SiK_radio && msg.sysid == 51)
     {
         return false;
     }
 
-    // If the current link being checked is designated to receive
-    // from a non-zero system ID and that system ID isn't present on
-    // this link, don't send on this link.
+    // If the outgoing link has defined routing rules,
+    // and this packet does not satisfy them, drop
     if ((*outgoing_link)->info.output_only_from[0] != 0 &&
             std::find((*outgoing_link)->info.output_only_from.begin(),
                       (*outgoing_link)->info.output_only_from.end(),
@@ -173,15 +174,20 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return false;
     }
 
-    // heartbeats are always forwarded
+
+    // No reason to drop, now check for reasons the packet should be forwarded
+    // If Heartbeat, forward 
     if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
     {
         return true;
     }
 
+    //Find out if message is targeted
     int16_t sysIDmsg = -1;
     int16_t compIDmsg = -1;
     getTargets(&msg, sysIDmsg, compIDmsg);
+
+    //If it is broadcast, forward
     if (sysIDmsg == -1)
     {
         return true;
@@ -195,17 +201,16 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return true;
     }
 
-    // if we get this far then the packet is routable; if we can't
-    // find a route for it then we drop the message.
-    if (!((*outgoing_link)->seenSysID(sysIDmsg)))
+    // packet is targeted, if the target is on this link send it
+    if ((*outgoing_link)->seenSysID(sysIDmsg))
     {
-        return false;
+        return true;
     }
-
     // TODO: should check sysid/compid combination has been seen, not
     // just sysid
 
-    return true;
+    // packet is targeted, but the target has not been seen on this link, so drop
+    return false;
 }
 
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
