@@ -19,12 +19,13 @@
 #include "exception.h"
 #include "shell.h"
 #include "configfile.h"
+#include "cmavserver.h"
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
 
 // Functions in this file
-boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose);
+boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport);
 int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
@@ -40,9 +41,10 @@ int main(int argc, char** argv)
     // Default mode selections
     bool shellen = true;
     bool verbose = false;
+    int headlessport = -1;
 
     std::string filename;
-    boost::program_options::options_description desc = add_program_options(filename, shellen, verbose);
+    boost::program_options::options_description desc = add_program_options(filename, shellen, verbose, headlessport);
 
     int ret = try_user_options(argc, argv, desc);
     if (ret == 1)
@@ -50,6 +52,7 @@ int main(int argc, char** argv)
     else if (ret == -1)
         return 0; // Help option
 
+    CmavServer headlessServer(8000);
     ret = readConfigFile(filename, links);
     if (links.size() == 0)
     {
@@ -89,12 +92,13 @@ int main(int argc, char** argv)
     return 0;
 }
 
-boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose)
+boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport)
 {
     boost::program_options::options_description desc("Options");
     desc.add_options()
     ("help", "Print help messages")
     ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
+    ("headless,H", boost::program_options::value<int>(&headlessport), "run cmavnode headless with json server, usage --headless <port>")
     ("interface,i", boost::program_options::bool_switch(&shellen), "start in interactive mode with cmav shell")
     ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
     return desc;
