@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     else if (ret == -1)
         return 0; // Help option
 
-    CmavServer headlessServer(8000);
+    CmavServer headlessServer(8000, &links);
     ret = readConfigFile(filename, links);
     if (links.size() == 0)
     {

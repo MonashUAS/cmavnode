@@ -16,6 +16,4 @@ int findlink(std::string link_string, std::shared_ptr<mlink>* prt,
              std::vector<std::shared_ptr<mlink> > &links);
 void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links);
 
-extern std::vector<std::shared_ptr<mlink>> links;
-
 #endif
