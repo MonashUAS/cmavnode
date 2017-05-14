@@ -15,6 +15,13 @@
 #define SERIAL_PORT_SLEEP_ON_NOTHING_RECEIVED 2
 #define SERIAL_PORT_MAX_ERROR_BEFORE_KILL 20
 
+struct serial_properties
+{
+    std::string port;
+    int baudrate = -1;
+    bool flowcontrol = false;
+}
+
 class serial: public mlink
 {
 public:
@@ -28,6 +35,8 @@ public:
     //override virtuals from mlink
     void runWriteThread();
     void runReadThread();
+
+    serial_properties properties;
 
 private:
     //Callbacks for async send/recv

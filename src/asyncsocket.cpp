@@ -8,37 +8,55 @@
 #include "asyncsocket.h"
 
 // Fully defined constructor
-asyncsocket::asyncsocket(
-    const std::string& host,
-    const std::string& hostport,
-    const std::string& listenport,
-    link_info info_) : io_service_(), mlink(info_),
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
+
+asyncsocket::asyncsocket(udp_properties properties_, link_info info_): io_service_(), mlink(info_), properties(properties_)
 {
-    prep(host, hostport);
+    // Making a udp link is complicated, call the appropriate helper
+    switch(properties.udp_type){
+    case 0:
+        createFullyDefined();
+        break;
+    case 1:
+        createClient();
+        break;
+    case 2:
+        createServer();
+        break;
+    case 3:
+        endpointlock = true;
+        createBroadcast();
+        break;
+    case 4:
+        endpointlock = false;
+        createBroadcast();
+        break;
+    }
+}
+
+void asyncsocket::createFullyDefined()
+{
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport));
+    prep(properties.host, properties.hostport);
 }
 
 // Client constructor
-asyncsocket::asyncsocket(
-    const std::string& host,
-    const std::string& hostport,
-    link_info info_) : io_service_(), mlink(info_),
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
+void asyncsocket::createClient()
 {
-    prep(host, hostport);
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
+    prep(properties.host, properties.hostport);
 }
 
 // helper function for client constructors
 void asyncsocket::prep(
     const std::string& host,
-    const std::string& hostport
+    int hostport
 )
 {
     try
     {
         boost::asio::ip::address addr = boost::asio::ip::address::from_string(host);
         endpoint_.address(addr);
-        endpoint_.port(std::stoi(hostport));
+        endpoint_.port(hostport);
     }
     catch(std::exception e)
     {
@@ -59,11 +77,10 @@ void asyncsocket::prep(
 }
 
 // Server constructor
-asyncsocket::asyncsocket(
-    const std::string& listenport,
-    link_info info_) : io_service_(), mlink(info_),
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), std::stoi(listenport)))
+void asyncsocket::createServer()
 {
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport))
+
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
 
@@ -74,23 +91,18 @@ asyncsocket::asyncsocket(
 }
 
 // Broadcast constructor
-asyncsocket::asyncsocket(bool bcastlock,
-                         const std::string& bindaddress,
-                         const std::string& bcastaddress,
-                         const std::string& bcastport,
-                         link_info info_) : io_service_(), mlink(info_),
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(bindaddress), 0))
+void asyncsocket::createBroadcast()
 {
+    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
     socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     socket_.set_option(boost::asio::socket_base::broadcast(true));
 
-    boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::from_string(bcastaddress), std::stoi(bcastport));
+    boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::from_string(properties.host),properties.hostport);
     endpoint_ = senderEndpoint;
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
 
-    endpointlock = bcastlock;
     //Start the receive
     receive();
 

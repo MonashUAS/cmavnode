@@ -7,25 +7,19 @@
 
 #include "serial.h"
 
-serial::serial(const std::string& port,
-               const std::string& baudrate,
-               bool flowcontrol,
+serial::serial(serial_properties properties_
                link_info info_):
-    io_service_(), port_(io_service_), mlink(info_)
+    io_service_(), port_(io_service_), mlink(info_), properties(properties_)
 {
-
-
-
     try
     {
         //open the port with connection string
-        port_.open(port);
-
+        port_.open(properties.port);
 
         //configure the port
-        port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)std::stoi(baudrate)));
+        port_.set_option(boost::asio::serial_port_base::baud_rate((unsigned int)properties.baudrate));
 
-        if(flowcontrol)
+        if(properties.flowcontrol)
         {
             port_.set_option(boost::asio::serial_port_base::flow_control(
                                  boost::asio::serial_port_base::flow_control::hardware));

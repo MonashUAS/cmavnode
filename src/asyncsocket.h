@@ -14,35 +14,29 @@
 
 #include "mlink.h"
 
+struct udp_properties{
+    std::string host; //functions as bcastaddress if broadcast
+    int hostport = -1; //functions as bcastport if broadcast
+    int bindport = -1;
+
+    // 0 = fully defined, 1 = client, 2 = server, 3 = bcastlock 4 = bcast TODO: make enum
+    int udp_type = 0;
+
+}
 class asyncsocket: public mlink
 {
 public:
     //Construct specifying all
-    asyncsocket(
-        const std::string& host,
-        const std::string& hostport,
-        const std::string& listenport,
-        link_info info_);
-
-    //Specify only receive
-    asyncsocket(
-        const std::string& listenport,
-        link_info info_);
-
-    //bcast
-    asyncsocket(bool bcastlock,
-                const std::string& bindaddress,
-                const std::string& bcastaddress,
-                const std::string& bcastport,
-                link_info info_);
-
-    //Specify only target
-    asyncsocket(
-        const std::string& host,
-        const std::string& hostport,
-        link_info info_);
+    asyncsocket(udp_properties properties_, link_info info_);
 
     ~asyncsocket();
+
+    // real construction happens here
+    createFullyDefined();
+    createClient();
+    createServer();
+    createBroadcast();
+
 
     //override virtuals from link
     void runWriteThread();
@@ -53,6 +47,8 @@ public:
     {
         return sender_endpoint_;
     }
+
+    udp_properties properties;
 
 private:
     //Callbacks for async send/recv

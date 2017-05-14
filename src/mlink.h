@@ -56,7 +56,9 @@ struct queue_counter
 };
 
 struct link_info
-{
+{ // TODO: Rename this link options
+    // this struct represents link settings that can change at runtime
+    // these settings work at the mlink layer
     std::string link_name;
     bool receive_from = true;
     bool output_to = true;
