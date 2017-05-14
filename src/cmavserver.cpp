@@ -29,8 +29,30 @@ void CmavServer::addHandlers()
 
         for(int i = 0; i < links->size(); i++)
         {
+            // TODO: factor out the conversion of properties and options into json
             link_info *info_ = &(links->at(i)->info);
+            std::shared_ptr<serial> serialpointer = std::dynamic_pointer_cast<serial>(links->at(i));
+            std::shared_ptr<asyncsocket> udppointer = std::dynamic_pointer_cast<asyncsocket>(links->at(i));
             pt::ptree thislinkroot;
+            if(serialpointer != NULL){
+                serial_properties *properties_ = &(serialpointer->properties);
+                pt::ptree serialroot;
+                serialroot.put("port", properties_->port);
+                serialroot.put("baudrate", properties_->baudrate);
+                serialroot.put("flowcontrol", properties_->flowcontrol);
+
+                thislinkroot.add_child("serial_properties", serialroot);
+            }
+            else if(udppointer != NULL){
+                udp_properties *properties_ = &(udppointer->properties);
+                pt::ptree udproot;
+                udproot.put("host", properties_->host);
+                udproot.put("hostport", properties_->hostport);
+                udproot.put("bindport", properties_->bindport);
+                udproot.put("udp_type", properties_->udp_type);
+
+                thislinkroot.add_child("udp_properties", udproot);
+            }
             thislinkroot.put("sim_enable", info_->sim_enable);
             thislinkroot.put("sim_packet_loss", info_->sim_packet_loss);
             thislinkroot.put("output_to", info_->output_to);

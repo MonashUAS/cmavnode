@@ -3,6 +3,8 @@
 
 #include "../include/simple_server/server_http.hpp"
 #include "mlink.h"
+#include "serial.h"
+#include "asyncsocket.h"
 
 #include <memory>
 #include <boost/thread.hpp>
