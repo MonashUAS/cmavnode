@@ -21,8 +21,8 @@ struct udp_properties{
 
     // 0 = fully defined, 1 = client, 2 = server, 3 = bcastlock 4 = bcast TODO: make enum
     int udp_type = 0;
+};
 
-}
 class asyncsocket: public mlink
 {
 public:
@@ -32,10 +32,10 @@ public:
     ~asyncsocket();
 
     // real construction happens here
-    createFullyDefined();
-    createClient();
-    createServer();
-    createBroadcast();
+    void createFullyDefined();
+    void createClient();
+    void createServer();
+    void createBroadcast();
 
 
     //override virtuals from link
@@ -59,7 +59,7 @@ private:
 
     //UDP Stuff
     boost::asio::io_service io_service_;
-    boost::asio::ip::udp::socket socket_;
+    std::unique_ptr<boost::asio::ip::udp::socket> socket_;
     boost::asio::ip::udp::endpoint endpoint_;
 
     boost::asio::ip::udp::endpoint *sender_endpoint_;
@@ -73,7 +73,7 @@ private:
     void send(uint8_t *buf, std::size_t buf_size);
     void receive(); //Starts a async receive
 
-    void prep(const std::string& host, const std::string& hostport);
+    void prep(const std::string& host, int hostport);
 };
 
 #endif

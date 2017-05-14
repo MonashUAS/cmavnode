@@ -7,10 +7,10 @@
 
 #include "serial.h"
 
-serial::serial(serial_properties properties_
-               link_info info_):
-    io_service_(), port_(io_service_), mlink(info_), properties(properties_)
+serial::serial(serial_properties properties_, link_info info_):
+    io_service_(), port_(io_service_), mlink(info_)
 {
+    properties = properties_;
     try
     {
         //open the port with connection string
@@ -43,7 +43,7 @@ serial::serial(serial_properties properties_
     }
     catch (boost::system::system_error &error)
     {
-        std::cerr << "Error opening Serial Port: " << port << " " << error.what() << std::endl;
+        std::cerr << "Error opening Serial Port: " << properties.port << " " << error.what() << std::endl;
         std::cerr << "Link: " << info.link_name << " failed to initialise and is dead" << std::endl;
         exitFlag = true;
     }

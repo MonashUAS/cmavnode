@@ -9,8 +9,9 @@
 
 // Fully defined constructor
 
-asyncsocket::asyncsocket(udp_properties properties_, link_info info_): io_service_(), mlink(info_), properties(properties_)
+asyncsocket::asyncsocket(udp_properties properties_, link_info info_): io_service_(), mlink(info_)
 {
+    properties = properties_;
     // Making a udp link is complicated, call the appropriate helper
     switch(properties.udp_type){
     case 0:
@@ -35,14 +36,14 @@ asyncsocket::asyncsocket(udp_properties properties_, link_info info_): io_servic
 
 void asyncsocket::createFullyDefined()
 {
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport));
+    socket_ = std::unique_ptr<boost::asio::ip::udp::socket>(new boost::asio::ip::udp::socket(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport)));
     prep(properties.host, properties.hostport);
 }
 
 // Client constructor
 void asyncsocket::createClient()
 {
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0));
+    socket_ = std::unique_ptr<boost::asio::ip::udp::socket>(new boost::asio::ip::udp::socket(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)));
     prep(properties.host, properties.hostport);
 }
 
@@ -62,7 +63,7 @@ void asyncsocket::prep(
     {
         // probably not supplied an IP address; try resolving it:
         boost::asio::ip::udp::resolver resolver(io_service_);
-        boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, hostport);
+        boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(), host, std::to_string(hostport));
         boost::asio::ip::udp::resolver::iterator iter = resolver.resolve(query);
         endpoint_ = *iter;
     }
@@ -79,7 +80,7 @@ void asyncsocket::prep(
 // Server constructor
 void asyncsocket::createServer()
 {
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport))
+    socket_= std::unique_ptr<boost::asio::ip::udp::socket>(new boost::asio::ip::udp::socket(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), properties.bindport)));
 
     //Start the read and write threads
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
@@ -93,9 +94,9 @@ void asyncsocket::createServer()
 // Broadcast constructor
 void asyncsocket::createBroadcast()
 {
-    socket_(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0))
-    socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-    socket_.set_option(boost::asio::socket_base::broadcast(true));
+    socket_= std::unique_ptr<boost::asio::ip::udp::socket>(new boost::asio::ip::udp::socket(io_service_, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)));
+    socket_->set_option(boost::asio::ip::udp::socket::reuse_address(true));
+    socket_->set_option(boost::asio::socket_base::broadcast(true));
 
     boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::from_string(properties.host),properties.hostport);
     endpoint_ = senderEndpoint;
@@ -120,12 +121,12 @@ asyncsocket::~asyncsocket()
     write_thread.join();
 
     //Debind
-    socket_.close();
+    socket_->close();
 }
 
 void asyncsocket::send(uint8_t *buf, std::size_t buf_size)
 {
-    socket_.async_send_to(
+    socket_->async_send_to(
         boost::asio::buffer(buf, buf_size), endpoint_,
         boost::bind(&asyncsocket::handleSendTo, this,
                     boost::asio::placeholders::error,
@@ -142,11 +143,11 @@ void asyncsocket::receive()
     if(!endpointlock)
     {
         //this one only gets used for broadcast when we want to support multiple clients
-        socket_.async_receive(buffer, bound);
+        socket_->async_receive(buffer, bound);
     }
     else
     {
-        socket_.async_receive_from(buffer, endpoint_, bound);
+        socket_->async_receive_from(buffer, endpoint_, bound);
         if (sender_endpoint_ == nullptr)
         {
             sender_endpoint_ = new boost::asio::ip::udp::endpoint();

@@ -20,16 +20,13 @@ struct serial_properties
     std::string port;
     int baudrate = -1;
     bool flowcontrol = false;
-}
+};
 
 class serial: public mlink
 {
 public:
     //construct and destruct
-    serial(const std::string& port,
-           const std::string& baudrate,
-           bool flowcontrol,
-           link_info info_);
+    serial(serial_properties properties_, link_info info_);
     ~serial();
 
     //override virtuals from mlink

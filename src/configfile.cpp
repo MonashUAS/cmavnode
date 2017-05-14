@@ -107,42 +107,35 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
         //if we made it this far without break we have a valid link of some sort
         if(isSerial)
         {
-            links.push_back(std::shared_ptr<mlink>(new serial(serialport
-                                                   ,std::to_string(baud)
-                                                   ,flowcontrol
-                                                   ,_info)));
+            serial_properties properties_;
+            properties_.port = serialport;
+            properties_.baudrate = baud;
+            properties_.flowcontrol = flowcontrol;
+            links.push_back(std::shared_ptr<mlink>(new  serial(properties_ ,_info)));
         }
         else if (udp_type_ != UDP_TYPE_NONE)
         {
+            udp_properties properties_;
+            properties_.host = targetip;
+            properties_.hostport = targetport;
+            properties_.bindport = localport;
             switch(udp_type_)
             {
             case UDP_TYPE_FULLY_SPECIFIED:
-                links.push_back(
-                    std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                           std::to_string(targetport)
-                                           ,std::to_string(localport)
-                                           ,_info)));
+                properties_.udp_type = 0;
                 break;
             case UDP_TYPE_SERVER:
-                links.push_back(
-                    std::shared_ptr<mlink>(new asyncsocket(std::to_string(localport)
-                                           ,_info)));
+                properties_.udp_type = 2;
                 break;
             case UDP_TYPE_CLIENT:
-                links.push_back(
-                    std::shared_ptr<mlink>(new asyncsocket(targetip,
-                                           std::to_string(targetport)
-                                           ,_info)));
+                properties_.udp_type = 1;
                 break;
             case UDP_TYPE_BROADCAST:
-                links.push_back(
-                    std::shared_ptr<mlink>(new asyncsocket(bcastlock,
-                                           bindip,
-                                           bcastip,
-                                           std::to_string(bcastport)
-                                           ,_info)));
+                if(bcastlock) properties_.udp_type = 4;
+                else properties_.udp_type = 5;
                 break;
             }
+            links.push_back(std::shared_ptr<mlink>(new asyncsocket(properties_, _info)));
         }
     }
     return 0;
