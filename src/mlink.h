@@ -75,8 +75,6 @@ public:
     mlink(link_info info_);
     virtual ~mlink() {};
 
-    int link_id;
-
     bool up = true;
 
     //Send or read mavlink messages
@@ -147,6 +145,7 @@ public:
     {
         return nullptr;
     }
+
 protected:
     boost::lockfree::spsc_queue<mavlink_message_t> qMavIn {MAV_INCOMING_LENGTH};
     boost::lockfree::spsc_queue<mavlink_message_t> qMavOut {MAV_OUTGOING_LENGTH};

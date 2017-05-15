@@ -63,12 +63,6 @@ int main(int argc, char** argv)
     std::cout << "Command line arguments parsed succesfully." << std::endl;
     std::cout << "Links Initialized, routing loop starting." << std::endl;
 
-    // Number the links
-    for (uint16_t i = 0; i != links.size(); ++i)
-    {
-        links.at(i)->link_id = i;
-    }
-
     // Run the shell thread
     boost::thread shell;
     if (shellen)

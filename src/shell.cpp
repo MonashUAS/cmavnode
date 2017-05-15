@@ -109,48 +109,18 @@ int findlink(std::string link_string, std::shared_ptr<mlink>* prt,
              std::vector<std::shared_ptr<mlink> > &links)
 {
 
-    int numberlink;
-    bool isnumber = true;
     bool found = false;
-    try
-    {
-        numberlink = stoi(link_string);
-    }
-    catch(std::invalid_argument& e)
-    {
 
-        isnumber = false;
-    }
-    catch(std::out_of_range& e)
+    for(int i = 0; i < links.size(); i++)
     {
-        isnumber = false;
-    }
-
-    if(isnumber) // this is bad it assumes less than 10 links
-    {
-        for(int i = 0; i < links.size(); i++)
+        if(!link_string.compare(links.at(i)->info.link_name))
         {
-            if(numberlink == links.at(i)->link_id)
-            {
-                *prt = links.at(i);
-                return 1;
-            }
+            *prt = links.at(i);
+            return 1;
         }
     }
-    else //not number
-    {
-
-        for(int i = 0; i < links.size(); i++)
-        {
-            if(!link_string.compare(links.at(i)->info.link_name))
-            {
-                *prt = links.at(i);
-                return 1;
-            }
-        }
 
 
-    }
     return 0;
 }
 
@@ -162,8 +132,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
     {
         std::ostringstream buffer;
 
-        buffer << "Link: " << (*curr_link)->link_id << " "
-               << (*curr_link)->info.link_name << " ";
+        buffer << "Link: " << (*curr_link)->info.link_name << " ";
         if ((*curr_link)->is_kill)
         {
             buffer << "DEAD ";
@@ -207,8 +176,7 @@ void printLinkQuality(std::vector<std::shared_ptr<mlink> > *links)
     std::ostringstream buffer;
     for (auto curr_link = links->begin(); curr_link != links->end(); ++curr_link)
     {
-        buffer << "\nLink: " << (*curr_link)->link_id
-               << "   (" << (*curr_link)->info.link_name << ")\n";
+        buffer << "\nLink: " << "   (" << (*curr_link)->info.link_name << ")\n";
 
         // Only print radio stats when the link is connected to a SiK radio
         if ((*curr_link)->info.SiK_radio)
