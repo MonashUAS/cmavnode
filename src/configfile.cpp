@@ -102,7 +102,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             continue;
         }
 
-        link_info _info;
+        LinkOptions _info;
         readLinkInfo(&_configFile, thisSection, &_info);
         //if we made it this far without break we have a valid link of some sort
         if(isSerial)
@@ -141,7 +141,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
     return 0;
 }
 
-void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _info)
+void readLinkInfo(ConfigFile* _configFile, std::string thisSection, LinkOptions* _info)
 {
     // Parse the optional parts of the config file which end up in mlink::link_info
     std::vector<int> output_only_from;

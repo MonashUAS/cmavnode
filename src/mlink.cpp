@@ -14,7 +14,7 @@ std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 std::mutex mlink::recently_received_mutex;
 std::set<uint8_t> mlink::sysIDs_all_links;
 
-mlink::mlink(link_info info_)
+mlink::mlink(LinkOptions info_)
 {
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));

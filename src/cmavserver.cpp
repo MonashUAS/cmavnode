@@ -30,7 +30,7 @@ void CmavServer::addHandlers()
         for(int i = 0; i < links->size(); i++)
         {
             // TODO: factor out the conversion of properties and options into json
-            link_info *info_ = &(links->at(i)->info);
+            LinkOptions *info_ = &(links->at(i)->info);
             std::shared_ptr<serial> serialpointer = std::dynamic_pointer_cast<serial>(links->at(i));
             std::shared_ptr<asyncsocket> udppointer = std::dynamic_pointer_cast<asyncsocket>(links->at(i));
             pt::ptree thislinkroot;

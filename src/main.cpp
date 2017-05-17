@@ -20,6 +20,7 @@
 #include "shell.h"
 #include "configfile.h"
 #include "cmavserver.h"
+#include "linkmanager.h"
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
@@ -36,8 +37,11 @@ bool exitMainLoop = false;
 int main(int argc, char** argv)
 {
     signal(SIGINT, exitGracefully);
-    // Keep track of all known links
+
+    //Key structures
     std::vector<std::shared_ptr<mlink> > links;
+    LinkManager link_manager(&links);
+
     // Default mode selections
     bool shellen = true;
     bool verbose = false;
@@ -74,6 +78,10 @@ int main(int argc, char** argv)
     // Start the main loop
     while (!exitMainLoop)
     {
+        if(link_manager.hasPending())
+        {
+            link_manager.operate();
+        }
         runMainLoop(&links, verbose);
     }
 

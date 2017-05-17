@@ -27,7 +27,7 @@ class asyncsocket: public mlink
 {
 public:
     //Construct specifying all
-    asyncsocket(udp_properties properties_, link_info info_);
+    asyncsocket(udp_properties properties_, LinkOptions info_);
 
     ~asyncsocket();
 

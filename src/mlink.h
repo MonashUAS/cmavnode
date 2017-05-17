@@ -55,8 +55,8 @@ struct queue_counter
     }
 };
 
-struct link_info
-{ // TODO: Rename this link options
+struct LinkOptions
+{
     // this struct represents link settings that can change at runtime
     // these settings work at the mlink layer
     std::string link_name;
@@ -72,7 +72,7 @@ struct link_info
 class mlink
 {
 public:
-    mlink(link_info info_);
+    mlink(LinkOptions info_);
     virtual ~mlink() {};
 
     bool up = true;
@@ -100,7 +100,7 @@ public:
     virtual void runWriteThread() {};
     virtual void runReadThread() {};
 
-    link_info info;
+    LinkOptions info;
 
     queue_counter out_counter;
     queue_counter in_counter;

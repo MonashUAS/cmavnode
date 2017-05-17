@@ -29,7 +29,7 @@ public:
     bool strValue(std::string const& section, std::string const& entry, std::string* value);
 };
 
-void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _info);
+void readLinkInfo(ConfigFile* _configFile, std::string thisSection, LinkOptions* _info);
 int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &links);
 
 enum UDP_type {UDP_TYPE_NONE, UDP_TYPE_FULLY_SPECIFIED, UDP_TYPE_SERVER, UDP_TYPE_CLIENT, UDP_TYPE_BROADCAST};
