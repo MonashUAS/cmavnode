@@ -14,10 +14,31 @@ LinkManager::~LinkManager()
 
 bool LinkManager::hasPending()
 {
+    if(links_to_add.read_available() != 0)
+        return true;
+
+    if(links_to_remove.read_available() != 0)
+        return true;
+
     return false;
 }
 
 void LinkManager::operate()
 {
     std::cout << "LinkManager Operating" << std::endl;
+}
+
+bool LinkManager::addSerial(LinkOptions options, serial_properties properties)
+{
+    std::cout << "LinkManager: Coming soon" << std::endl;
+}
+
+bool LinkManager::addUDP(LinkOptions options, udp_properties properties)
+{
+    std::cout << "LinkManager: Coming soon" << std::endl;
+}
+
+bool LinkManager::removeLink()
+{
+    std::cout << "LinkManager: Coming soon" << std::endl;
 }
