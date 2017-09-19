@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     else if (ret == -1)
         return 0; // Help option
 
-    CmavServer headlessServer(8000, &links);
+    CmavServer headlessServer(8000,link_manager, &links);
     if(start_with_configfile)
     {
         if(readConfigFile(filename, link_manager))

@@ -5,17 +5,19 @@
 #include "mlink.h"
 #include "serial.h"
 #include "asyncsocket.h"
+#include "linkmanager.h"
 
 #include <memory>
 #include <boost/thread.hpp>
 #define BOOST_SPIRIT_THREADSAFE
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/optional/optional.hpp>
 
 class CmavServer
 {
  public:
-    CmavServer(int serverport, std::vector<std::shared_ptr<mlink>> *links_arg);
+    CmavServer(int serverport, LinkManager &manager, std::vector<std::shared_ptr<mlink>> *links_arg);
     ~CmavServer();
 
     void addHandlers();
@@ -27,6 +29,8 @@ class CmavServer
 
     // This assumes that the links vector wont get deallocated while the http server is running... is this safe?
     std::vector<std::shared_ptr<mlink>> *links;
+
+    LinkManager *manager_;
 
 };
 
