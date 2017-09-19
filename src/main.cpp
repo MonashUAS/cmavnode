@@ -34,6 +34,8 @@ void exitGracefully(int a);
 
 bool exitMainLoop = false;
 
+bool start_with_configfile = false;
+
 int main(int argc, char** argv)
 {
     signal(SIGINT, exitGracefully);
@@ -48,6 +50,7 @@ int main(int argc, char** argv)
     int headlessport = -1;
 
     std::string filename;
+
     boost::program_options::options_description desc = add_program_options(filename, shellen, verbose, headlessport);
 
     int ret = try_user_options(argc, argv, desc);
@@ -57,7 +60,11 @@ int main(int argc, char** argv)
         return 0; // Help option
 
     CmavServer headlessServer(8000, &links);
-    ret = readConfigFile(filename, link_manager);
+    if(start_with_configfile)
+    {
+        if(readConfigFile(filename, link_manager))
+            return 1;
+    }
 
     if(link_manager.hasPending())
         link_manager.operate();
@@ -144,11 +151,9 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
     }
 
     // If no known option were given, return an error
-    if( !vm.count("socket") && !vm.count("serial") && !vm.count("file") )
+    if( vm.count("file") )
     {
-        std::cerr << "Program cannot be run without arguments." << std::endl;
-        std::cerr << desc << std::endl;
-        return 1; // Error in command line
+        start_with_configfile = true;
     }
     return 0; // No errors or help option detected
 
