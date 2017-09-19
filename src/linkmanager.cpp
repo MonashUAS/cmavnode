@@ -14,10 +14,10 @@ LinkManager::~LinkManager()
 
 bool LinkManager::hasPending()
 {
-    if(links_to_add.read_available() != 0)
+    if(q_links_to_add.read_available() != 0)
         return true;
 
-    if(links_to_remove.read_available() != 0)
+    if(q_links_to_remove.read_available() != 0)
         return true;
 
     return false;
@@ -26,13 +26,18 @@ bool LinkManager::hasPending()
 void LinkManager::operate()
 {
     std::cout << "LinkManager Operating" << std::endl;
+    std::shared_ptr<mlink> tmpptr;
+    while(q_links_to_add.pop(tmpptr))
+    {
+        links->push_back(tmpptr);
+    }
 }
 
 int LinkManager::addSerial(serial_properties properties, LinkOptions options)
 {
     std::cout << "LinkManager: Creating Serial Link" << std::endl;
     int link_id_ = newLinkID();
-    links->push_back(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
+    q_links_to_add.push(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
     return link_id_;
 }
 
@@ -40,7 +45,7 @@ int LinkManager::addUDP(udp_properties properties, LinkOptions options)
 {
     std::cout << "LinkManager: Creating UDP Link" << std::endl;
     int link_id_ = newLinkID();
-    links->push_back(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
+    q_links_to_add.push(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
     return link_id_;
 }
 

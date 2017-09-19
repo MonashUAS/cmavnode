@@ -58,11 +58,12 @@ int main(int argc, char** argv)
 
     CmavServer headlessServer(8000, &links);
     ret = readConfigFile(filename, link_manager);
+
+    if(link_manager.hasPending())
+        link_manager.operate();
+
     if (links.size() == 0)
-    {
-        std::cout << "No Valid Links found" << std::endl;
-        return 1; // Catch other errors
-    }
+        std::cout << "Warning: cmavnode started with no links" << std::endl;
 
     std::cout << "Command line arguments parsed succesfully." << std::endl;
     std::cout << "Links Initialized, routing loop starting." << std::endl;
