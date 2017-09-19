@@ -72,10 +72,12 @@ struct LinkOptions
 class mlink
 {
 public:
-    mlink(LinkOptions info_);
+    mlink(int link_id_, LinkOptions info_);
     virtual ~mlink() {};
 
     bool up = true;
+
+    int getLinkID();
 
     //Send or read mavlink messages
     void qAddOutgoing(mavlink_message_t msg);
@@ -152,6 +154,8 @@ protected:
 
     boost::thread read_thread;
     boost::thread write_thread;
+
+    int link_id;
 
     bool exitFlag = false;
 

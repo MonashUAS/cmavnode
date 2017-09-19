@@ -23,8 +23,9 @@ class LinkManager
     void operate();
 
     // These functions will be called from the JSON server
-    bool addSerial(LinkOptions options, serial_properties properties);
-    bool addUDP(LinkOptions options, udp_properties properties);
+    // They return the link id of the created link, or -1 if failed
+    int addSerial(serial_properties properties, LinkOptions options);
+    int addUDP(udp_properties properties, LinkOptions options);
 
     bool removeLink();
 
@@ -35,6 +36,10 @@ class LinkManager
     boost::lockfree::spsc_queue<std::string> links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
 
     std::vector<std::shared_ptr<mlink>> *links;
+
+    int newLinkID();
+
+    int link_id_counter = 0;
 };
 
 #endif

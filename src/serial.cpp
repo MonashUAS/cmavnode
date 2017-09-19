@@ -7,8 +7,8 @@
 
 #include "serial.h"
 
-serial::serial(serial_properties properties_, LinkOptions info_):
-    io_service_(), port_(io_service_), mlink(info_)
+serial::serial(serial_properties properties_, int link_id_, LinkOptions info_):
+    io_service_(), port_(io_service_), mlink(link_id_,info_)
 {
     properties = properties_;
     try

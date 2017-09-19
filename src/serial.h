@@ -26,7 +26,7 @@ class serial: public mlink
 {
 public:
     //construct and destruct
-    serial(serial_properties properties_, LinkOptions info_);
+    serial(serial_properties properties_,int link_id_, LinkOptions info_);
     ~serial();
 
     //override virtuals from mlink

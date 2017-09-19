@@ -57,7 +57,7 @@ int main(int argc, char** argv)
         return 0; // Help option
 
     CmavServer headlessServer(8000, &links);
-    ret = readConfigFile(filename, links);
+    ret = readConfigFile(filename, link_manager);
     if (links.size() == 0)
     {
         std::cout << "No Valid Links found" << std::endl;

@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &links)
+int readConfigFile(std::string &filename, LinkManager &manager)
 {
     ConfigFile _configFile = ConfigFile(filename);
 
@@ -111,7 +111,8 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
             properties_.port = serialport;
             properties_.baudrate = baud;
             properties_.flowcontrol = flowcontrol;
-            links.push_back(std::shared_ptr<mlink>(new  serial(properties_ ,_info)));
+
+            manager.addSerial(properties_, _info);
         }
         else if (udp_type_ != UDP_TYPE_NONE)
         {
@@ -135,7 +136,7 @@ int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &
                 else properties_.udp_type = 5;
                 break;
             }
-            links.push_back(std::shared_ptr<mlink>(new asyncsocket(properties_, _info)));
+            manager.addUDP(properties_, _info);
         }
     }
     return 0;

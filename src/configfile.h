@@ -10,6 +10,7 @@
 #include "mlink.h"
 #include "serial.h"
 #include "asyncsocket.h"
+#include "linkmanager.h"
 
 class ConfigFile
 {
@@ -30,7 +31,7 @@ public:
 };
 
 void readLinkInfo(ConfigFile* _configFile, std::string thisSection, LinkOptions* _info);
-int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &links);
+int readConfigFile(std::string &filename, LinkManager &manager);
 
 enum UDP_type {UDP_TYPE_NONE, UDP_TYPE_FULLY_SPECIFIED, UDP_TYPE_SERVER, UDP_TYPE_CLIENT, UDP_TYPE_BROADCAST};
 

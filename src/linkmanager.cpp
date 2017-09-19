@@ -28,17 +28,28 @@ void LinkManager::operate()
     std::cout << "LinkManager Operating" << std::endl;
 }
 
-bool LinkManager::addSerial(LinkOptions options, serial_properties properties)
+int LinkManager::addSerial(serial_properties properties, LinkOptions options)
 {
-    std::cout << "LinkManager: Coming soon" << std::endl;
+    std::cout << "LinkManager: Creating Serial Link" << std::endl;
+    int link_id_ = newLinkID();
+    links->push_back(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
+    return link_id_;
 }
 
-bool LinkManager::addUDP(LinkOptions options, udp_properties properties)
+int LinkManager::addUDP(udp_properties properties, LinkOptions options)
 {
-    std::cout << "LinkManager: Coming soon" << std::endl;
+    std::cout << "LinkManager: Creating UDP Link" << std::endl;
+    int link_id_ = newLinkID();
+    links->push_back(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
+    return link_id_;
 }
 
 bool LinkManager::removeLink()
 {
     std::cout << "LinkManager: Coming soon" << std::endl;
+}
+
+int LinkManager::newLinkID()
+{
+    return link_id_counter++;
 }

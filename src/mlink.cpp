@@ -14,13 +14,19 @@ std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 std::mutex mlink::recently_received_mutex;
 std::set<uint8_t> mlink::sysIDs_all_links;
 
-mlink::mlink(LinkOptions info_)
+mlink::mlink(int link_id_, LinkOptions info_)
 {
+    link_id = link_id_;
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
 
     //if we are simulating init the random generator
     if( info.sim_enable) srand(time(NULL));
+}
+
+int mlink::getLinkID()
+{
+    return link_id;
 }
 
 void mlink::qAddOutgoing(mavlink_message_t msg)
