@@ -27,12 +27,12 @@
 
 // Functions in this file
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport);
-int try_user_options(int argc, char** argv, boost::program_options::options_description desc);
+int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
 void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
-bool exitMainLoop = false;
+bool exit_main_loop = false;
 
 bool start_with_configfile = false;
 
@@ -45,27 +45,28 @@ int main(int argc, char** argv)
     LinkManager link_manager(&links);
 
     // Default mode selections
-    bool shellen = true;
+    bool shell_enable = true;
     bool verbose = false;
-    int headlessport = -1;
+    int server_port = -1;
 
     std::string filename;
 
-    boost::program_options::options_description desc = add_program_options(filename, shellen, verbose, headlessport);
+    boost::program_options::options_description desc = add_program_options(filename, shell_enable, verbose, server_port);
 
-    int ret = try_user_options(argc, argv, desc);
+    int ret = tryUserOptions(argc, argv, desc);
     if (ret == 1)
         return 1; // Error
     else if (ret == -1)
         return 0; // Help option
 
-    CmavServer headlessServer(8000,link_manager, &links);
+    CmavServer cmav_server(8000,link_manager, &links);
     if(start_with_configfile)
     {
         if(readConfigFile(filename, link_manager))
             return 1;
     }
 
+    // Create links config file has queued for creation
     if(link_manager.hasPending())
         link_manager.operate();
 
@@ -76,15 +77,15 @@ int main(int argc, char** argv)
     std::cout << "Links Initialized, routing loop starting." << std::endl;
 
     // Run the shell thread
-    boost::thread shell;
-    if (shellen)
+    boost::thread shell_thread;
+    if (shell_enable)
     {
-        shell = boost::thread(runShell, boost::ref(exitMainLoop), boost::ref(links));
+        shell_thread = boost::thread(runShell, boost::ref(exit_main_loop), boost::ref(links));
         // The boost::thread constructor implicitly binds runShell to &exitMainLoop and &links
     }
 
     // Start the main loop
-    while (!exitMainLoop)
+    while (!exit_main_loop)
     {
         if(link_manager.hasPending())
         {
@@ -94,8 +95,8 @@ int main(int argc, char** argv)
     }
 
     // Once the main loop is done, rejoin the shell thread
-    if (shellen)
-        shell.join();
+    if (shell_enable)
+        shell_thread.join();
 
     // Report successful exit from main()
     std::cout << "Links deallocated, stack unwound, exiting." << std::endl;
@@ -114,7 +115,7 @@ boost::program_options::options_description add_program_options(std::string &fil
     return desc;
 }
 
-int try_user_options(int argc, char** argv, boost::program_options::options_description desc)
+int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc)
 {
     // Respond to the initial input (if any) provided by the user
     boost::program_options::variables_map vm;
@@ -159,7 +160,7 @@ int try_user_options(int argc, char** argv, boost::program_options::options_desc
 
 }
 
-bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
+bool shouldForwardMessage(mavlink_message_t &msg, std::shared_ptr<mlink> *incoming_link, std::shared_ptr<mlink> *outgoing_link)
 {
 
     // First check for reasons to drop the packet
@@ -195,26 +196,26 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
     }
 
     //Find out if message is targeted
-    int16_t sysIDmsg = -1;
-    int16_t compIDmsg = -1;
-    getTargets(&msg, sysIDmsg, compIDmsg);
+    int16_t sys_id_msg = -1;
+    int16_t comp_id_msg = -1;
+    getTargets(&msg, sys_id_msg, comp_id_msg);
 
     //If it is broadcast, forward
-    if (sysIDmsg == -1)
+    if (sys_id_msg == -1)
     {
         return true;
     }
-    if (compIDmsg == -1)
+    if (comp_id_msg == -1)
     {
         return true;
     }
-    if (sysIDmsg == 0)
+    if (sys_id_msg == 0)
     {
         return true;
     }
 
     // packet is targeted, if the target is on this link send it
-    if ((*outgoing_link)->seenSysID(sysIDmsg))
+    if ((*outgoing_link)->seenSysID(sys_id_msg))
     {
         return true;
     }
@@ -242,9 +243,9 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
         {
             should_sleep = false;
             // Determine the correct target system ID for this message
-            int16_t sysIDmsg = -1;
-            int16_t compIDmsg = -1;
-            getTargets(&msg, sysIDmsg, compIDmsg);
+            int16_t sys_id_msg = -1;
+            int16_t comp_id_msg = -1;
+            getTargets(&msg, sys_id_msg, comp_id_msg);
 
 
             // Iterate through each link to send to the correct target
@@ -252,7 +253,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             {
                 // mavlink routing.  See comment in MAVLink_routing.cpp
                 // for logic
-                if (!should_forward_message(msg, &(*incoming_link), &(*outgoing_link)))
+                if (!shouldForwardMessage(msg, &(*incoming_link), &(*outgoing_link)))
                 {
                     continue;
                 }
@@ -267,7 +268,7 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
                 {
                     std::cout << "Packet dropped from sysID: " << (int)msg.sysid
                               << " msgID: " << (int)msg.msgid
-                              << " target system: " << (int)sysIDmsg
+                              << " target system: " << (int)sys_id_msg
                               << " link name: " << (*incoming_link)->info.link_name << std::endl;
                 }
             }
@@ -301,5 +302,5 @@ void exitGracefully(int a)
 {
     std::cout << "Exit code " << a << std::endl;
     std::cout << "SIGINT caught, deconstructing links and exiting" << std::endl;
-    exitMainLoop = true;
+    exit_main_loop = true;
 }
