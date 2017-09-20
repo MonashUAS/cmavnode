@@ -149,18 +149,14 @@ void CmavServer::addHandlers()
         }
     };
 
-    sServer->resource["^/links/delete$"]["POST"] = [this](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
+    sServer->resource["^/links/([0-9]+)$"]["DELETE"] = [this](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
         try {
-            pt::ptree pt;
-            read_json(request->content, pt);
+            std::string number = request->path_match[1];
 
-            auto name = pt.get<std::string>("linkname");
-
-            std::cout << "Got a link delete post: " << name;
+            bool success = manager_->removeLink(std::stoi(number));
 
             *response << "HTTP/1.1 200 OK\r\n"
-            << "Content-Length: " << name.length() << "\r\n\r\n"
-            << name;
+            << "Content-Length: " << 0 << "\r\n\r\n";
         }
         catch(const std::exception &e) {
             *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: " << strlen(e.what()) << "\r\n\r\n"

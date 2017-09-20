@@ -31,6 +31,19 @@ void LinkManager::operate()
     {
         links->push_back(tmpptr);
     }
+
+    int tmp_link_id;
+    while(q_links_to_remove.pop(tmp_link_id))
+    {
+        for(auto iter = links->begin(); iter < links->end(); iter++)
+        {
+            if((*iter)->getLinkID() == tmp_link_id)
+            {
+                links->erase(iter);
+                break;
+            }
+        }
+    }
 }
 
 int LinkManager::addSerial(serial_properties properties, LinkOptions options)
@@ -49,9 +62,10 @@ int LinkManager::addUDP(udp_properties properties, LinkOptions options)
     return link_id_;
 }
 
-bool LinkManager::removeLink()
+bool LinkManager::removeLink(int link_id)
 {
-    std::cout << "LinkManager: Coming soon" << std::endl;
+    std::cout << "LinkManager: Deleting Link " << link_id << std::endl;
+    q_links_to_remove.push(link_id);
 }
 
 int LinkManager::newLinkID()

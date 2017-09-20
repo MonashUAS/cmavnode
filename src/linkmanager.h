@@ -27,13 +27,13 @@ class LinkManager
     int addSerial(serial_properties properties, LinkOptions options);
     int addUDP(udp_properties properties, LinkOptions options);
 
-    bool removeLink();
+    bool removeLink(int link_id);
 
     bool editLink();
 
   private:
     boost::lockfree::spsc_queue<std::shared_ptr<mlink>> q_links_to_add {Q_LINKS_TO_ADD_SIZE};
-    boost::lockfree::spsc_queue<std::string> q_links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
+    boost::lockfree::spsc_queue<int> q_links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
 
     std::vector<std::shared_ptr<mlink>> *links;
 
