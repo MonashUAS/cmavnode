@@ -28,7 +28,7 @@ void CmavServer::addHandlers()
         pt::ptree jsonroot;
         pt::ptree linksroot;
 
-        for(int i = 0; i < links->size(); i++)
+        for(unsigned i = 0; i < links->size(); i++)
         {
             // TODO: factor out the conversion of properties and options into json
             int link_id_ = (links->at(i))->getLinkID();
@@ -154,7 +154,7 @@ void CmavServer::addHandlers()
             std::cout << "delete req" << std::endl;
             std::string number = request->path_match[1];
 
-            bool success = manager_->removeLink(std::stoi(number));
+            manager_->removeLink(std::stoi(number));
 
             *response << "HTTP/1.1 204 OK\r\n"
             << "Access-Control-Allow-Origin: http://127.0.0.1\r\n\r\n";
