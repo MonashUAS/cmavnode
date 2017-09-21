@@ -73,7 +73,7 @@ void CmavServer::addHandlers()
         pt::json_parser::write_json(ss,jsonroot);
 
         // I think using tellp here is dangerous but i'm not sure why... reconsider
-        *response << "HTTP/1.1 200 OK\r\nContent-Length:" << ss.tellp() << "\r\n\r\n" << ss.str();
+        *response << "HTTP/1.1 200 OK\r\n" << "Access-Control-Allow-Origin: http://127.0.0.1\r\n" << "Content-Length:" << ss.tellp() << "\r\n\r\n" << ss.str();
     };
 
     sServer->resource["^/links$"]["POST"] = [this](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
@@ -151,17 +151,25 @@ void CmavServer::addHandlers()
 
     sServer->resource["^/links/([0-9]+)$"]["DELETE"] = [this](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
         try {
+            std::cout << "delete req" << std::endl;
             std::string number = request->path_match[1];
 
             bool success = manager_->removeLink(std::stoi(number));
 
-            *response << "HTTP/1.1 200 OK\r\n"
-            << "Content-Length: " << 0 << "\r\n\r\n";
+            *response << "HTTP/1.1 204 OK\r\n"
+            << "Access-Control-Allow-Origin: http://127.0.0.1\r\n\r\n";
         }
         catch(const std::exception &e) {
             *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: " << strlen(e.what()) << "\r\n\r\n"
             << e.what();
         }
+    };
+    sServer->default_resource["OPTIONS"] = [this](std::shared_ptr<HttpServer::Response> response, std::shared_ptr<HttpServer::Request> request) {
+        *response << "HTTP/1.1 200 OK\r\n"
+        << "Access-Control-Allow-Origin: http://127.0.0.1\r\n"
+        << "Access-Control-Allow-Methods: DELETE\r\n"
+        << "Content-Length: " << 0 << "\r\n\r\n";
+
     };
 }
 
