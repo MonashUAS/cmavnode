@@ -59,7 +59,10 @@ int main(int argc, char** argv)
     else if (ret == -1)
         return 0; // Help option
 
-    CmavServer cmav_server(8000,link_manager, &links);
+    std::shared_ptr<CmavServer> cmav_server;
+    if(server_port != -1)
+        cmav_server = std::make_shared<CmavServer>(server_port,link_manager);
+
     if(start_with_configfile)
     {
         if(readConfigFile(filename, link_manager))

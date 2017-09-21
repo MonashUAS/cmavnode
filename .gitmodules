@@ -1,6 +1,6 @@
 [submodule "include/mavlink2"]
 	path = include/mavlink2
 	url = https://github.com/mavlink/c_library_v2.git
-[submodule "include/simple_server"]
-	path = include/simple_server
-	url = https://github.com/eidheim/Simple-Web-Server
+[submodule "pistache"]
+	path = include/pistache
+	url = https://github.com/monashuas/pistache
