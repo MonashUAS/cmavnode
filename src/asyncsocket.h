@@ -14,7 +14,8 @@
 
 #include "mlink.h"
 
-struct udp_properties{
+struct udp_properties
+{
     std::string host; //functions as bcastaddress if broadcast
     int hostport = -1; //functions as bcastport if broadcast
     int bindport = -1;

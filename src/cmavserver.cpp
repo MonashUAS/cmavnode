@@ -1,6 +1,7 @@
 #include "cmavserver.h"
 
 namespace pt = boost::property_tree;
+using namespace Pistache;
 
 CmavServer::CmavServer(int serverport, LinkManager &manager)
 {
@@ -25,7 +26,8 @@ CmavServer::~CmavServer()
 }
 
 
-void CmavServer::serverThread(){
+void CmavServer::serverThread()
+{
     std::cout << "HTTP Server thread started" << std::endl;
     start();
 }
@@ -40,7 +42,7 @@ void CmavServer::setupRoutes()
 void CmavServer::initServer()
 {
     auto opts = Http::Endpoint::options()
-        .threads(1);
+                .threads(1);
     endpoint_->init(opts);
 
     setupRoutes();
@@ -60,7 +62,8 @@ void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter res
 void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter response)
 {
     int value = 0;
-    if (request.hasParam(":value")) {
+    if (request.hasParam(":value"))
+    {
         value = request.param(":value").as<int>();
     }
     std::stringstream ss;

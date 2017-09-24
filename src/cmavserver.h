@@ -8,7 +8,6 @@
 
 #include <memory>
 #include <boost/thread.hpp>
-#define BOOST_SPIRIT_THREADSAFE
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional/optional.hpp>
@@ -17,11 +16,9 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-using namespace Pistache;
-
 class CmavServer
 {
- public:
+public:
     CmavServer(int serverport, LinkManager &manager);
     ~CmavServer();
 
@@ -32,13 +29,13 @@ class CmavServer
     void initServer();
     void start();
 
-    void getLinks(const Rest::Request& request, Http::ResponseWriter response);
-    void getLinkById(const Rest::Request& request, Http::ResponseWriter response);
+    void getLinks(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void getLinkById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
- private:
+private:
 
-    std::shared_ptr<Http::Endpoint> endpoint_;
-    Rest::Router router_;
+    std::shared_ptr<Pistache::Http::Endpoint> endpoint_;
+    Pistache::Rest::Router router_;
     boost::thread server_thread;
 
     // This assumes that the links vector wont get deallocated while the http server is running... is this safe?

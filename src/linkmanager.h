@@ -12,7 +12,7 @@
 
 class LinkManager
 {
- public:
+public:
     LinkManager(std::vector<std::shared_ptr<mlink>> *links_);
     ~LinkManager();
 
@@ -31,7 +31,7 @@ class LinkManager
 
     bool editLink();
 
-  private:
+private:
     boost::lockfree::spsc_queue<std::shared_ptr<mlink>> q_links_to_add {Q_LINKS_TO_ADD_SIZE};
     boost::lockfree::spsc_queue<int> q_links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
 

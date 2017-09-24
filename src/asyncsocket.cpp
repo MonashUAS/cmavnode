@@ -13,7 +13,8 @@ asyncsocket::asyncsocket(udp_properties properties_,int link_id_, LinkOptions in
 {
     properties = properties_;
     // Making a udp link is complicated, call the appropriate helper
-    switch(properties.udp_type){
+    switch(properties.udp_type)
+    {
     case 0:
         createFullyDefined();
         break;

@@ -32,3 +32,4 @@ build/
 
 # astyle leftovers
 *.orig
+/compile_commands.json
