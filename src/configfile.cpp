@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-int readConfigFile(std::string &filename, LinkManager &manager)
+int readConfigFile(std::string &filename, std::shared_ptr<LinkManager> manager)
 {
     ConfigFile _configFile = ConfigFile(filename);
 
@@ -112,7 +112,7 @@ int readConfigFile(std::string &filename, LinkManager &manager)
             properties_.baudrate = baud;
             properties_.flowcontrol = flowcontrol;
 
-            manager.addSerial(properties_, _info);
+            manager->addSerial(properties_, _info);
         }
         else if (udp_type_ != UDP_TYPE_NONE)
         {
@@ -136,7 +136,7 @@ int readConfigFile(std::string &filename, LinkManager &manager)
                 else properties_.udp_type = 5;
                 break;
             }
-            manager.addUDP(properties_, _info);
+            manager->addUDP(properties_, _info);
         }
     }
     return 0;

@@ -42,8 +42,9 @@ int main(int argc, char** argv)
 
     //Key structures
     std::vector<std::shared_ptr<mlink> > links;
-    LinkManager link_manager(&links);
-
+    auto link_manager = std::make_shared<LinkManager>(&links);
+    auto json_api = std::make_shared<JsonApi>(link_manager);
+    
     // Default mode selections
     bool shell_enable = true;
     bool verbose = false;
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
 
     std::shared_ptr<CmavServer> cmav_server;
     if(server_port != -1)
-        cmav_server = std::make_shared<CmavServer>(server_port,link_manager);
+        cmav_server = std::make_shared<CmavServer>( server_port, json_api );
 
     if(start_with_configfile)
     {
@@ -70,8 +71,8 @@ int main(int argc, char** argv)
     }
 
     // Create links config file has queued for creation
-    if(link_manager.hasPending())
-        link_manager.operate();
+    if(link_manager->hasPending())
+        link_manager->operate();
 
     if (links.size() == 0)
         std::cout << "Warning: cmavnode started with no links" << std::endl;
@@ -90,9 +91,9 @@ int main(int argc, char** argv)
     // Start the main loop
     while (!exit_main_loop)
     {
-        if(link_manager.hasPending())
+        if(link_manager->hasPending())
         {
-            link_manager.operate();
+            link_manager->operate();
         }
         runMainLoop(&links, verbose);
     }

@@ -3,10 +3,9 @@
 namespace pt = boost::property_tree;
 using namespace Pistache;
 
-CmavServer::CmavServer(int serverport, LinkManager &manager)
+CmavServer::CmavServer(int serverport, std::shared_ptr<JsonApi> json_api)
 {
-    // store a pointer to the links structure
-    manager_ = &manager;
+    json_api_ = json_api;
 
     Address addr(Ipv4::any(), serverport);
 

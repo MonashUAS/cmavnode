@@ -31,7 +31,7 @@ public:
 };
 
 void readLinkInfo(ConfigFile* _configFile, std::string thisSection, LinkOptions* _info);
-int readConfigFile(std::string &filename, LinkManager &manager);
+int readConfigFile(std::string &filename, std::shared_ptr<LinkManager> manager);
 
 enum UDP_type {UDP_TYPE_NONE, UDP_TYPE_FULLY_SPECIFIED, UDP_TYPE_SERVER, UDP_TYPE_CLIENT, UDP_TYPE_BROADCAST};
 

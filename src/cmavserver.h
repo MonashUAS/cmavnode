@@ -1,11 +1,6 @@
 #ifndef CMAVSERVER_H
 #define CMAVSERVER_H
 
-#include "mlink.h"
-#include "serial.h"
-#include "asyncsocket.h"
-#include "linkmanager.h"
-
 #include <memory>
 #include <boost/thread.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -16,10 +11,16 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
+#include "mlink.h"
+#include "serial.h"
+#include "asyncsocket.h"
+#include "linkmanager.h"
+#include "json_api.h"
+
 class CmavServer
 {
 public:
-    CmavServer(int serverport, LinkManager &manager);
+    CmavServer(int serverport, std::shared_ptr<JsonApi> json_api);
     ~CmavServer();
 
     void addHandlers();
@@ -41,7 +42,7 @@ private:
     // This assumes that the links vector wont get deallocated while the http server is running... is this safe?
     std::vector<std::shared_ptr<mlink>> *links;
 
-    LinkManager *manager_;
+    std::shared_ptr<JsonApi> json_api_;
 
 };
 
