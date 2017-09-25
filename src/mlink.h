@@ -69,6 +69,26 @@ struct LinkOptions
     bool SiK_radio = false;
 };
 
+struct link_quality_stats
+{
+    int local_rssi = 0;
+    int remote_rssi = 0;
+    int tx_buffer = 0;
+    int local_noise = 0;
+    int remote_noise = 0;
+    int rx_errors = 0;
+    int corrected_packets = 0;
+    boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
+    long link_delay = 0;
+};
+
+struct MlinkCached
+{
+    int link_id_;
+    LinkOptions link_options_;
+    link_quality_stats link_quality_;
+};
+
 class mlink
 {
 public:
@@ -112,18 +132,6 @@ public:
     long totalPacketSent = 0;
 
     // Track link quality for the link
-    struct link_quality_stats
-    {
-        int local_rssi = 0;
-        int remote_rssi = 0;
-        int tx_buffer = 0;
-        int local_noise = 0;
-        int remote_noise = 0;
-        int rx_errors = 0;
-        int corrected_packets = 0;
-        boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
-        long link_delay = 0;
-    };
     link_quality_stats link_quality;
 
     struct packet_stats

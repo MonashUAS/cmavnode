@@ -24,6 +24,10 @@ struct udp_properties
     int udp_type = 0;
 };
 
+struct AsyncSocketCached : MlinkCached
+{
+    udp_properties properties_;
+};
 class asyncsocket: public mlink
 {
 public:

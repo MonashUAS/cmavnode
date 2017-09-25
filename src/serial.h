@@ -22,6 +22,11 @@ struct serial_properties
     bool flowcontrol = false;
 };
 
+struct SerialCached : MlinkCached
+{
+    serial_properties properties_;
+};
+
 class serial: public mlink
 {
 public:
