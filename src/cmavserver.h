@@ -33,6 +33,8 @@ public:
     void getLinks(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void getLinkById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
+    void addLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+
 private:
 
     std::shared_ptr<Pistache::Http::Endpoint> endpoint_;

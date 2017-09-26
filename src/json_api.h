@@ -24,7 +24,7 @@ public:
     std::string getLinks();
 
     void deleteLink(int link_id);
-    void addLink(int link_id);
+    void addLink(std::string json);
 
 private:
     std::shared_ptr<LinkManager> manager_;

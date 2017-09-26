@@ -36,6 +36,9 @@ void CmavServer::setupRoutes()
     using namespace Rest;
     Routes::Get(router_, "/links", Routes::bind(&CmavServer::getLinks, this));
     Routes::Get(router_, "/links/:value", Routes::bind(&CmavServer::getLinkById, this));
+
+
+    Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
 }
 
 void CmavServer::initServer()
@@ -51,6 +54,15 @@ void CmavServer::start()
 {
     endpoint_->setHandler(router_.handler());
     endpoint_->serveThreaded();
+}
+
+void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
+{
+    json_api_->addLink(request.body());
+
+    response.headers()
+        .add<Http::Header::Location>("http://127.0.0.1:8000/links/1");
+    response.send(Http::Code::Created);
 }
 
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
