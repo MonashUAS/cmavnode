@@ -19,6 +19,7 @@ bool LinkManager::hasPending()
 {
     if(shouldUpdateCache())
         return true;
+
     if(q_links_to_add.read_available() != 0)
         return true;
 
@@ -39,6 +40,36 @@ bool LinkManager::shouldUpdateCache()
         return true;
     }
     return false;
+}
+
+void LinkManager::updateCache()
+{
+    links_cached_.clear();
+
+    for(auto iter = links->begin(); iter < links->end(); iter++)
+    {
+        auto serialcheck = std::dynamic_pointer_cast<serial>(*iter);
+        auto udpcheck = std::dynamic_pointer_cast<asyncsocket>(*iter);
+
+        if(serialcheck)
+        {
+            std::shared_ptr<SerialCached> serial_cached = std::shared_ptr<SerialCached>(new SerialCached);
+            serial_cached->properties_ = serialcheck->properties;
+            serial_cached->link_id_ = serialcheck->getLinkID();
+            serial_cached->link_options_ = serialcheck->info;
+            serial_cached->link_quality_ = serialcheck->link_quality;
+            links_cached_.push_back(std::dynamic_pointer_cast<MlinkCached>(serial_cached));
+        }
+        else if(udpcheck)
+        {
+            std::shared_ptr<AsyncSocketCached> udp_cached = std::shared_ptr<AsyncSocketCached>(new AsyncSocketCached);
+            udp_cached->properties_ = udpcheck->properties;
+            udp_cached->link_id_ = udpcheck->getLinkID();
+            udp_cached->link_options_ = udpcheck->info;
+            udp_cached->link_quality_ = udpcheck->link_quality;
+            links_cached_.push_back(std::dynamic_pointer_cast<MlinkCached>(udp_cached));
+        }
+    }
 }
 
 void LinkManager::operate()
@@ -62,6 +93,8 @@ void LinkManager::operate()
             }
         }
     }
+
+    updateCache();
 }
 
 int LinkManager::addSerial(serial_properties properties, LinkOptions options)

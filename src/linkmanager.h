@@ -24,6 +24,8 @@ public:
 
     bool shouldUpdateCache();
 
+    void updateCache();
+
     // Make any necessary changes to the links vector
     void operate();
 
