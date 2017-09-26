@@ -40,25 +40,21 @@ int main(int argc, char** argv)
 {
     signal(SIGINT, exitGracefully);
 
-    //Key structures
-    std::vector<std::shared_ptr<mlink> > links;
-    auto link_manager = std::make_shared<LinkManager>(&links);
-    auto json_api = std::make_shared<JsonApi>(link_manager);
-    
-    // Default mode selections
+    // variables to populate from arguments
     bool shell_enable = true;
     bool verbose = false;
     int server_port = -1;
-
     std::string filename;
 
     boost::program_options::options_description desc = add_program_options(filename, shell_enable, verbose, server_port);
 
-    int ret = tryUserOptions(argc, argv, desc);
-    if (ret == 1)
-        return 1; // Error
-    else if (ret == -1)
-        return 0; // Help option
+    if(tryUserOptions(argc, argv, desc) != 0)
+        return 0;
+
+    // Allocate key structures
+    std::vector<std::shared_ptr<mlink> > links;
+    auto link_manager = std::make_shared<LinkManager>(&links);
+    auto json_api = std::make_shared<JsonApi>(link_manager);
 
     std::shared_ptr<CmavServer> cmav_server;
     if(server_port != -1)
