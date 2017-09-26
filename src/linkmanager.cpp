@@ -5,6 +5,9 @@ LinkManager::LinkManager(std::vector<std::shared_ptr<mlink>> *links_)
     // store the pointer to the links struct
     links = links_;
     std::cout << "LinkManager constructing" << std::endl;
+
+    // Initialize the cache update clock
+    last_cache_update_ = std::chrono::high_resolution_clock::now();
 }
 
 LinkManager::~LinkManager()
@@ -14,12 +17,27 @@ LinkManager::~LinkManager()
 
 bool LinkManager::hasPending()
 {
+    if(shouldUpdateCache())
+        return true;
     if(q_links_to_add.read_available() != 0)
         return true;
 
     if(q_links_to_remove.read_available() != 0)
         return true;
 
+    return false;
+}
+
+bool LinkManager::shouldUpdateCache()
+{
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - last_cache_update_);
+    if(int_ms.count() > CACHE_UPDATE_MS)
+    {
+        std::cout << int_ms.count() << std::endl;
+        last_cache_update_ = t1;
+        return true;
+    }
     return false;
 }
 

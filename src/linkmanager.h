@@ -2,6 +2,7 @@
 #define LINKMANAGER_H
 
 #include <boost/lockfree/spsc_queue.hpp>
+#include <chrono>
 
 #include "mlink.h"
 #include "asyncsocket.h"
@@ -9,6 +10,8 @@
 
 #define Q_LINKS_TO_ADD_SIZE 10
 #define Q_LINKS_TO_REMOVE_SIZE 10
+
+#define CACHE_UPDATE_MS 50
 
 class LinkManager
 {
@@ -18,6 +21,8 @@ public:
 
     // check if LinkManager needs to do anything with the vector
     bool hasPending();
+
+    bool shouldUpdateCache();
 
     // Make any necessary changes to the links vector
     void operate();
@@ -36,6 +41,10 @@ private:
     boost::lockfree::spsc_queue<int> q_links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
 
     std::vector<std::shared_ptr<mlink>> *links;
+
+    std::vector<std::shared_ptr<MlinkCached>> links_cached_;
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> last_cache_update_;
 
     int newLinkID();
 
