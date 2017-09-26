@@ -55,7 +55,8 @@ void CmavServer::start()
 
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
 {
-    response.send(Http::Code::Ok, std::string("seems to work"));
+    std::string linksstring = json_api_->getLinks();
+    response.send(Http::Code::Ok, linksstring);
 }
 
 void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter response)

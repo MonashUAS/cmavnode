@@ -35,7 +35,6 @@ bool LinkManager::shouldUpdateCache()
     auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - last_cache_update_);
     if(int_ms.count() > CACHE_UPDATE_MS)
     {
-        std::cout << int_ms.count() << std::endl;
         last_cache_update_ = t1;
         return true;
     }
@@ -44,6 +43,9 @@ bool LinkManager::shouldUpdateCache()
 
 void LinkManager::updateCache()
 {
+    // obtain lock on links_cached_
+    std::lock_guard<std::mutex> lock(cache_access_lock);
+
     links_cached_.clear();
 
     for(auto iter = links->begin(); iter < links->end(); iter++)
@@ -72,9 +74,15 @@ void LinkManager::updateCache()
     }
 }
 
+std::vector<std::shared_ptr<MlinkCached>> LinkManager::getLinks()
+{
+    // obtain threadsafe copy of pointers
+    std::lock_guard<std::mutex> lock(cache_access_lock);
+    return links_cached_;
+}
+
 void LinkManager::operate()
 {
-    std::cout << "LinkManager Operating" << std::endl;
     std::shared_ptr<mlink> tmpptr;
     while(q_links_to_add.pop(tmpptr))
     {

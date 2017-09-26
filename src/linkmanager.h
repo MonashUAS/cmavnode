@@ -3,6 +3,7 @@
 
 #include <boost/lockfree/spsc_queue.hpp>
 #include <chrono>
+#include <mutex>
 
 #include "mlink.h"
 #include "asyncsocket.h"
@@ -29,6 +30,9 @@ public:
     // Make any necessary changes to the links vector
     void operate();
 
+    std::vector<std::shared_ptr<MlinkCached>> getLinks();
+    std::shared_ptr<MlinkCached> getLink(int link_id);
+
     // These functions will be called from the JSON server
     // They return the link id of the created link, or -1 if failed
     int addSerial(serial_properties properties, LinkOptions options);
@@ -44,9 +48,12 @@ private:
 
     std::vector<std::shared_ptr<mlink>> *links;
 
+    // cache_access_lock protects links_cached_
+    std::mutex cache_access_lock;
     std::vector<std::shared_ptr<MlinkCached>> links_cached_;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> last_cache_update_;
+
 
     int newLinkID();
 

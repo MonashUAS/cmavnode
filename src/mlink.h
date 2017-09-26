@@ -84,6 +84,7 @@ struct link_quality_stats
 
 struct MlinkCached
 {
+    virtual ~MlinkCached() {}
     int link_id_;
     LinkOptions link_options_;
     link_quality_stats link_quality_;
