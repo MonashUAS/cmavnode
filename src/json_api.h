@@ -23,7 +23,7 @@ public:
 
     std::string getLinks();
 
-    void deleteLink(int link_id);
+    bool removeLink(int link_id);
     void addLink(std::string json);
 
 private:

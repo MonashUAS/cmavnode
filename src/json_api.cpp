@@ -72,9 +72,10 @@ std::string JsonApi::getLinks()
     return ss.str();
 }
 
-void JsonApi::deleteLink(int link_id)
+bool JsonApi::removeLink(int link_id)
 {
-    
+    // Nothing to do at the json layer, just pass through
+    return manager_->removeLink(link_id);
 }
 
 void JsonApi::addLink(std::string json)

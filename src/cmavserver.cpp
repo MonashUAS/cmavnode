@@ -39,6 +39,8 @@ void CmavServer::setupRoutes()
 
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
+
+    Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
 }
 
 void CmavServer::initServer()
@@ -60,9 +62,33 @@ void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter resp
 {
     json_api_->addLink(request.body());
 
-    response.headers()
-        .add<Http::Header::Location>("http://127.0.0.1:8000/links/1");
+    // response.headers()
+    //    .add<Http::Header::Location>("http://127.0.0.1:8000/links/1");
     response.send(Http::Code::Created);
+}
+
+void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter response)
+{
+    int value = 0;
+    if (request.hasParam(":value"))
+    {
+        value = request.param(":value").as<int>();
+
+        if(json_api_->removeLink(value))
+        {
+            std::cout << "Link Deleted" << std::endl;
+            response.send(Http::Code::No_Content);
+        }
+        else
+        {
+            std::cout << "Could not delete link" << std::endl;
+            response.send(Http::Code::Not_Found);
+        }
+    }
+    else
+    {
+        response.send(Http::Code::Bad_Request);
+    }
 }
 
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
