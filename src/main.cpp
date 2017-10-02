@@ -46,6 +46,9 @@ int main(int argc, char** argv)
     int server_port = -1;
     std::string filename;
 
+    // lock to protect the links vector
+    std::mutex links_access_lock;
+
     boost::program_options::options_description desc = add_program_options(filename, shell_enable, verbose, server_port);
 
     if(tryUserOptions(argc, argv, desc) != 0)
@@ -53,7 +56,7 @@ int main(int argc, char** argv)
 
     // Allocate key structures
     std::vector<std::shared_ptr<mlink> > links;
-    auto link_manager = std::make_shared<LinkManager>(&links);
+    auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
     auto json_api = std::make_shared<JsonApi>(link_manager);
 
     std::shared_ptr<CmavServer> cmav_server;
@@ -65,10 +68,6 @@ int main(int argc, char** argv)
         if(readConfigFile(filename, link_manager))
             return 1;
     }
-
-    // Create links config file has queued for creation
-    if(link_manager->hasPending())
-        link_manager->operate();
 
     if (links.size() == 0)
         std::cout << "Warning: cmavnode started with no links" << std::endl;
@@ -87,10 +86,8 @@ int main(int argc, char** argv)
     // Start the main loop
     while (!exit_main_loop)
     {
-        if(link_manager->hasPending())
-        {
-            link_manager->operate();
-        }
+        std::lock_guard<std::mutex> lock(links_access_lock);
+        link_manager->updateCache();
         runMainLoop(&links, verbose);
     }
 

@@ -17,18 +17,12 @@
 class LinkManager
 {
 public:
-    LinkManager(std::vector<std::shared_ptr<mlink>> *links_);
+    LinkManager(std::vector<std::shared_ptr<mlink>> *links, std::mutex &links_access_lock);
     ~LinkManager();
-
-    // check if LinkManager needs to do anything with the vector
-    bool hasPending();
 
     bool shouldUpdateCache();
 
     void updateCache();
-
-    // Make any necessary changes to the links vector
-    void operate();
 
     std::vector<std::shared_ptr<MlinkCached>> getLinks();
     std::shared_ptr<MlinkCached> getLink(int link_id);
@@ -49,7 +43,8 @@ private:
     std::vector<std::shared_ptr<mlink>> *links;
 
     // cache_access_lock protects links_cached_
-    std::mutex cache_access_lock;
+    std::mutex cache_access_lock_;
+    std::mutex &links_access_lock_;
     std::vector<std::shared_ptr<MlinkCached>> links_cached_;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> last_cache_update_;

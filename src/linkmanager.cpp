@@ -1,6 +1,7 @@
 #include "linkmanager.h"
 
-LinkManager::LinkManager(std::vector<std::shared_ptr<mlink>> *links_)
+LinkManager::LinkManager(std::vector<std::shared_ptr<mlink>> *links_, std::mutex &links_access_lock)
+    :links_access_lock_(links_access_lock)
 {
     // store the pointer to the links struct
     links = links_;
@@ -13,20 +14,6 @@ LinkManager::LinkManager(std::vector<std::shared_ptr<mlink>> *links_)
 LinkManager::~LinkManager()
 {
     std::cout << "LinkManager Destructing" << std::endl;
-}
-
-bool LinkManager::hasPending()
-{
-    if(shouldUpdateCache())
-        return true;
-
-    if(q_links_to_add.read_available() != 0)
-        return true;
-
-    if(q_links_to_remove.read_available() != 0)
-        return true;
-
-    return false;
 }
 
 bool LinkManager::shouldUpdateCache()
@@ -43,8 +30,11 @@ bool LinkManager::shouldUpdateCache()
 
 void LinkManager::updateCache()
 {
+    if(!shouldUpdateCache())
+        return;
+
     // obtain lock on links_cached_
-    std::lock_guard<std::mutex> lock(cache_access_lock);
+    std::lock_guard<std::mutex> lock(cache_access_lock_);
 
     links_cached_.clear();
 
@@ -77,54 +67,48 @@ void LinkManager::updateCache()
 std::vector<std::shared_ptr<MlinkCached>> LinkManager::getLinks()
 {
     // obtain threadsafe copy of pointers
-    std::lock_guard<std::mutex> lock(cache_access_lock);
+    std::lock_guard<std::mutex> lock(cache_access_lock_);
     return links_cached_;
-}
-
-void LinkManager::operate()
-{
-    std::shared_ptr<mlink> tmpptr;
-    while(q_links_to_add.pop(tmpptr))
-    {
-        links->push_back(tmpptr);
-    }
-
-    int tmp_link_id;
-    while(q_links_to_remove.pop(tmp_link_id))
-    {
-        for(auto iter = links->begin(); iter < links->end(); iter++)
-        {
-            if((*iter)->getLinkID() == tmp_link_id)
-            {
-                links->erase(iter);
-                break;
-            }
-        }
-    }
-
-    updateCache();
 }
 
 int LinkManager::addSerial(serial_properties properties, LinkOptions options)
 {
     std::cout << "LinkManager: Creating Serial Link" << std::endl;
+
+    std::lock_guard<std::mutex> lock(links_access_lock_);
+
     int link_id_ = newLinkID();
-    q_links_to_add.push(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
+    links->push_back(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
     return link_id_;
 }
 
 int LinkManager::addUDP(udp_properties properties, LinkOptions options)
 {
     std::cout << "LinkManager: Creating UDP Link" << std::endl;
+
+    std::lock_guard<std::mutex> lock(links_access_lock_);
+
     int link_id_ = newLinkID();
-    q_links_to_add.push(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
+    links->push_back(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
     return link_id_;
 }
 
 bool LinkManager::removeLink(int link_id)
 {
     std::cout << "LinkManager: Deleting Link " << link_id << std::endl;
-    q_links_to_remove.push(link_id);
+
+    std::lock_guard<std::mutex> lock(links_access_lock_);
+
+    for(auto iter = links->begin(); iter < links->end(); iter++)
+    {
+        if((*iter)->getLinkID() == link_id)
+            {
+                links->erase(iter);
+                return true;
+            }
+    }
+
+    return false;
 }
 
 int LinkManager::newLinkID()
