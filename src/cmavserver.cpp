@@ -84,16 +84,19 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
         if(json_api_->removeLink(value))
         {
             std::cout << "Link Deleted" << std::endl;
+            response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
             response.send(Http::Code::No_Content);
         }
         else
         {
             std::cout << "Could not delete link" << std::endl;
+            response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
             response.send(Http::Code::Not_Found);
         }
     }
     else
     {
+        response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
         response.send(Http::Code::Bad_Request);
     }
 }
