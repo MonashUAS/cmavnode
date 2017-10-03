@@ -40,6 +40,7 @@ void CmavServer::setupRoutes()
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
 
+    Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
 }
 
@@ -56,6 +57,12 @@ void CmavServer::start()
 {
     endpoint_->setHandler(router_.handler());
     endpoint_->serveThreaded();
+}
+void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWriter response)
+{
+    response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+    response.headers().add<Http::Header::AccessControlAllowMethods>(Http::Method::Delete);
+    response.send(Http::Code::Ok);
 }
 
 void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
@@ -94,6 +101,7 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
 {
     std::string linksstring = json_api_->getLinks();
+    response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
     response.send(Http::Code::Ok, linksstring);
 }
 

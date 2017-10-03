@@ -36,6 +36,7 @@ public:
     void addLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void removeLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void respondOptions(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
 
 private:
