@@ -41,6 +41,7 @@ void CmavServer::setupRoutes()
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
 
     Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
+    Routes::Options(router_,"/links", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
 }
 
@@ -61,12 +62,16 @@ void CmavServer::start()
 void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWriter response)
 {
     response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
-    response.headers().add<Http::Header::AccessControlAllowMethods>(Http::Method::Delete);
+    response.headers().add<Http::Header::AccessControlAllowMethods>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
+    response.headers().add<Http::Header::Allow>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
+    response.headers().add<Http::Header::ContentType>(MIME(Application,Json));
+    response.headers().add<Http::Header::AccessControlAllowHeaders>("Content-Type");
     response.send(Http::Code::Ok);
 }
 
 void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
 {
+    std::cout << "Cmavserver got an add" << std::endl;
     json_api_->addLink(request.body());
 
     // response.headers()
