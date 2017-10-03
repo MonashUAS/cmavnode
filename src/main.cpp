@@ -28,7 +28,7 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
-void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
+bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
@@ -83,12 +83,18 @@ int main(int argc, char** argv)
         // The boost::thread constructor implicitly binds runShell to &exitMainLoop and &links
     }
 
+    bool should_sleep;
     // Start the main loop
     while (!exit_main_loop)
     {
-        std::lock_guard<std::mutex> lock(links_access_lock);
+        if(should_sleep)
+            boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+
         link_manager->updateCache();
-        runMainLoop(&links, verbose);
+
+        std::lock_guard<std::mutex> lock(links_access_lock);
+        if(runMainLoop(&links, verbose))
+            should_sleep = true;
     }
 
     // Once the main loop is done, rejoin the shell thread
@@ -223,7 +229,7 @@ bool shouldForwardMessage(mavlink_message_t &msg, std::shared_ptr<mlink> *incomi
     return false;
 }
 
-void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
+bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 {
     // Gets run in a while loop once links are setup
 
@@ -271,10 +277,8 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
             }
         }
     }
-    if (should_sleep)
-    {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
-    }
+
+    return should_sleep;
 }
 
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)

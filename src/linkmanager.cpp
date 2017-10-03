@@ -79,6 +79,8 @@ int LinkManager::addSerial(serial_properties properties, LinkOptions options)
 
     int link_id_ = newLinkID();
     links->push_back(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
+
+    updateCache();
     return link_id_;
 }
 
@@ -87,9 +89,12 @@ int LinkManager::addUDP(udp_properties properties, LinkOptions options)
     std::cout << "LinkManager: Creating UDP Link" << std::endl;
 
     std::lock_guard<std::mutex> lock(links_access_lock_);
+    std::cout << "LinkManager: Got lock on links" << std::endl;
 
     int link_id_ = newLinkID();
     links->push_back(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
+
+    updateCache();
     return link_id_;
 }
 
@@ -104,6 +109,8 @@ bool LinkManager::removeLink(int link_id)
         if((*iter)->getLinkID() == link_id)
             {
                 links->erase(iter);
+
+                updateCache();
                 return true;
             }
     }
