@@ -73,7 +73,14 @@ void asyncsocket::prep(
     write_thread = boost::thread(&asyncsocket::runWriteThread, this);
 
     //Start the receive
-    receive();
+    try
+    {
+        receive();
+    }
+    catch(const boost::exception& e)
+    {
+        std::cout << boost::diagnostic_information(e) << std::endl;
+    }
 
     read_thread = boost::thread(&asyncsocket::runReadThread, this);
 }
@@ -149,11 +156,13 @@ void asyncsocket::receive()
     else
     {
         socket_->async_receive_from(buffer, endpoint_, bound);
-        if (sender_endpoint_ == nullptr)
-        {
-            sender_endpoint_ = new boost::asio::ip::udp::endpoint();
-        }
-        (*sender_endpoint_) = endpoint_;
+
+        // if (sender_endpoint_ == nullptr)
+        // {
+        //     sender_endpoint_ = new boost::asio::ip::udp::endpoint();
+        // }
+
+        // (*sender_endpoint_) = endpoint_;
     }
 }
 

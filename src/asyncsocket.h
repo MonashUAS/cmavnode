@@ -47,11 +47,11 @@ public:
     void runWriteThread();
     void runReadThread();
 
-    // return endpoint corresponding to sender (if any)
-    boost::asio::ip::udp::endpoint *sender_endpoint() override
-    {
-        return sender_endpoint_;
-    }
+    // // return endpoint corresponding to sender (if any)
+    // boost::asio::ip::udp::endpoint *sender_endpoint() override
+    // {
+    //     return sender_endpoint_;
+    // }
 
     udp_properties properties;
 
@@ -67,7 +67,7 @@ private:
     std::unique_ptr<boost::asio::ip::udp::socket> socket_;
     boost::asio::ip::udp::endpoint endpoint_;
 
-    boost::asio::ip::udp::endpoint *sender_endpoint_;
+    // boost::asio::ip::udp::endpoint *sender_endpoint_;
 
     bool endpointlock = true;
 
