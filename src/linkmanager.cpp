@@ -30,8 +30,8 @@ bool LinkManager::shouldUpdateCache()
 
 void LinkManager::updateCache()
 {
-    if(!shouldUpdateCache())
-        return;
+    //if(!shouldUpdateCache())
+    //   return;
 
     // obtain lock on links_cached_
     std::lock_guard<std::mutex> lock(cache_access_lock_);

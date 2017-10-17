@@ -95,6 +95,7 @@ void JsonApi::addLink(std::string json)
 
     if(lo_root)
     {
+        std::cout << "json_api adding link" << std::endl;
         pt::ptree lo_root_raw = lo_root.get();
         options.link_name =             lo_root_raw.get<std::string>("link_name");
         options.sim_enable =            lo_root_raw.get<bool>("sim_enable");
@@ -113,6 +114,7 @@ void JsonApi::addLink(std::string json)
 
     if(up_root)
     {
+        std::cout << "json_api adding udp" << std::endl;
         pt::ptree up_root_raw = up_root.get();
         udp_properties properties;
         properties.udp_type = up_root_raw.get<int>("udp_type");
@@ -124,6 +126,7 @@ void JsonApi::addLink(std::string json)
     }
     else if(sp_root)
     {
+        std::cout << "json_api adding serial" << std::endl;
         pt::ptree sp_root_raw = sp_root.get();
         serial_properties properties;
         properties.port = sp_root_raw.get<std::string>("port");

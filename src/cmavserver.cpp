@@ -40,6 +40,7 @@ void CmavServer::setupRoutes()
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
 
+    Routes::Get(router_,"/heartbeat", Routes::bind(&CmavServer::handleHeartbeat, this));
     Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Options(router_,"/links", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
@@ -59,9 +60,16 @@ void CmavServer::start()
     endpoint_->setHandler(router_.handler());
     endpoint_->serveThreaded();
 }
+
+void CmavServer::handleHeartbeat(const Rest::Request& request, Http::ResponseWriter response)
+{
+    addCors(response);
+    response.send(Http::Code::No_Content);
+}
+
 void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWriter response)
 {
-    response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+    addCors(response);
     response.headers().add<Http::Header::AccessControlAllowMethods>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
     response.headers().add<Http::Header::Allow>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
     response.headers().add<Http::Header::ContentType>(MIME(Application,Json));
@@ -72,11 +80,16 @@ void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWrit
 void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
 {
     std::cout << "Cmavserver got an add" << std::endl;
+
     json_api_->addLink(request.body());
 
-    // response.headers()
-    //    .add<Http::Header::Location>("http://127.0.0.1:8000/links/1");
+    addCors(response);
     response.send(Http::Code::Created);
+}
+
+void CmavServer::addCors(Http::ResponseWriter& response)
+{
+    response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
 }
 
 void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter response)
@@ -89,19 +102,19 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
         if(json_api_->removeLink(value))
         {
             std::cout << "Link Deleted" << std::endl;
-            response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+            addCors(response);
             response.send(Http::Code::No_Content);
         }
         else
         {
             std::cout << "Could not delete link" << std::endl;
-            response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+            addCors(response);
             response.send(Http::Code::Not_Found);
         }
     }
     else
     {
-        response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+        addCors(response);
         response.send(Http::Code::Bad_Request);
     }
 }
@@ -109,7 +122,7 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
 {
     std::string linksstring = json_api_->getLinks();
-    response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
+    addCors(response);
     response.send(Http::Code::Ok, linksstring);
 }
 

@@ -37,10 +37,12 @@ public:
 
     void removeLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void respondOptions(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void handleHeartbeat(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+
+    void addCors(Pistache::Http::ResponseWriter& response);
 
 
 private:
-
     std::shared_ptr<Pistache::Http::Endpoint> endpoint_;
     Pistache::Rest::Router router_;
     boost::thread server_thread;
