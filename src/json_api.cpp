@@ -32,6 +32,7 @@ std::string JsonApi::getLinks()
         auto udppointer = std::dynamic_pointer_cast<AsyncSocketCached>(it);
 
         pt::ptree thislinkroot;
+        thislinkroot.put("id",link_id_);
 
         if(serialpointer != NULL){
             serial_properties properties_ = serialpointer->properties_;
@@ -61,7 +62,7 @@ std::string JsonApi::getLinks()
         linkoptionsroot.put("reject_repeat_packets", info_.reject_repeat_packets);
         linkoptionsroot.put("sik_radio", info_.SiK_radio);
         thislinkroot.add_child("link_options",linkoptionsroot);
-        linksroot.add_child(std::to_string(link_id_), thislinkroot);
+        linksroot.push_back(std::make_pair("", thislinkroot));
     }
 
     jsonroot.add_child("links",linksroot);
