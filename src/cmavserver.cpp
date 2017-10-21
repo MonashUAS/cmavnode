@@ -49,7 +49,8 @@ void CmavServer::setupRoutes()
 void CmavServer::initServer()
 {
     auto opts = Http::Endpoint::options()
-                .threads(1);
+        .threads(1)
+        .flags(Tcp::Options::ReuseAddr);
     endpoint_->init(opts);
 
     setupRoutes();
