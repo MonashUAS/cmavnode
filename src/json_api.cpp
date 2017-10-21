@@ -8,16 +8,7 @@
 
 namespace pt = boost::property_tree;
 
-JsonApi::JsonApi(std::shared_ptr<LinkManager> manager)
-{
-    manager_ = manager;
-}
-JsonApi::~JsonApi()
-{
-    
-}
-
-std::string JsonApi::getLinks()
+std::string JsonApi::getLinks() const
 {
     std::vector<std::shared_ptr<MlinkCached>> cache = manager_->getLinks();
     pt::ptree jsonroot;
@@ -99,12 +90,12 @@ void JsonApi::addLink(std::string json)
         std::cout << "json_api adding link" << std::endl;
         pt::ptree lo_root_raw = lo_root.get();
         options.link_name =             lo_root_raw.get<std::string>("link_name");
-        options.sim_enable =            lo_root_raw.get<bool>("sim_enable");
-        options.sim_packet_loss =       lo_root_raw.get<int>("sim_packet_loss");
-        options.output_to =             lo_root_raw.get<bool>("output_to");
-        options.receive_from =          lo_root_raw.get<bool>("receive_from");
-        options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
-        options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
+        //options.sim_enable =            lo_root_raw.get<bool>("sim_enable");
+        //options.sim_packet_loss =       lo_root_raw.get<int>("sim_packet_loss");
+        //options.output_to =             lo_root_raw.get<bool>("output_to");
+        //options.receive_from =          lo_root_raw.get<bool>("receive_from");
+        //options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
+        //options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
         options.output_only_from.push_back(0);
     }
     else

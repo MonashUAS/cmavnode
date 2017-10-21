@@ -32,7 +32,7 @@ file(GLOB cmavnode_SRC
 add_executable(cmavnode ${cmavnode_SRC})
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++14")
 
 
 target_link_libraries(cmavnode pistache)

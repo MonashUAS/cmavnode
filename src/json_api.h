@@ -18,16 +18,15 @@
 class JsonApi
 {
 public:
-    JsonApi(std::shared_ptr<LinkManager> manager);
-    ~JsonApi();
+    JsonApi(std::shared_ptr<LinkManager> manager) : manager_(manager) {};
+    ~JsonApi() {};
 
-    std::string getLinks();
+    std::string getLinks() const;
 
     bool removeLink(int link_id);
     void addLink(std::string json);
 
 private:
     std::shared_ptr<LinkManager> manager_;
-
 };
 #endif
