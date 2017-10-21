@@ -17,15 +17,13 @@
 class LinkManager
 {
 public:
-    LinkManager(std::vector<std::shared_ptr<mlink>> *links, std::mutex &links_access_lock);
-    ~LinkManager();
+    LinkManager(std::vector<std::shared_ptr<mlink>> *links, std::mutex &links_access_lock)
+        :links_(links), links_access_lock_(links_access_lock) {};
+    ~LinkManager() {};
 
-    bool shouldUpdateCache();
+    void updateLinksCache();
 
-    void updateCache();
-
-    std::vector<std::shared_ptr<MlinkCached>> getLinks();
-    std::shared_ptr<MlinkCached> getLink(int link_id);
+    std::vector<std::shared_ptr<MlinkCached>> getLinks() const;
 
     // These functions will be called from the JSON server
     // They return the link id of the created link, or -1 if failed
@@ -34,21 +32,15 @@ public:
 
     bool removeLink(int link_id);
 
-    bool editLink();
-
 private:
-    boost::lockfree::spsc_queue<std::shared_ptr<mlink>> q_links_to_add {Q_LINKS_TO_ADD_SIZE};
-    boost::lockfree::spsc_queue<int> q_links_to_remove {Q_LINKS_TO_REMOVE_SIZE};
+    std::vector<std::shared_ptr<mlink>> *links_;
 
-    std::vector<std::shared_ptr<mlink>> *links;
-
-    // cache_access_lock protects links_cached_
-    std::mutex cache_access_lock_;
-    std::mutex &links_access_lock_;
+    // links_cached has infrequent read/write.
+    // Cache is updated on every change
+    mutable std::mutex links_cache_access_lock_;
     std::vector<std::shared_ptr<MlinkCached>> links_cached_;
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> last_cache_update_;
-
+    std::mutex &links_access_lock_;
 
     int newLinkID();
 

@@ -90,8 +90,6 @@ int main(int argc, char** argv)
         if(should_sleep)
             boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
 
-        link_manager->updateCache();
-
         std::lock_guard<std::mutex> lock(links_access_lock);
         if(runMainLoop(&links, verbose))
             should_sleep = true;
