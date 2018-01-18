@@ -117,6 +117,7 @@ public:
 
     bool shouldDropPacket();
 
+    void update_datarate(mavlink_message_t *msg, std::vector<std::tuple<boost::posix_time::ptime,int>> &drate_buf, float &drate_to_update);
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop
     virtual void runWriteThread() {};
@@ -130,6 +131,11 @@ public:
     bool is_kill = false;
     long totalPacketCount = 0;
     long totalPacketSent = 0;
+
+    // Datarates are in kB/s and are based on the last 10s of traffic
+    float datarate_recv = 0;
+
+    std::vector<std::tuple<boost::posix_time::ptime,int>> datarate_buf_recv;
 
     // Track link quality for the link
     link_quality_stats link_quality;

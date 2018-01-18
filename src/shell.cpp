@@ -147,6 +147,7 @@ void printLinkStats(std::vector<std::shared_ptr<mlink> > *links)
         }
 
         buffer << "Received: " << (*curr_link)->totalPacketCount << " "
+               << "Recv_kB/s: " << (*curr_link)->datarate_recv << " "
                << "Sent: " << (*curr_link)->totalPacketSent << " "
                << "Systems on link: ";
 

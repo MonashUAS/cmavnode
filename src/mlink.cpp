@@ -334,5 +334,39 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
 
     stats.last_packet_sequence = msg->seq;
 
+    update_datarate(msg,datarate_buf_recv,datarate_recv);
+}
 
+void mlink::update_datarate(mavlink_message_t *msg, std::vector<std::tuple<boost::posix_time::ptime,int>> &drate_buf, float &drate_to_update)
+{
+    int size = msg->len;
+    drate_buf.push_back(std::make_tuple(boost::posix_time::microsec_clock::local_time(),size));
+
+    for(int i = 0; i < drate_buf.size(); i++)
+    {
+        boost::posix_time::ptime checktime = std::get<0>(drate_buf.at(i));
+        boost::posix_time::ptime nowtime = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration dur = nowtime - checktime;
+        long ms = dur.total_milliseconds();
+        if( ms > 10*1000)
+            drate_buf.erase(drate_buf.begin() + i);
+    }
+
+    int tot_data = 0;
+    boost::posix_time::ptime lastinset = std::get<0>(drate_buf.at(0));
+    // Now the vector is only what we want to calc data only
+    for(int i = 0; i < drate_buf.size(); i++)
+    {
+        tot_data = tot_data + std::get<1>(drate_buf.at(i));
+    }
+
+
+    boost::posix_time::ptime nowtime = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration dur = nowtime - lastinset;
+    long ms = dur.total_milliseconds();
+
+    float sec = (float)ms/1000.0;
+
+    float bps = tot_data/sec;
+    drate_to_update = bps/1000;
 }
