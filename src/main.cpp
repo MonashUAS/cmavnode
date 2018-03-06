@@ -83,16 +83,13 @@ int main(int argc, char** argv)
         // The boost::thread constructor implicitly binds runShell to &exitMainLoop and &links
     }
 
-    bool should_sleep;
     // Start the main loop
     while (!exit_main_loop)
     {
-        if(should_sleep)
-            boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
-
         std::lock_guard<std::mutex> lock(links_access_lock);
+
         if(runMainLoop(&links, verbose))
-            should_sleep = true;
+            boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
 
     // Once the main loop is done, rejoin the shell thread
