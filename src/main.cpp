@@ -17,8 +17,6 @@
 #include "asyncsocket.h"
 #include "serial.h"
 #include "exception.h"
-#include "shell.h"
-#include "configfile.h"
 #include "cmavserver.h"
 #include "linkmanager.h"
 
@@ -26,7 +24,7 @@
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
 
 // Functions in this file
-boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport);
+boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
 bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
@@ -34,22 +32,18 @@ void exitGracefully(int a);
 
 bool exit_main_loop = false;
 
-bool start_with_configfile = false;
-
 int main(int argc, char** argv)
 {
     signal(SIGINT, exitGracefully);
 
     // variables to populate from arguments
-    bool shell_enable = true;
     bool verbose = false;
     int server_port = -1;
-    std::string filename;
 
     // lock to protect the links vector
     std::mutex links_access_lock;
 
-    boost::program_options::options_description desc = add_program_options(filename, shell_enable, verbose, server_port);
+    boost::program_options::options_description desc = add_program_options(verbose, server_port);
 
     if(tryUserOptions(argc, argv, desc) != 0)
         return 0;
@@ -63,25 +57,11 @@ int main(int argc, char** argv)
     if(server_port != -1)
         cmav_server = std::make_shared<CmavServer>( server_port, json_api );
 
-    if(start_with_configfile)
-    {
-        if(readConfigFile(filename, link_manager))
-            return 1;
-    }
-
     if (links.size() == 0)
         std::cout << "Warning: cmavnode started with no links" << std::endl;
 
     std::cout << "Command line arguments parsed succesfully." << std::endl;
     std::cout << "Links Initialized, routing loop starting." << std::endl;
-
-    // Run the shell thread
-    boost::thread shell_thread;
-    if (shell_enable)
-    {
-        shell_thread = boost::thread(runShell, boost::ref(exit_main_loop), boost::ref(links));
-        // The boost::thread constructor implicitly binds runShell to &exitMainLoop and &links
-    }
 
     // Start the main loop
     while (!exit_main_loop)
@@ -92,23 +72,17 @@ int main(int argc, char** argv)
             boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
 
-    // Once the main loop is done, rejoin the shell thread
-    if (shell_enable)
-        shell_thread.join();
-
     // Report successful exit from main()
     std::cout << "Links deallocated, stack unwound, exiting." << std::endl;
     return 0;
 }
 
-boost::program_options::options_description add_program_options(std::string &filename, bool &shellen, bool &verbose, int &headlessport)
+boost::program_options::options_description add_program_options(bool &verbose, int &headlessport)
 {
     boost::program_options::options_description desc("Options");
     desc.add_options()
     ("help", "Print help messages")
-    ("file,f", boost::program_options::value<std::string>(&filename), "configuration file, usage: --file=path/to/file.conf")
     ("headless,H", boost::program_options::value<int>(&headlessport), "run cmavnode headless with json server, usage --headless <port>")
-    ("interface,i", boost::program_options::bool_switch(&shellen), "start in interactive mode with cmav shell")
     ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
     return desc;
 }
@@ -149,11 +123,6 @@ int tryUserOptions(int argc, char** argv, boost::program_options::options_descri
         return 1; // Error in command line
     }
 
-    // If no known option were given, return an error
-    if( vm.count("file") )
-    {
-        start_with_configfile = true;
-    }
     return 0; // No errors or help option detected
 
 }
