@@ -18,7 +18,7 @@ std::string JsonApi::getLinks() const
     {
         // TODO: factor out the conversion of properties and options into json
         int link_id_ = it->link_id_;
-        LinkOptions info_ = it->link_options_;
+        link_options info_ = it->link_options_;
         auto serialpointer = std::dynamic_pointer_cast<SerialCached>(it);
         auto udppointer = std::dynamic_pointer_cast<AsyncSocketCached>(it);
 
@@ -79,7 +79,7 @@ void JsonApi::addLink(std::string json)
 
     // TODO: use link id to serve location back to client
     int created_link_id;
-    LinkOptions options;
+    link_options options;
 
     boost::optional< pt::ptree& > up_root = pt.get_child_optional("udp_properties");
     boost::optional< pt::ptree& > sp_root = pt.get_child_optional("serial_properties");

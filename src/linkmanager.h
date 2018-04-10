@@ -27,8 +27,8 @@ public:
 
     // These functions will be called from the JSON server
     // They return the link id of the created link, or -1 if failed
-    int addSerial(serial_properties properties, LinkOptions options);
-    int addUDP(udp_properties properties, LinkOptions options);
+    int addSerial(serial_properties properties, link_options options);
+    int addUDP(udp_properties properties, link_options options);
 
     bool removeLink(int link_id);
 

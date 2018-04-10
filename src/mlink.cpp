@@ -14,7 +14,7 @@ std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 std::mutex mlink::recently_received_mutex;
 std::set<uint8_t> mlink::sysIDs_all_links;
 
-mlink::mlink(int link_id_, LinkOptions info_)
+mlink::mlink(int link_id_, link_options info_)
 {
     link_id = link_id_;
     info = info_;
@@ -111,13 +111,13 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 
 void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
 {
-    link_quality.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
-    link_quality.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
-    link_quality.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
-    link_quality.local_noise = _MAV_RETURN_uint8_t(msg,  7);
-    link_quality.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
-    link_quality.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
-    link_quality.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
+    link_stats_.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
+    link_stats_.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
+    link_stats_.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
+    link_stats_.local_noise = _MAV_RETURN_uint8_t(msg,  7);
+    link_stats_.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
+    link_stats_.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
+    link_stats_.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
 }
 
 bool mlink::shouldDropPacket()
@@ -170,10 +170,10 @@ void mlink::updateRouting(mavlink_message_t &msg)
     if (msg.msgid == 0 && newSysID == false)
     {
         boost::posix_time::time_duration delay = nowTime
-                - link_quality.last_heartbeat
+                - link_stats_.last_heartbeat
                 - boost::posix_time::time_duration(0,0,1,0);
-        link_quality.link_delay = delay.seconds();
-        link_quality.last_heartbeat = nowTime;
+        link_stats_.link_delay = delay.seconds();
+        link_stats_.last_heartbeat = nowTime;
 
         // Remove old packets from recently_received
         std::lock_guard<std::mutex> lock(recently_received_mutex);

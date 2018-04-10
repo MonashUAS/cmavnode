@@ -55,7 +55,7 @@ struct queue_counter
     }
 };
 
-struct LinkOptions
+struct link_options
 {
     // this struct represents link settings that can change at runtime
     // these settings work at the mlink layer
@@ -69,7 +69,8 @@ struct LinkOptions
     bool SiK_radio = false;
 };
 
-struct link_quality_stats
+// Stats for the entire link, not specific to system
+struct link_stats
 {
     int local_rssi = 0;
     int remote_rssi = 0;
@@ -86,13 +87,13 @@ struct MlinkCached
 {
     virtual ~MlinkCached() {}
     int link_id_;
-    LinkOptions link_options_;
+    link_options link_options_;
 };
 
 class mlink
 {
 public:
-    mlink(int link_id_, LinkOptions info_);
+    mlink(int link_id_, link_options info_);
     virtual ~mlink() {};
 
     bool up = true;
@@ -123,7 +124,7 @@ public:
     virtual void runWriteThread() {};
     virtual void runReadThread() {};
 
-    LinkOptions info;
+    link_options info;
 
     queue_counter out_counter;
     queue_counter in_counter;
@@ -138,8 +139,9 @@ public:
     std::vector<std::tuple<boost::posix_time::ptime,int>> datarate_buf_recv;
 
     // Track link quality for the link
-    link_quality_stats link_quality;
+    link_stats link_stats_;
 
+    // track metrics for one system on one link
     struct packet_stats
     {
         int num_packets_received = 0;

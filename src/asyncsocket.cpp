@@ -9,7 +9,7 @@
 
 // Fully defined constructor
 
-asyncsocket::asyncsocket(udp_properties properties_,int link_id_, LinkOptions info_): io_service_(), mlink(link_id_,info_)
+asyncsocket::asyncsocket(udp_properties properties_,int link_id_, link_options info_): io_service_(), mlink(link_id_,info_)
 {
     properties = properties_;
     // Making a udp link is complicated, call the appropriate helper

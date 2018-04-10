@@ -38,7 +38,7 @@ std::vector<std::shared_ptr<MlinkCached>> LinkManager::getLinks() const
     return links_cached_;
 }
 
-int LinkManager::addSerial(serial_properties properties, LinkOptions options)
+int LinkManager::addSerial(serial_properties properties, link_options options)
 {
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
@@ -50,7 +50,7 @@ int LinkManager::addSerial(serial_properties properties, LinkOptions options)
     return link_id_;
 }
 
-int LinkManager::addUDP(udp_properties properties, LinkOptions options)
+int LinkManager::addUDP(udp_properties properties,  link_options options)
 {
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
