@@ -142,7 +142,7 @@ public:
     link_stats link_stats_;
 
     // track metrics for one system on one link
-    struct packet_stats
+    struct sysid_stats
     {
         int num_packets_received = 0;
         int recent_packets_received = 0;
@@ -156,7 +156,7 @@ public:
     };
 
     // Track heartbeat stats for each system ID.
-    std::map<uint8_t, packet_stats> sysID_stats;
+    std::map<uint8_t, sysid_stats> sysID_stats;
 
     // return endpoint corresponding to sender (if any)
     virtual boost::asio::ip::udp::endpoint *sender_endpoint()

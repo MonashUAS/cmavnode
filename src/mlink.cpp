@@ -137,7 +137,7 @@ void mlink::printPacketStats()
 {
     std::cout << "PACKET STATS FOR LINK: " << info.link_name << std::endl;
 
-    std::map<uint8_t, packet_stats>::iterator iter;
+    std::map<uint8_t, sysid_stats>::iterator iter;
     for (iter = sysID_stats.begin(); iter != sysID_stats.end(); ++iter)
     {
         std::cout << "sysID: " << (int)iter->first
@@ -159,7 +159,7 @@ void mlink::updateRouting(mavlink_message_t &msg)
         found = sysID_stats.find(msg.sysid);
     }
 
-    struct packet_stats &stats = found->second;
+    struct sysid_stats &stats = found->second;
 
     stats.num_packets_received++;
 
@@ -291,7 +291,7 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
         return;
     }
 
-    struct packet_stats &stats = found->second;
+    struct sysid_stats &stats = found->second;
 
     stats.recent_packets_received++;
 
