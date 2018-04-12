@@ -10,17 +10,18 @@ namespace pt = boost::property_tree;
 
 std::string JsonApi::getLinks() const
 {
-    std::vector<std::shared_ptr<MlinkCached>> cache = manager_->getLinks();
+    links_cached_t cache = manager_->getLinks();
     pt::ptree jsonroot;
     pt::ptree linksroot;
 
     for(auto it : cache)
     {
+        auto thislink = it.second;
         // TODO: factor out the conversion of properties and options into json
-        int link_id_ = it->link_id_;
-        link_options info_ = it->link_options_;
-        auto serialpointer = std::dynamic_pointer_cast<SerialCached>(it);
-        auto udppointer = std::dynamic_pointer_cast<AsyncSocketCached>(it);
+        int link_id_ = it.first;
+        link_options info_ = thislink->link_options_;
+        auto serialpointer = std::dynamic_pointer_cast<SerialCached>(thislink);
+        auto udppointer = std::dynamic_pointer_cast<AsyncSocketCached>(thislink);
 
         pt::ptree thislinkroot;
         thislinkroot.put("id",link_id_);

@@ -7,10 +7,10 @@ void LinkManager::updateLinksCache()
 
     links_cached_.clear();
 
-    for(auto iter = links_->begin(); iter < links_->end(); iter++)
+    for(const auto it : *links_)
     {
-        auto serialcheck = std::dynamic_pointer_cast<serial>(*iter);
-        auto udpcheck = std::dynamic_pointer_cast<asyncsocket>(*iter);
+        auto serialcheck = std::dynamic_pointer_cast<serial>(it.second);
+        auto udpcheck = std::dynamic_pointer_cast<asyncsocket>(it.second);
 
         if(serialcheck)
         {
@@ -18,7 +18,7 @@ void LinkManager::updateLinksCache()
             serial_cached->properties_ = serialcheck->properties;
             serial_cached->link_id_ = serialcheck->getLinkID();
             serial_cached->link_options_ = serialcheck->info;
-            links_cached_.push_back(std::dynamic_pointer_cast<MlinkCached>(serial_cached));
+            links_cached_[serial_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(serial_cached));
         }
         else if(udpcheck)
         {
@@ -26,12 +26,12 @@ void LinkManager::updateLinksCache()
             udp_cached->properties_ = udpcheck->properties;
             udp_cached->link_id_ = udpcheck->getLinkID();
             udp_cached->link_options_ = udpcheck->info;
-            links_cached_.push_back(std::dynamic_pointer_cast<MlinkCached>(udp_cached));
+            links_cached_[udp_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(udp_cached));
         }
     }
 }
 
-std::vector<std::shared_ptr<MlinkCached>> LinkManager::getLinks() const
+links_cached_t LinkManager::getLinks() const
 {
     // obtain threadsafe copy of pointers
     std::lock_guard<std::mutex> lock(links_cache_access_lock_);
@@ -44,7 +44,7 @@ int LinkManager::addSerial(serial_properties properties, link_options options)
 
     std::cout << "LinkManager: Creating Serial Link" << std::endl;
     int link_id_ = newLinkID();
-    links_->push_back(std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
+    (*links_)[link_id_] = (std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
 
     updateLinksCache();
     return link_id_;
@@ -56,7 +56,7 @@ int LinkManager::addUDP(udp_properties properties,  link_options options)
 
     std::cout << "LinkManager: Creating UDP Link" << std::endl;
     int link_id_ = newLinkID();
-    links_->push_back(std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
+    (*links_)[link_id_] = (std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
 
     updateLinksCache();
     return link_id_;
@@ -67,11 +67,11 @@ bool LinkManager::removeLink(int link_id)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     std::cout << "LinkManager: Deleting Link " << link_id << std::endl;
-    for(auto iter = links_->begin(); iter < links_->end(); iter++)
+    for(auto it : *links_)
     {
-        if((*iter)->getLinkID() == link_id)
+        if(it.first == link_id)
             {
-                links_->erase(iter);
+                links_->erase(link_id);
 
                 updateLinksCache();
                 return true;

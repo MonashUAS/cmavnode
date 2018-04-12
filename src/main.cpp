@@ -26,7 +26,7 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
-bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose);
+bool runMainLoop(links_t *links, bool &verbose);
 void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
 void exitGracefully(int a);
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         return 0;
 
     // Allocate key structures
-    std::vector<std::shared_ptr<mlink> > links;
+    links_t links;
     auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
     auto json_api = std::make_shared<JsonApi>(link_manager);
 
@@ -193,20 +193,21 @@ bool shouldForwardMessage(mavlink_message_t &msg, std::shared_ptr<mlink> *incomi
     return false;
 }
 
-bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
+bool runMainLoop(links_t *links, bool &verbose)
 {
     // Gets run in a while loop once links are setup
 
     // Iterate through each link
     mavlink_message_t msg;
     bool should_sleep = true;
-    for (auto incoming_link = links->begin(); incoming_link != links->end(); ++incoming_link)
+    for (auto it : *links)
     {
+        auto incoming_link = it.second;
         // Clear out dead links
-        (*incoming_link)->checkForDeadSysID();
+        incoming_link->checkForDeadSysID();
 
         // Try to read from the buffer for this link
-        while ((*incoming_link)->qReadIncoming(&msg))
+        while (incoming_link->qReadIncoming(&msg))
         {
             should_sleep = false;
             // Determine the correct target system ID for this message
@@ -216,27 +217,28 @@ bool runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
 
 
             // Iterate through each link to send to the correct target
-            for (auto outgoing_link = links->begin(); outgoing_link != links->end(); ++outgoing_link)
+            for (auto it2 : *links)
             {
+                auto outgoing_link = it2.second;
                 // mavlink routing.  See comment in MAVLink_routing.cpp
                 // for logic
-                if (!shouldForwardMessage(msg, &(*incoming_link), &(*outgoing_link)))
+                if (!shouldForwardMessage(msg, &incoming_link, &outgoing_link))
                 {
                     continue;
                 }
 
                 // Provided nothing else has failed and the link is up, add the
                 // message to the outgoing queue.
-                if ((*outgoing_link)->up)
+                if (outgoing_link->up)
                 {
-                    (*outgoing_link)->qAddOutgoing(msg);
+                    outgoing_link->qAddOutgoing(msg);
                 }
                 else if (verbose)
                 {
                     std::cout << "Packet dropped from sysID: " << (int)msg.sysid
                               << " msgID: " << (int)msg.msgid
                               << " target system: " << (int)sys_id_msg
-                              << " link name: " << (*incoming_link)->info.link_name << std::endl;
+                              << " link name: " << incoming_link->info.link_name << std::endl;
                 }
             }
         }

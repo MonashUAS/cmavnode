@@ -14,16 +14,19 @@
 
 #define CACHE_UPDATE_MS 50
 
+typedef std::unordered_map<int,std::shared_ptr<mlink>> links_t;
+typedef std::unordered_map<int,std::shared_ptr<MlinkCached>> links_cached_t;
+
 class LinkManager
 {
 public:
-    LinkManager(std::vector<std::shared_ptr<mlink>> *links, std::mutex &links_access_lock)
+    LinkManager(links_t *links, std::mutex &links_access_lock)
         :links_(links), links_access_lock_(links_access_lock) {};
     ~LinkManager() {};
 
     void updateLinksCache();
 
-    std::vector<std::shared_ptr<MlinkCached>> getLinks() const;
+    links_cached_t getLinks() const;
 
     // These functions will be called from the JSON server
     // They return the link id of the created link, or -1 if failed
@@ -33,12 +36,12 @@ public:
     bool removeLink(int link_id);
 
 private:
-    std::vector<std::shared_ptr<mlink>> *links_;
+    links_t *links_;
 
     // links_cached has infrequent read/write.
     // Cache is updated on every change
     mutable std::mutex links_cache_access_lock_;
-    std::vector<std::shared_ptr<MlinkCached>> links_cached_;
+    links_cached_t links_cached_;
 
     std::mutex &links_access_lock_;
 
