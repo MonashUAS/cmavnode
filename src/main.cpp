@@ -19,6 +19,7 @@
 #include "exception.h"
 #include "cmavserver.h"
 #include "linkmanager.h"
+#include "routing.h"
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
@@ -26,8 +27,7 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
-bool runMainLoop(links_t *links, bool &verbose);
-void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid);
+bool runMainLoop(links_t &links,source_map_t &source_map_,routing_table_t &routing_table_, bool &verbose);
 void exitGracefully(int a);
 
 bool exit_main_loop = false;
@@ -47,6 +47,9 @@ int main(int argc, char** argv)
 
     if(tryUserOptions(argc, argv, desc) != 0)
         return 0;
+
+    source_map_t source_map = buildSourceMap();
+    routing_table_t routing_table = buildRoutingTable();
 
     // Allocate key structures
     links_t links;
@@ -68,7 +71,7 @@ int main(int argc, char** argv)
     {
         std::lock_guard<std::mutex> lock(links_access_lock);
 
-        if(runMainLoop(&links, verbose))
+        if(runMainLoop(links,source_map,routing_table, verbose))
             boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
 
@@ -193,14 +196,14 @@ bool shouldForwardMessage(mavlink_message_t &msg, std::shared_ptr<mlink> *incomi
     return false;
 }
 
-bool runMainLoop(links_t *links, bool &verbose)
+bool runMainLoop(links_t &links,source_map_t &source_map_,routing_table_t &routing_table_, bool &verbose)
 {
     // Gets run in a while loop once links are setup
 
     // Iterate through each link
     mavlink_message_t msg;
     bool should_sleep = true;
-    for (auto it : *links)
+    for (auto it : links)
     {
         auto incoming_link = it.second;
         // Clear out dead links
@@ -210,59 +213,12 @@ bool runMainLoop(links_t *links, bool &verbose)
         while (incoming_link->qReadIncoming(&msg))
         {
             should_sleep = false;
-            // Determine the correct target system ID for this message
-            int16_t sys_id_msg = -1;
-            int16_t comp_id_msg = -1;
-            getTargets(&msg, sys_id_msg, comp_id_msg);
 
-
-            // Iterate through each link to send to the correct target
-            for (auto it2 : *links)
-            {
-                auto outgoing_link = it2.second;
-                // mavlink routing.  See comment in MAVLink_routing.cpp
-                // for logic
-                if (!shouldForwardMessage(msg, &incoming_link, &outgoing_link))
-                {
-                    continue;
-                }
-
-                // Provided nothing else has failed and the link is up, add the
-                // message to the outgoing queue.
-                if (outgoing_link->up)
-                {
-                    outgoing_link->qAddOutgoing(msg);
-                }
-                else if (verbose)
-                {
-                    std::cout << "Packet dropped from sysID: " << (int)msg.sysid
-                              << " msgID: " << (int)msg.msgid
-                              << " target system: " << (int)sys_id_msg
-                              << " link name: " << incoming_link->info.link_name << std::endl;
-                }
-            }
+            routePacket(links,routing_table_,source_map_,msg);
         }
     }
 
     return should_sleep;
-}
-
-void getTargets(const mavlink_message_t* msg, int16_t &sysid, int16_t &compid)
-{
-    /* --------METHOD TAKEN FROM ARDUPILOT ROUTING LOGIC CODE ------------*/
-    const mavlink_msg_entry_t *msg_entry = mavlink_get_msg_entry(msg->msgid);
-    if (msg_entry == nullptr)
-    {
-        return;
-    }
-    if (msg_entry->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM)
-    {
-        sysid = _MAV_RETURN_uint8_t(msg,  msg_entry->target_system_ofs);
-    }
-    if (msg_entry->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT)
-    {
-        compid = _MAV_RETURN_uint8_t(msg,  msg_entry->target_component_ofs);
-    }
 }
 
 void exitGracefully(int a)
