@@ -32,7 +32,7 @@ typedef std::vector<route> routing_table_t;
 routing_table_t buildRoutingTable();
 source_map_t buildSourceMap();
 
-int routePacket(links_t links_, routing_table_t routing_table_, source_map_t source_map_, mavlink_message_t &msg, int incoming_link);
+int routePacket(links_t &links_, routing_table_t &routing_table_, source_map_t &source_map_, mavlink_message_t &msg, int incoming_link);
 
 // Get a ist of sysids that should receive broadcast messages from this sys
 std::vector<uint8_t> getSourceMapTargets(source_map_t &map, uint8_t source_sysid);

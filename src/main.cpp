@@ -148,7 +148,8 @@ bool runMainLoop(links_t &links,source_map_t &source_map_,routing_table_t &routi
         {
             should_sleep = false;
 
-            routePacket(links,routing_table_,source_map_,msg,it.first);
+            if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+                std::cout << "Packet not routed" << std::endl;
         }
     }
 
