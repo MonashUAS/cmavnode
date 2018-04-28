@@ -92,7 +92,7 @@ void JsonApi::addLink(std::string json)
     }
     else
     {
-        std::cout << "no link options" << std::endl;
+        std::cout << "Error: No link options" << std::endl;
         throw std::exception();
     }
 
@@ -101,10 +101,49 @@ void JsonApi::addLink(std::string json)
         std::cout << "json_api adding udp" << std::endl;
         pt::ptree up_root_raw = up_root.get();
         udp_properties properties;
-        properties.udp_type = up_root_raw.get<int>("udp_type");
-        properties.host =     up_root_raw.get<std::string>("host");
-        properties.hostport = up_root_raw.get<int>("hostport");
-        properties.bindport = up_root_raw.get<int>("bindport");
+
+        // Check that all the needed params are there
+        boost::optional<int> udp_type_opt = up_root_raw.get_optional<int>("udp_type");
+        if(!udp_type_opt) // Always fatal
+        {
+            std::cout << "Error: No UDP Type" << std::endl;
+            return;
+        }
+        else
+            properties.udp_type = udp_type_opt.get();
+
+        boost::optional<std::string> host_opt = up_root_raw.get_optional<std::string>("host");
+        if(!host_opt && properties.udp_type == 0) // Fatal if fully defined
+        {
+            std::cout << "Error: No Host" << std::endl;
+            return;
+        }
+        else if(!host_opt) // Host can be infered
+            properties.host = std::string("127.0.0.1");
+        else // Host has been specified
+            properties.host = host_opt.get();
+
+        boost::optional<int> hostport_opt = up_root_raw.get_optional<int>("hostport");
+        if(!hostport_opt && properties.udp_type != 2)
+        {
+            std::cout << "Error: No HostPort" << std::endl;
+            return;
+        }
+        else if(!hostport_opt) // Value Doesnt matter
+            properties.hostport = -1;
+        else //value has been specified
+            properties.hostport = hostport_opt.get();
+
+        boost::optional<int> bindport_opt = up_root_raw.get_optional<int>("bindport");
+        if(!bindport_opt && properties.udp_type != 1)
+            {
+                std::cout << "Error: No BindPort" << std::endl;
+                return;
+            }
+        else if(!bindport_opt) // Value Doesnt matter
+            properties.bindport = -1;
+        else //value has been specified
+            properties.bindport = bindport_opt.get();
 
         created_link_id = manager_->addUDP(properties,options);
     }
