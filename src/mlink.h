@@ -60,11 +60,6 @@ struct link_options
     // this struct represents link settings that can change at runtime
     // these settings work at the mlink layer
     std::string link_name;
-    bool receive_from = true;
-    bool output_to = true;
-    std::vector<int> output_only_from;
-    bool sim_enable = false;
-    int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
     bool reject_repeat_packets = false;
     bool SiK_radio = false;
 };
@@ -115,8 +110,6 @@ public:
 
     void updateRouting(mavlink_message_t &msg);
     void onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
-
-    bool shouldDropPacket();
 
     void update_datarate(mavlink_message_t *msg, std::vector<std::tuple<boost::posix_time::ptime,int>> &drate_buf, float &drate_to_update);
     //Read and write thread functions. Read thread will call ioservice.run and block

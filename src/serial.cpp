@@ -87,10 +87,8 @@ void serial::processAndSend(mavlink_message_t *msgToConvert)
     uint8_t tmplen = mavlink_msg_to_send_buffer(data_out_, msgToConvert);
     //ERROR HANDLING?
 
-    bool should_drop = shouldDropPacket();
     //send on serial
-    if(!should_drop)
-        send(data_out_, tmplen);
+    send(data_out_, tmplen);
 }
 
 //Async post send callback

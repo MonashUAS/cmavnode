@@ -19,9 +19,6 @@ mlink::mlink(int link_id_, link_options info_)
     link_id = link_id_;
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
-
-    //if we are simulating init the random generator
-    if( info.sim_enable) srand(time(NULL));
 }
 
 int mlink::getLinkID()
@@ -73,12 +70,6 @@ bool mlink::seenSysID(const uint8_t sysid) const
 
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
-    //Simulate Packet Loss
-    if (shouldDropPacket())
-    {
-        return;
-    }
-
     updateRouting(*msg);
 
     record_packet_stats(msg);
@@ -118,19 +109,6 @@ void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
     link_stats_.remote_noise = _MAV_RETURN_uint8_t(msg,  8);
     link_stats_.rx_errors = _MAV_RETURN_uint16_t(msg,  0);
     link_stats_.corrected_packets = _MAV_RETURN_uint16_t(msg,  2);
-}
-
-bool mlink::shouldDropPacket()
-{
-    if(info.sim_enable)
-    {
-        int randnumber = rand() % 100 + 1;
-        if(randnumber < info.sim_packet_loss)
-        {
-            return true;
-        }
-    }
-    return false;
 }
 
 void mlink::printPacketStats()

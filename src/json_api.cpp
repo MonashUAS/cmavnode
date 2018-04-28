@@ -47,10 +47,6 @@ std::string JsonApi::getLinks() const
         }
         pt::ptree linkoptionsroot;
         linkoptionsroot.put("link_name", info_.link_name);
-        linkoptionsroot.put("sim_enable", info_.sim_enable);
-        linkoptionsroot.put("sim_packet_loss", info_.sim_packet_loss);
-        linkoptionsroot.put("output_to", info_.output_to);
-        linkoptionsroot.put("receive_from", info_.receive_from);
         linkoptionsroot.put("reject_repeat_packets", info_.reject_repeat_packets);
         linkoptionsroot.put("sik_radio", info_.SiK_radio);
         thislinkroot.add_child("link_options",linkoptionsroot);
@@ -91,13 +87,8 @@ void JsonApi::addLink(std::string json)
         std::cout << "json_api adding link" << std::endl;
         pt::ptree lo_root_raw = lo_root.get();
         options.link_name =             lo_root_raw.get<std::string>("link_name");
-        //options.sim_enable =            lo_root_raw.get<bool>("sim_enable");
-        //options.sim_packet_loss =       lo_root_raw.get<int>("sim_packet_loss");
-        //options.output_to =             lo_root_raw.get<bool>("output_to");
-        //options.receive_from =          lo_root_raw.get<bool>("receive_from");
         //options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
         //options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
-        options.output_only_from.push_back(0);
     }
     else
     {
