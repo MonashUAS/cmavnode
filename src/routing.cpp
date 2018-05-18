@@ -2,21 +2,21 @@
 
 source_map_t buildSourceMap()
 {
-    source_map_t source_map_;
-    source_map_.push_back(sys_pair(1,255));
-    source_map_.push_back(sys_pair(255,1));
+    source_map_t source_map_ = std::make_shared<std::vector<sys_pair>>();
+    source_map_->push_back(sys_pair(1,255));
+    source_map_->push_back(sys_pair(255,1));
     return source_map_;
 }
 
 routing_table_t buildRoutingTable()
 {
-    routing_table_t routing_table_;
-    routing_table_.push_back(route(1,0));
-    routing_table_.push_back(route(255,1));
+    routing_table_t routing_table_ = std::make_shared<std::vector<route>>();
+    routing_table_->push_back(route(1,0));
+    routing_table_->push_back(route(255,1));
     return routing_table_;
 }
 
-int routePacket(links_t &links_, routing_table_t &routing_table_, source_map_t &source_map_, mavlink_message_t &msg, int incoming_link)
+int routePacket(links_t &links_, routing_table_t routing_table_, source_map_t source_map_, mavlink_message_t &msg, int incoming_link)
 {
     // Drop SiK Radio Packets
     if (msg.sysid == 51)
@@ -62,10 +62,10 @@ int routePacket(links_t &links_, routing_table_t &routing_table_, source_map_t &
     return wasrouted;
 }
 
-std::vector<uint8_t> getSourceMapTargets(source_map_t &map, uint8_t source_sysid)
+std::vector<uint8_t> getSourceMapTargets(source_map_t map, uint8_t source_sysid)
 {
     std::vector<uint8_t> map_targets;
-    for(auto it : map)
+    for(auto it : *map)
     {
         if(it.src == source_sysid)
             map_targets.push_back(it.dest);
@@ -76,7 +76,7 @@ std::vector<uint8_t> getSourceMapTargets(source_map_t &map, uint8_t source_sysid
 std::vector<int> getNextHop(routing_table_t &table, std::vector<uint8_t> target_systems)
 {
     std::vector<int> next_hop;
-    for(auto it : table)
+    for(auto it : *table)
     {
         if(std::find(target_systems.begin(), target_systems.end(), it.dest) != target_systems.end())
         {

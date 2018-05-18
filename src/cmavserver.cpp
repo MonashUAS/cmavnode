@@ -122,6 +122,7 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
 {
+    std::cout << "Responding to getlinks" << std::endl;
     std::string linksstring = json_api_->getLinks();
     addCors(response);
     response.send(Http::Code::Ok, linksstring);

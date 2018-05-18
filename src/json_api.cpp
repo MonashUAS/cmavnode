@@ -8,6 +8,11 @@
 
 namespace pt = boost::property_tree;
 
+std::string JsonApi::getMapping() const
+{
+
+}
+
 std::string JsonApi::getLinks() const
 {
     links_cached_t cache = manager_->getLinks();

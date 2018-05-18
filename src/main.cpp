@@ -27,7 +27,7 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
-bool runMainLoop(links_t &links,source_map_t &source_map_,routing_table_t &routing_table_, bool &verbose);
+bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_, bool &verbose);
 void exitGracefully(int a);
 
 bool exit_main_loop = false;
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     // Allocate key structures
     links_t links;
     auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
-    auto json_api = std::make_shared<JsonApi>(link_manager);
+    auto json_api = std::make_shared<JsonApi>(link_manager,source_map);
 
     std::shared_ptr<CmavServer> cmav_server;
     if(server_port != -1)
@@ -130,7 +130,7 @@ int tryUserOptions(int argc, char** argv, boost::program_options::options_descri
 
 }
 
-bool runMainLoop(links_t &links,source_map_t &source_map_,routing_table_t &routing_table_, bool &verbose)
+bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_, bool &verbose)
 {
     // Gets run in a while loop once links are setup
 

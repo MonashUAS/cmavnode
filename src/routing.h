@@ -26,16 +26,16 @@ struct sys_pair
     };
 };
 
-typedef std::vector<sys_pair> source_map_t;
-typedef std::vector<route> routing_table_t;
+typedef std::shared_ptr<std::vector<sys_pair>> source_map_t;
+typedef std::shared_ptr<std::vector<route>> routing_table_t;
 
 routing_table_t buildRoutingTable();
 source_map_t buildSourceMap();
 
-int routePacket(links_t &links_, routing_table_t &routing_table_, source_map_t &source_map_, mavlink_message_t &msg, int incoming_link);
+int routePacket(links_t &links_, routing_table_t routing_table_, source_map_t source_map_, mavlink_message_t &msg, int incoming_link);
 
 // Get a ist of sysids that should receive broadcast messages from this sys
-std::vector<uint8_t> getSourceMapTargets(source_map_t &map, uint8_t source_sysid);
+std::vector<uint8_t> getSourceMapTargets(source_map_t map, uint8_t source_sysid);
 
 // Get a list of links that this packet should be sent on
 std::vector<int> getNextHop(routing_table_t &table, std::vector<uint8_t> target_systems);
