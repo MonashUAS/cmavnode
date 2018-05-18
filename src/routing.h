@@ -21,7 +21,8 @@ struct sys_pair
 {
     uint8_t src;
     uint8_t dest;
-    sys_pair(uint8_t src_,uint8_t dest_) : dest(dest_),src(src_)
+    bool bidir;
+    sys_pair(uint8_t src_,uint8_t dest_,bool bidir_) : dest(dest_),src(src_),bidir(bidir_)
     {
     };
 };

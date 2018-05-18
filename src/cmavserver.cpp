@@ -35,6 +35,7 @@ void CmavServer::setupRoutes()
 {
     using namespace Rest;
     Routes::Get(router_, "/links", Routes::bind(&CmavServer::getLinks, this));
+    Routes::Get(router_, "/mapping", Routes::bind(&CmavServer::getMapping, this));
     Routes::Get(router_, "/links/:value", Routes::bind(&CmavServer::getLinkById, this));
 
 
@@ -126,6 +127,14 @@ void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter res
     std::string linksstring = json_api_->getLinks();
     addCors(response);
     response.send(Http::Code::Ok, linksstring);
+}
+
+void CmavServer::getMapping(const Rest::Request& request, Http::ResponseWriter response)
+{
+    std::cout << "Responding to getmapping" << std::endl;
+    std::string mappingstring = json_api_->getMapping();
+    addCors(response);
+    response.send(Http::Code::Ok, mappingstring);
 }
 
 void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter response)

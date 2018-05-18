@@ -3,8 +3,8 @@
 source_map_t buildSourceMap()
 {
     source_map_t source_map_ = std::make_shared<std::vector<sys_pair>>();
-    source_map_->push_back(sys_pair(1,255));
-    source_map_->push_back(sys_pair(255,1));
+    source_map_->push_back(sys_pair(1,255,true));
+    source_map_->push_back(sys_pair(2,254,true));
     return source_map_;
 }
 

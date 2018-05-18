@@ -10,7 +10,25 @@ namespace pt = boost::property_tree;
 
 std::string JsonApi::getMapping() const
 {
+    pt::ptree jsonroot;
+    pt::ptree maproot;
 
+    for(auto it : *mapping_)
+    {
+        pt::ptree thismaproot;
+        thismaproot.put("src",it.src);
+        thismaproot.put("dst",it.dest);
+        thismaproot.put("bidir",it.bidir);
+
+        maproot.push_back(std::make_pair("",thismaproot));
+    }
+
+    jsonroot.add_child("mapping",maproot);
+    std::stringstream ss;
+
+    pt::json_parser::write_json(ss,jsonroot);
+
+    return ss.str();
 }
 
 std::string JsonApi::getLinks() const
