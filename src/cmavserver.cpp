@@ -40,6 +40,7 @@ void CmavServer::setupRoutes()
 
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
+    Routes::Post(router_, "/mapping", Routes::bind(&CmavServer::setMapping, this));
 
     Routes::Get(router_,"/heartbeat", Routes::bind(&CmavServer::handleHeartbeat, this));
     Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
@@ -81,9 +82,19 @@ void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWrit
 
 void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
 {
-    std::cout << "Cmavserver got an add" << std::endl;
+    std::cout << "Link add request" << std::endl;
 
     json_api_->addLink(request.body());
+
+    addCors(response);
+    response.send(Http::Code::Created);
+}
+
+void CmavServer::setMapping(const Rest::Request& request, Http::ResponseWriter response)
+{
+    std::cout << "Mapping set request" << std::endl;
+
+    json_api_->setMapping(request.body());
 
     addCors(response);
     response.send(Http::Code::Created);

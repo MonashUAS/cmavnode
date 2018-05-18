@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     // Allocate key structures
     links_t links;
     auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
-    auto json_api = std::make_shared<JsonApi>(link_manager,source_map);
+    auto json_api = std::make_shared<JsonApi>(link_manager,source_map,std::ref(links_access_lock));
 
     std::shared_ptr<CmavServer> cmav_server;
     if(server_port != -1)
@@ -69,9 +69,15 @@ int main(int argc, char** argv)
     // Start the main loop
     while (!exit_main_loop)
     {
-        std::lock_guard<std::mutex> lock(links_access_lock);
+        bool should_sleep = false;
 
-        if(runMainLoop(links,source_map,routing_table, verbose))
+        { // this scope is to ensure the lock is released before this thread sleeps
+            // otherwise other threads will never get the lock
+            std::lock_guard<std::mutex> lock(links_access_lock);
+            should_sleep = runMainLoop(links,source_map,routing_table, verbose);
+        }
+
+        if(should_sleep)
             boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
     }
 

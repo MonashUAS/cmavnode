@@ -35,6 +35,7 @@ public:
     void getLinkById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void addLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void setMapping(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void removeLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void respondOptions(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);

@@ -31,6 +31,29 @@ std::string JsonApi::getMapping() const
     return ss.str();
 }
 
+void JsonApi::setMapping(std::string json)
+{
+    pt::ptree pt;
+    std::stringstream ss;
+    ss << json;
+    read_json(ss, pt);
+
+    // obtain lock on the main loop
+    std::cout << "Obtaining lock" << std::endl;
+    std::lock_guard<std::mutex> lock(links_access_lock_);
+    std::cout << "Got lock" << std::endl;
+
+    mapping_->clear(); //empty the mapping
+    std::cout << "Mapping" << std::endl;
+    BOOST_FOREACH(pt::ptree::value_type &v, pt) {
+        uint8_t src = v.second.get<uint8_t>("src");
+        uint8_t dst = v.second.get<uint8_t>("dst");
+        bool bidir = v.second.get<bool>("bidir");
+        std::cout << "src: " << (int)src << " dst: " << (int)dst << " bidir: " << (int)bidir << std::endl;
+        mapping_->push_back(sys_pair(src,dst,bidir));
+    }
+}
+
 std::string JsonApi::getLinks() const
 {
     links_cached_t cache = manager_->getLinks();
