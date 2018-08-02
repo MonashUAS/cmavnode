@@ -155,7 +155,7 @@ bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing
             should_sleep = false;
 
             if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
-                std::cout << "Packet not routed" << std::endl;
+                std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
         }
     }
 
