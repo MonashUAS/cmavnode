@@ -4,7 +4,6 @@ source_map_t buildSourceMap()
 {
     source_map_t source_map_ = std::make_shared<std::vector<sys_pair>>();
     source_map_->push_back(sys_pair(1,255,true));
-    source_map_->push_back(sys_pair(2,254,true));
     return source_map_;
 }
 
@@ -69,6 +68,8 @@ std::vector<uint8_t> getSourceMapTargets(source_map_t map, uint8_t source_sysid)
     {
         if(it.src == source_sysid)
             map_targets.push_back(it.dest);
+        if(it.bidir && it.dest == source_sysid)
+            map_targets.push_back(it.src);
     }
     return map_targets;
 }
