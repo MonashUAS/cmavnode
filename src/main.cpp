@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     // Allocate key structures
     links_t links;
     auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
-    auto json_api = std::make_shared<JsonApi>(link_manager,source_map,std::ref(links_access_lock));
+    auto json_api = std::make_shared<JsonApi>(link_manager,source_map,routing_table,std::ref(links_access_lock));
 
     std::shared_ptr<CmavServer> cmav_server;
     if(server_port != -1)

@@ -3,15 +3,15 @@
 source_map_t buildSourceMap()
 {
     source_map_t source_map_ = std::make_shared<std::vector<sys_pair>>();
-    source_map_->push_back(sys_pair(1,255,true));
+    //source_map_->push_back(sys_pair(1,255,true));
     return source_map_;
 }
 
 routing_table_t buildRoutingTable()
 {
     routing_table_t routing_table_ = std::make_shared<std::vector<route>>();
-    routing_table_->push_back(route(1,0));
-    routing_table_->push_back(route(255,1));
+    //routing_table_->push_back(route(1,0));
+    //routing_table_->push_back(route(255,1));
     return routing_table_;
 }
 
@@ -29,7 +29,11 @@ int routePacket(links_t &links_, routing_table_t routing_table_, source_map_t so
     getTargets(&msg, sys_id_msg, comp_id_msg);
 
     std::vector<uint8_t> target_systems;
-    if(sys_id_msg <= 0) // route broadcast packets
+    if(source_map_->size() == 0 || routing_table_->size() == 0) //no mapping/table so assume broadcast
+    {
+        target_systems.push_back(0);
+    }
+    else if(sys_id_msg <= 0) // route broadcast packets
     {
         target_systems = getSourceMapTargets(source_map_,msg.sysid);
     }
@@ -42,23 +46,39 @@ int routePacket(links_t &links_, routing_table_t routing_table_, source_map_t so
     if(target_systems.size() == 0)
         return -1;
 
-    std::vector<int> target_links = getNextHop(routing_table_, target_systems);
-
-    // If we cant find a next hop abort
-    if(target_links.size() == 0)
-        return -1;
-
-    // We got this far so add to queues on chosen next hops
-    int wasrouted = -1;
-    for(auto it : target_links)
+    if(target_systems[0] == 0) // broadcast mode
     {
-        if(links_.count(it) != 0)
+        int wasrouted = -1;
+        for(auto it : links_)
         {
-            links_[it]->qAddOutgoing(msg);
-            wasrouted = 0;
+            if(it.first != incoming_link)
+            {
+                it.second->qAddOutgoing(msg);
+                wasrouted = 0;
+            }
         }
+        return wasrouted;
     }
-    return wasrouted;
+    else // real routing
+    {
+        std::vector<int> target_links = getNextHop(routing_table_, target_systems);
+
+        // If we cant find a next hop abort
+        if(target_links.size() == 0)
+            return -1;
+
+        // We got this far so add to queues on chosen next hops
+        int wasrouted = -1;
+        for(auto it : target_links)
+        {
+            if(links_.count(it) != 0)
+            {
+                links_[it]->qAddOutgoing(msg);
+                wasrouted = 0;
+            }
+        }
+        return wasrouted;
+    }
 }
 
 std::vector<uint8_t> getSourceMapTargets(source_map_t map, uint8_t source_sysid)

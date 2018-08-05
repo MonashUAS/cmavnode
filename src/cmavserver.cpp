@@ -36,15 +36,19 @@ void CmavServer::setupRoutes()
     using namespace Rest;
     Routes::Get(router_, "/links", Routes::bind(&CmavServer::getLinks, this));
     Routes::Get(router_, "/mapping", Routes::bind(&CmavServer::getMapping, this));
+    Routes::Get(router_, "/routing", Routes::bind(&CmavServer::getRouting, this));
     Routes::Get(router_, "/links/:value", Routes::bind(&CmavServer::getLinkById, this));
 
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
     Routes::Post(router_, "/mapping", Routes::bind(&CmavServer::setMapping, this));
+    Routes::Post(router_, "/routing", Routes::bind(&CmavServer::setRouting, this));
 
     Routes::Get(router_,"/heartbeat", Routes::bind(&CmavServer::handleHeartbeat, this));
     Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Options(router_,"/links", Routes::bind(&CmavServer::respondOptions, this));
+    Routes::Options(router_,"/mapping", Routes::bind(&CmavServer::respondOptions, this));
+    Routes::Options(router_,"/routing", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
 }
 
@@ -100,6 +104,16 @@ void CmavServer::setMapping(const Rest::Request& request, Http::ResponseWriter r
     response.send(Http::Code::Created);
 }
 
+void CmavServer::setRouting(const Rest::Request& request, Http::ResponseWriter response)
+{
+  std::cout << "Routing set request" << std::endl;
+
+  json_api_->setRouting(request.body());
+
+  addCors(response);
+  response.send(Http::Code::Created);
+}
+
 void CmavServer::addCors(Http::ResponseWriter& response)
 {
     response.headers().add<Http::Header::AccessControlAllowOrigin>("*");
@@ -146,6 +160,14 @@ void CmavServer::getMapping(const Rest::Request& request, Http::ResponseWriter r
     std::string mappingstring = json_api_->getMapping();
     addCors(response);
     response.send(Http::Code::Ok, mappingstring);
+}
+
+void CmavServer::getRouting(const Rest::Request& request, Http::ResponseWriter response)
+{
+  std::cout << "Responding to getrouting" << std::endl;
+  std::string routingstring = json_api_->getRouting();
+  addCors(response);
+  response.send(Http::Code::Ok, routingstring);
 }
 
 void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter response)
