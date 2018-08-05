@@ -25,6 +25,10 @@ public:
            link_info info_);
     ~serial();
 
+    int openPort(const std::string& port,
+                         const std::string& baudrate,
+                         bool flowcontrol);
+
     //override virtuals from mlink
     void runWriteThread();
     void runReadThread();
@@ -41,7 +45,13 @@ private:
     boost::asio::io_service io_service_;
     boost::asio::serial_port port_;
 
+    int port_is_open = 0;
+
     int errorcount = 0;
+
+    std::string port_addr_;
+    std::string baudrate_;
+    bool flowcontrol_;
 
     //takes message, puts onto buff and calls send
     void processAndSend(mavlink_message_t *msgToConvert);

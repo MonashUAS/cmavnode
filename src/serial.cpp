@@ -11,11 +11,27 @@ serial::serial(const std::string& port,
                const std::string& baudrate,
                bool flowcontrol,
                link_info info_):
-    io_service_(), port_(io_service_), mlink(info_)
+  io_service_(), port_(io_service_), mlink(info_), port_addr_(port), baudrate_(baudrate), flowcontrol_(flowcontrol)
 {
 
+    port_is_open = openPort(port,baudrate,flowcontrol);
+    //Start the read and write threads
+    write_thread = boost::thread(&serial::runWriteThread, this);
 
+    //Start the receive
+    port_.async_read_some(
+        boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
+        boost::bind(&serial::handleReceiveFrom, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred));
 
+    read_thread = boost::thread(&serial::runReadThread, this);
+}
+
+int serial::openPort(const std::string& port,
+               const std::string& baudrate,
+                     bool flowcontrol)
+{
     try
     {
         //open the port with connection string
@@ -51,20 +67,9 @@ serial::serial(const std::string& port,
     {
         std::cerr << "Error opening Serial Port: " << port << " " << error.what() << std::endl;
         std::cerr << "Link: " << info.link_name << " failed to initialise and is dead" << std::endl;
-        exitFlag = true;
+        return false;
     }
-
-    //Start the read and write threads
-    write_thread = boost::thread(&serial::runWriteThread, this);
-
-    //Start the receive
-    port_.async_read_some(
-        boost::asio::buffer(data_in_, MAV_INCOMING_BUFFER_LENGTH),
-        boost::bind(&serial::handleReceiveFrom, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
-
-    read_thread = boost::thread(&serial::runReadThread, this);
+    return true;
 }
 
 serial::~serial()
@@ -83,8 +88,21 @@ serial::~serial()
 
 void serial::send(uint8_t *buf, std::size_t buf_size)
 {
-    port_.write_some(
-        boost::asio::buffer(buf, buf_size));
+    if(!port_is_open)
+    {
+        port_is_open = openPort(port_addr_,baudrate_,flowcontrol_);
+    }
+
+    try{
+        port_.write_some(
+            boost::asio::buffer(buf, buf_size));
+    }
+    catch( const boost::system::system_error& e)
+    {
+        std::cout << "write fail" <<std::endl;
+        port_.close();
+        port_is_open = 0;
+    }
 }
 
 void serial::processAndSend(mavlink_message_t *msgToConvert)
