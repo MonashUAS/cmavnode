@@ -38,17 +38,20 @@ void CmavServer::setupRoutes()
     Routes::Get(router_, "/mapping", Routes::bind(&CmavServer::getMapping, this));
     Routes::Get(router_, "/routing", Routes::bind(&CmavServer::getRouting, this));
     Routes::Get(router_, "/links/:value", Routes::bind(&CmavServer::getLinkById, this));
+    Routes::Get(router_, "/stats/:value", Routes::bind(&CmavServer::getStatsById, this));
 
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
     Routes::Post(router_, "/mapping", Routes::bind(&CmavServer::setMapping, this));
     Routes::Post(router_, "/routing", Routes::bind(&CmavServer::setRouting, this));
+    Routes::Post(router_, "/sendfile", Routes::bind(&CmavServer::sendFile, this));
 
     Routes::Get(router_,"/heartbeat", Routes::bind(&CmavServer::handleHeartbeat, this));
     Routes::Options(router_,"/links/:value", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Options(router_,"/links", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Options(router_,"/mapping", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Options(router_,"/routing", Routes::bind(&CmavServer::respondOptions, this));
+    Routes::Options(router_,"/sendfile", Routes::bind(&CmavServer::respondOptions, this));
     Routes::Delete(router_, "/links/:value", Routes::bind(&CmavServer::removeLink, this));
 }
 
@@ -112,6 +115,16 @@ void CmavServer::setRouting(const Rest::Request& request, Http::ResponseWriter r
 
   addCors(response);
   response.send(Http::Code::Created);
+}
+
+void CmavServer::sendFile(const Rest::Request& request, Http::ResponseWriter response)
+{
+  std::cout << "Send File" << std::endl;
+
+  json_api_->sendFile(request.body());
+
+  addCors(response);
+  response.send(Http::Code::Ok);
 }
 
 void CmavServer::addCors(Http::ResponseWriter& response)
@@ -181,4 +194,17 @@ void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter 
     ss << "Got a request to get link " << value;
 
     response.send(Http::Code::Ok, ss.str());
+}
+
+void CmavServer::getStatsById(const Rest::Request& request, Http::ResponseWriter response)
+{
+  int value = 0;
+  if (request.hasParam(":value"))
+    {
+      value = request.param(":value").as<int>();
+    }
+  std::stringstream ss;
+  ss << "Got a request to get stats for link " << value;
+
+  response.send(Http::Code::Ok, ss.str());
 }

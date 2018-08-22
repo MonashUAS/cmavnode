@@ -76,6 +76,16 @@ void JsonApi::setMapping(std::string json)
     }
 }
 
+void JsonApi::sendFile(std::string json)
+{
+  pt::ptree pt;
+  std::stringstream ss;
+  ss << json;
+  read_json(ss, pt);
+
+  std::string filename = pt.get<std::string>("filename");
+  block_xmit_->sendFile(filename);
+}
 void JsonApi::setRouting(std::string json)
 {
   pt::ptree pt;

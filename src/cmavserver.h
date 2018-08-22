@@ -34,10 +34,12 @@ public:
     void getMapping(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void getRouting(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void getLinkById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void getStatsById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void addLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void setMapping(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void setRouting(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void sendFile(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void removeLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void respondOptions(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
