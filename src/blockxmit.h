@@ -6,6 +6,10 @@
 #include <vector>
 #include <queue>
 #include <iterator>
+#include <iomanip>
+#include <chrono>
+#include <thread>
+#include <boost/format.hpp>
 #include <string>
 #include "../include/mavlink2/ardupilotmega/mavlink.h"
 

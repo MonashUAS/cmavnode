@@ -62,7 +62,6 @@ void File::createChunks(std::vector<chunk> &q)
               fileend = true;
             }
         }
-
       q.push_back(chunk_);
     }
 }
@@ -82,6 +81,11 @@ void File::addChunk(chunk chunk_)
   {
     buffer[chunk_.chunk_id*BLOCK_XMIT_DATA_BYTES + i] = chunk_.data[i];
   }
+
+  // std::cout << "Added chunk file id: "
+  //           << chunk_.file_id << " chunk id: "
+  //           << chunk_.chunk_id << " num chunks: "
+  //           << chunk_.num_chunks << std::endl;
 }
 
 void File::saveFile()
