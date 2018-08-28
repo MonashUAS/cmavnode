@@ -24,10 +24,12 @@ class blockXmit
   bool processMsg(mavlink_message_t &msg);
   void handleAck(mavlink_message_t &msg);
   void handleChunk(mavlink_message_t &msg);
+  bool sendChunk(mavlink_message_t &msg);
 
   void sendFile(const std::string file);
  private:
   std::vector<chunk> qChunk;
+  std::map<uint16_t,File> fileMap;
 };
 
 

@@ -34,6 +34,17 @@ bool blockXmit::processMsg(mavlink_message_t &msg)
     return false;
 }
 
+bool blockXmit::sendChunk(mavlink_message_t &msg)
+{
+  if(qChunk.size() == 0)
+    return false;
+
+  //pack the chunk at the front of the vector
+  qChunk.at(0).pack(msg);
+
+  std::rotate(qChunk.begin(),qChunk.begin()+1,qChunk.end());
+}
+
 void blockXmit::handleAck(mavlink_message_t &msg)
 {
   uint8_t msg_data[4];
@@ -61,7 +72,18 @@ void blockXmit::handleAck(mavlink_message_t &msg)
 
 void blockXmit::handleChunk(mavlink_message_t &msg)
 {
-  
+  chunk achunk(msg);
+
+  //see if this is the first chunk for this file
+  if(fileMap.count(achunk.file_id) ==0)
+  {
+    File tmpfile(achunk);
+    fileMap.insert(std::make_pair(achunk.file_id,tmpfile));
+  }
+  else
+  { //file already exists
+    fileMap.at(achunk.file_id).addChunk(achunk);
+  }
 }
 
 void chunkdiff(chunk c1, chunk c2)
