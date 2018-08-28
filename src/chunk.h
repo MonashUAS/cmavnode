@@ -25,6 +25,7 @@ class chunk
   chunk(mavlink_message_t &msg);
 
   void printData();
+  void genAck(mavlink_message_t &msg);
 
   uint16_t file_id;
   uint16_t chunk_id;
