@@ -28,7 +28,7 @@
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
-bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_, bool &verbose);
+bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_,std::shared_ptr<blockXmit> block_xmit_, bool &verbose);
 void exitGracefully(int a);
 
 bool exit_main_loop = false;
@@ -76,11 +76,31 @@ int main(int argc, char** argv)
         { // this scope is to ensure the lock is released before this thread sleeps
             // otherwise other threads will never get the lock
             std::lock_guard<std::mutex> lock(links_access_lock);
-            should_sleep = runMainLoop(links,source_map,routing_table, verbose);
+
+
+            if(runMainLoop(links,source_map,routing_table,block_xmit,verbose))
+            {
+              //TODO: this sucks, this cant stay here
+              for (auto it : links)
+                {
+                  auto this_link = it.second;
+                  if(this_link->info.blockXmitTx)
+                    {
+                      mavlink_message_t msg;
+                      if(block_xmit->sendChunk(msg))
+                        {
+                          this_link->qAddOutgoing(msg);
+                        }
+                    }
+                }
+              should_sleep = true;
+            }
         }
 
         if(should_sleep)
-            boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+        {
+          boost::this_thread::sleep(boost::posix_time::milliseconds(MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS));
+        }
     }
 
     // Report successful exit from main()
@@ -138,7 +158,7 @@ int tryUserOptions(int argc, char** argv, boost::program_options::options_descri
 
 }
 
-bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_, bool &verbose)
+bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_, std::shared_ptr<blockXmit> block_xmit_,bool &verbose)
 {
     // Gets run in a while loop once links are setup
 
@@ -156,7 +176,22 @@ bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing
         {
             should_sleep = false;
 
-            if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+            //TODO: this is dirty do better
+            if(incoming_link->info.blockXmitRx &&
+               msg.msgid == MAVLINK_MSG_ID_DATA64 &&
+               msg.sysid == BLOCK_XMIT_SYSID_TX)
+            {
+                mavlink_message_t ack;
+                block_xmit_->handleChunk(msg,ack);
+                incoming_link->qAddOutgoing(ack);
+            }
+            else if(incoming_link->info.blockXmitTx &&
+                    msg.msgid == MAVLINK_MSG_ID_DATA16 &&
+                    msg.sysid == BLOCK_XMIT_SYSID_RX)
+            {
+              block_xmit_->handleAck(msg);
+            }
+            else if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
                 std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
         }
     }

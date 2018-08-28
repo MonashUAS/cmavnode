@@ -22,7 +22,8 @@ class File
 
   void createChunks(std::vector<chunk> &q); //turn a file into chunks
 
-  void addChunk(chunk chunk_); //add a received chunk
+  //returns isComplete()
+  bool addChunk(chunk chunk_); //add a received chunk
 
   bool isComplete(); //check if all chunks have been received
 

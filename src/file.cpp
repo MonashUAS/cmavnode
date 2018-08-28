@@ -66,11 +66,11 @@ void File::createChunks(std::vector<chunk> &q)
     }
 }
 
-void File::addChunk(chunk chunk_)
+bool File::addChunk(chunk chunk_)
 {
   //do nothing if we have this chunk already
   if(rx_map[chunk_.chunk_id] == true)
-    return;
+    return isComplete();
 
   // record that we have this chunk
   rx_map[chunk_.chunk_id] = true;
@@ -86,6 +86,8 @@ void File::addChunk(chunk chunk_)
   //           << chunk_.file_id << " chunk id: "
   //           << chunk_.chunk_id << " num chunks: "
   //           << chunk_.num_chunks << std::endl;
+
+  return isComplete();
 }
 
 void File::saveFile()

@@ -62,6 +62,8 @@ struct link_options
     std::string link_name;
     bool reject_repeat_packets = false;
     bool SiK_radio = false;
+    bool blockXmitRx = false;
+    bool blockXmitTx = false;
 };
 
 // Stats for the entire link, not specific to system

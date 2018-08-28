@@ -149,6 +149,8 @@ std::string JsonApi::getLinks() const
         linkoptionsroot.put("link_name", info_.link_name);
         linkoptionsroot.put("reject_repeat_packets", info_.reject_repeat_packets);
         linkoptionsroot.put("sik_radio", info_.SiK_radio);
+        linkoptionsroot.put("blockXmitRx", info_.blockXmitRx);
+        linkoptionsroot.put("blockXmitTx", info_.blockXmitTx);
         thislinkroot.add_child("link_options",linkoptionsroot);
         linksroot.push_back(std::make_pair("", thislinkroot));
     }
@@ -187,6 +189,8 @@ void JsonApi::addLink(std::string json)
         std::cout << "json_api adding link" << std::endl;
         pt::ptree lo_root_raw = lo_root.get();
         options.link_name =             lo_root_raw.get<std::string>("link_name");
+        options.blockXmitRx =             lo_root_raw.get<bool>("blockXmitRx");
+        options.blockXmitTx =             lo_root_raw.get<bool>("blockXmitTx");
         //options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
         //options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
     }

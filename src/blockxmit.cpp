@@ -13,15 +13,17 @@ blockXmit::~blockXmit()
 void blockXmit::sendFile(const std::string file)
 {
   std::cout << "Sending File " << file << std::endl;
-  {
-    File file_(file); //create a file object
-    file_.createChunks(qChunk); //turn it into chunks on the q
-  }
+  File file_(file); //create a file object
+
+  // lock the chunk queue
+  std::lock_guard<std::mutex> guard(qChunkMutex);
+  file_.createChunks(qChunk); //turn it into chunks on the q
   std::cout << "File added queue size is " << qChunk.size() << std::endl;
 }
 
 bool blockXmit::processMsg(mavlink_message_t &msg)
 {
+  /*
   if(msg.msgid == MAVLINK_MSG_ID_DATA16 && msg.sysid == BLOCK_XMIT_SYSID_RX)
   {
     handleAck(msg);
@@ -32,22 +34,27 @@ bool blockXmit::processMsg(mavlink_message_t &msg)
   }
   else
     return false;
+  */
 }
 
 bool blockXmit::sendChunk(mavlink_message_t &msg)
 {
+  // lock the chunk queue
+  std::lock_guard<std::mutex> guard(qChunkMutex);
   if(qChunk.size() == 0)
     return false;
 
   //pack the chunk at the front of the vector
   qChunk.at(0).pack(msg);
-
+  std::cout << "Sent Chunk file_id: " << qChunk.at(0).file_id << " chunk_id: " << qChunk.at(0).chunk_id << std::endl;
   std::rotate(qChunk.begin(),qChunk.begin()+1,qChunk.end());
+
+  return true;
 }
 
 void blockXmit::handleAck(mavlink_message_t &msg)
 {
-  uint8_t msg_data[4];
+  uint8_t msg_data[16];
   mavlink_msg_data16_get_data(&msg,msg_data);
 
   u_split splitter;
@@ -59,6 +66,18 @@ void blockXmit::handleAck(mavlink_message_t &msg)
   splitter.u8[0] = msg_data[3];
   uint16_t chunk_id = splitter.u16;
 
+  // lock the chunk queue
+  std::lock_guard<std::mutex> guard(qChunkMutex);
+  std::cout << "Got ACK file_id: " << file_id << " chunk_id: " << chunk_id << std::endl;
+  for(auto it = qChunk.begin(); it != qChunk.end(); it++)
+  {
+    if(it->file_id == file_id && it->chunk_id == chunk_id)
+    {
+      qChunk.erase(it);
+      break;
+    }
+  }
+  /*
   qChunk.erase(std::remove_if(qChunk.begin(),qChunk.end(), [&](chunk const & chunk_)
                               {
                                 if(chunk_.file_id == file_id && chunk_.chunk_id == chunk_id)
@@ -67,10 +86,10 @@ void blockXmit::handleAck(mavlink_message_t &msg)
                                   return false;
                               }),
                qChunk.end());
-
+  */
 }
 
-void blockXmit::handleChunk(mavlink_message_t &msg)
+void blockXmit::handleChunk(mavlink_message_t &msg, mavlink_message_t &ack)
 {
   chunk achunk(msg);
 
@@ -82,8 +101,14 @@ void blockXmit::handleChunk(mavlink_message_t &msg)
   }
   else
   { //file already exists
-    fileMap.at(achunk.file_id).addChunk(achunk);
+    if(fileMap.at(achunk.file_id).addChunk(achunk))
+    { //save file to disk and erase it from the map
+      fileMap.at(achunk.file_id).saveFile();
+      fileMap.erase(achunk.file_id);
+    }
   }
+
+  achunk.genAck(ack);
 }
 
 void chunkdiff(chunk c1, chunk c2)
