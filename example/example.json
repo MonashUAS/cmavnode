@@ -1,0 +1,73 @@
+﻿{
+    "links": [
+        {
+            "id": "1",
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14555",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "GCS",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "id": "2",
+            "serial_properties": {
+                "port": "/dev/ttyUSB5",
+                "baudrate": "57600",
+                "flowcontrol": "false"
+            },
+            "link_options": {
+                "link_name": "seas",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "id": "0",
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14552",
+                "bindport": "14550",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "SITL",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        }
+    ],
+    "mapping": [
+        {
+            "src": "255",
+            "dst": "1",
+            "bidir": "true"
+        },
+        {
+            "src": "254",
+            "dst": "2",
+            "bidir": "true"
+        }
+    ],
+    "routing_table": [
+        {
+            "dest": "255",
+            "next_hop": "1"
+        },
+        {
+            "dest": "1",
+            "next_hop": "0"
+        }
+    ]
+}
