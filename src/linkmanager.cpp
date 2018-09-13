@@ -42,9 +42,9 @@ int LinkManager::lookupLinkByName(std::string name)
 {
   std::lock_guard<std::mutex> lock(links_cache_access_lock_);
   //look through the cached map to find the matching link
-  for (const auto & [ id, l ] : links_cached_) {
-    if(l->link_options_.link_name.compare(name) == 0)
-      return id;
+  for (auto& it: links_cached_) {
+    if(it.second->link_options_.link_name.compare(name) == 0)
+      return it.first;
   }
   return -1;
 }
