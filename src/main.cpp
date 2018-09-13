@@ -23,7 +23,7 @@
 #include "routing.h"
 
 //Periodic function timings
-#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 10
+#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 12
 
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);

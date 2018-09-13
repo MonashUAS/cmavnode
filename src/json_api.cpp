@@ -101,10 +101,29 @@ void JsonApi::setRouting(std::string json)
   routing_->clear(); //empty the mapping
   std::cout << "Routing" << std::endl;
   BOOST_FOREACH(pt::ptree::value_type &v, pt) {
+    std::string nh = v.second.get<std::string>("next_hop");
+
+    //Find out if string is a number
+    std::string::const_iterator it = nh.begin();
+    while (it != nh.end() && std::isdigit(*it)) ++it;
+    bool isnumber = !nh.empty() && it == nh.end();
+
+    // Now get numeric value of dest either by lookup or conversion
+    int nh_num = 0; 
+    if(isnumber)
+    {
+      std::stringstream nhstream(nh); 
+      nhstream >> nh_num;
+      std::cout << "Number specified" << std::endl;
+    }
+    else
+    {
+      nh_num = manager_->lookupLinkByName(nh);
+      std::cout << "String specified" << std::endl;
+    }
     uint8_t dest = v.second.get<uint8_t>("dest");
-    uint8_t next_hop = v.second.get<bool>("next_hop");
-    std::cout << "dest: " << (int)dest << " next_hop: " << (int)next_hop << std::endl;
-    routing_->push_back(route(dest,next_hop));
+    std::cout << "dest: " << (int)dest << " next_hop: " << (int)nh_num << std::endl;
+    routing_->push_back(route(dest,nh_num));
   }
 }
 

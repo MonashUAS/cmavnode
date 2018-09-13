@@ -38,6 +38,17 @@ links_cached_t LinkManager::getLinks() const
     return links_cached_;
 }
 
+int LinkManager::lookupLinkByName(std::string name)
+{
+  std::lock_guard<std::mutex> lock(links_cache_access_lock_);
+  //look through the cached map to find the matching link
+  for (const auto & [ id, l ] : links_cached_) {
+    if(l->link_options_.link_name.compare(name) == 0)
+      return id;
+  }
+  return -1;
+}
+
 int LinkManager::addSerial(serial_properties properties, link_options options)
 {
     std::lock_guard<std::mutex> lock(links_access_lock_);

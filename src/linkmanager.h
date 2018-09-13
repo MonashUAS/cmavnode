@@ -28,6 +28,7 @@ public:
 
     links_cached_t getLinks() const;
 
+    int lookupLinkByName(std::string name);
     // These functions will be called from the JSON server
     // They return the link id of the created link, or -1 if failed
     int addSerial(serial_properties properties, link_options options);
