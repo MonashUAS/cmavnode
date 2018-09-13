@@ -177,22 +177,26 @@ bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing
             should_sleep = false;
 
             //TODO: this is dirty do better
-            if(incoming_link->info.blockXmitRx &&
-               msg.msgid == MAVLINK_MSG_ID_DATA64 &&
-               msg.sysid == BLOCK_XMIT_SYSID_TX)
+            //if(incoming_link->info.blockXmitRx &&
+            //msg.msgid == MAVLINK_MSG_ID_DATA64 &&
+            //msg.sysid == BLOCK_XMIT_SYSID_TX)
+            //{
+            //mavlink_message_t ack;
+            //block_xmit_->handleChunk(msg,ack);
+            //incoming_link->qAddOutgoing(ack);
+            //}
+            //else if(incoming_link->info.blockXmitTx &&
+            //msg.msgid == MAVLINK_MSG_ID_DATA16 &&
+            //msg.sysid == BLOCK_XMIT_SYSID_RX)
+            //{
+            //block_xmit_->handleAck(msg);
+            //}
+            //else if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+            //std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
+            if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
             {
-                mavlink_message_t ack;
-                block_xmit_->handleChunk(msg,ack);
-                incoming_link->qAddOutgoing(ack);
+              std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
             }
-            else if(incoming_link->info.blockXmitTx &&
-                    msg.msgid == MAVLINK_MSG_ID_DATA16 &&
-                    msg.sysid == BLOCK_XMIT_SYSID_RX)
-            {
-              block_xmit_->handleAck(msg);
-            }
-            else if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
-                std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
         }
     }
 
