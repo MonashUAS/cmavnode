@@ -23,7 +23,7 @@
 #include "routing.h"
 
 //Periodic function timings
-#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 12
+#define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 5
 
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
@@ -80,21 +80,32 @@ int main(int argc, char** argv)
 
             if(runMainLoop(links,source_map,routing_table,block_xmit,verbose))
             {
-              //TODO: this sucks, this cant stay here
-              for (auto it : links)
-                {
-                  auto this_link = it.second;
-                  if(this_link->info.blockXmitTx)
-                    {
-                      mavlink_message_t msg;
-                      if(block_xmit->sendChunk(msg))
-                        {
-                          this_link->qAddOutgoing(msg);
-                        }
-                    }
-                }
               should_sleep = true;
             }
+
+            static boost::posix_time::ptime last_block_xmit_update;
+            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration diff = now - last_block_xmit_update;
+            if(diff.total_milliseconds() > BLOCK_XMIT_RUN_EVERY_MS)
+              {
+                last_block_xmit_update = boost::posix_time::microsec_clock::local_time();
+                // Block xmit transmit
+                for (auto it : links)
+                  {
+                    auto this_link = it.second;
+                    if(this_link->info.blockXmitTx)
+                      {
+                        mavlink_message_t msg;
+                        for(int i = 0; i < BLOCK_XMIT_CHUNKS_PER_RUN; i++)
+                        {
+                          if(block_xmit->sendChunk(msg))
+                          {
+                            this_link->qAddOutgoing(msg);
+                          }
+                        }
+                      }
+                  }
+              }
         }
 
         if(should_sleep)
@@ -177,26 +188,27 @@ bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing
             should_sleep = false;
 
             //TODO: this is dirty do better
-            //if(incoming_link->info.blockXmitRx &&
-            //msg.msgid == MAVLINK_MSG_ID_DATA64 &&
-            //msg.sysid == BLOCK_XMIT_SYSID_TX)
-            //{
-            //mavlink_message_t ack;
-            //block_xmit_->handleChunk(msg,ack);
-            //incoming_link->qAddOutgoing(ack);
-            //}
-            //else if(incoming_link->info.blockXmitTx &&
-            //msg.msgid == MAVLINK_MSG_ID_DATA16 &&
-            //msg.sysid == BLOCK_XMIT_SYSID_RX)
-            //{
-            //block_xmit_->handleAck(msg);
-            //}
-            //else if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
-            //std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
-            if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+            //block xmit receive stuff
+            if(incoming_link->info.blockXmitRx &&
+            msg.msgid == MAVLINK_MSG_ID_DATA64 &&
+            msg.sysid == BLOCK_XMIT_SYSID_TX)
             {
-              std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
+              mavlink_message_t ack;
+              block_xmit_->handleChunk(msg,ack);
+              incoming_link->qAddOutgoing(ack);
             }
+            else if(incoming_link->info.blockXmitTx &&
+            msg.msgid == MAVLINK_MSG_ID_DATA16 &&
+            msg.sysid == BLOCK_XMIT_SYSID_RX)
+            {
+              block_xmit_->handleAck(msg);
+            }
+            else if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+              std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
+            //if(routePacket(links,routing_table_,source_map_,msg,it.first) < 0)
+            //{
+            //  std::cout << "Packet from " << (int)msg.sysid << " not routed, id: " << (int)msg.msgid << std::endl;
+            //}
         }
     }
 

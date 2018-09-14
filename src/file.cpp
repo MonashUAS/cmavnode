@@ -2,6 +2,7 @@
 
 File::File(std::string filename)
 {
+  filename_ = filename;
   std::ifstream infile(filename, std::ios_base::binary | std::ios::ate);
   std::streamsize size = infile.tellg();
   buffer.resize(size);
@@ -22,7 +23,9 @@ File::File(chunk firstchunk)
 {
   // save info from the chunk
   filenumber_ = firstchunk.file_id;
+  filename_ = std::to_string(filenumber_) + ".jpg";
   numchunks_ = firstchunk.num_chunks;
+  first_ts = boost::posix_time::microsec_clock::local_time();
 
   //preallocate the rx buffer
   buffer.resize(numchunks_*BLOCK_XMIT_DATA_BYTES);
@@ -66,6 +69,17 @@ void File::createChunks(std::vector<chunk> &q)
     }
 }
 
+void File::printTransferTime()
+{
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration diff = now - first_ts;
+    long ms = diff.total_milliseconds();
+    if(ms < 10000)
+      std::cout << "File " << filenumber_ << " fully received in " << ms << " milliseconds" << std::endl;
+    else
+      std::cout << "File " << filenumber_ << " fully received in " << diff.total_seconds() << " seconds" << std::endl;
+}
+
 bool File::addChunk(chunk chunk_)
 {
   //do nothing if we have this chunk already
@@ -92,7 +106,7 @@ bool File::addChunk(chunk chunk_)
 
 void File::saveFile()
 {
-  std::ofstream outfile("test.jpg", std::ios::out | std::ios::binary);
+  std::ofstream outfile("cmavoutput/" + filename_, std::ios::out | std::ios::binary);
   outfile.write(buffer.data(), buffer.size());
 }
 

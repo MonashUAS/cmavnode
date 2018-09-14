@@ -200,7 +200,7 @@ void asyncsocket::handleReceiveFrom(const boost::system::error_code& error,
         //And start reading again
         receive();
     }
-    else
+    else if(error)
     {
         //nothing received or there was an error
         throw Exception("UDPClient: Error in handle_receive_from");

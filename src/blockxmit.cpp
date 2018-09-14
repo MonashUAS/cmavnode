@@ -93,18 +93,22 @@ void blockXmit::handleChunk(mavlink_message_t &msg, mavlink_message_t &ack)
 {
   chunk achunk(msg);
 
+  bool alreadyRx = std::find(completedFileMap.begin(),completedFileMap.end(), achunk.file_id) != completedFileMap.end();
+
   //see if this is the first chunk for this file
-  if(fileMap.count(achunk.file_id) ==0)
+  if(fileMap.count(achunk.file_id) ==0 && !alreadyRx)
   {
     File tmpfile(achunk);
     fileMap.insert(std::make_pair(achunk.file_id,tmpfile));
   }
-  else
+  else if (!alreadyRx)
   { //file already exists
     if(fileMap.at(achunk.file_id).addChunk(achunk))
     { //save file to disk and erase it from the map
+      fileMap.at(achunk.file_id).printTransferTime();
       fileMap.at(achunk.file_id).saveFile();
       fileMap.erase(achunk.file_id);
+      completedFileMap.push_back(achunk.file_id);
     }
   }
 

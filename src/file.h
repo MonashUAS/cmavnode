@@ -1,6 +1,7 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <iostream>
 #include <map>
 #include <fstream>
@@ -27,6 +28,8 @@ class File
 
   bool isComplete(); //check if all chunks have been received
 
+  void printTransferTime();
+
   void saveFile(); //save a received file to the disk
  private:
   // buffer of bytes that holds the file
@@ -38,7 +41,9 @@ class File
   uint16_t rx_count = 0;
 
   uint16_t filenumber_;
+  std::string filename_;
   uint16_t numchunks_;
+  boost::posix_time::ptime first_ts;
 };
 
 #endif

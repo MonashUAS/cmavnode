@@ -1,0 +1,22 @@
+﻿{
+    "links": [
+        {
+            "id": "0",
+            "udp_properties": {
+                "host": "localhost",
+                "hostport": "14556",
+                "bindport": "14555",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "rx",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "true",
+                "blockXmitTx": "false"
+            }
+        }
+    ],
+    "mapping": [],
+    "routing_table": []
+}

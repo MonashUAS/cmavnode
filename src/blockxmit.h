@@ -17,6 +17,9 @@
 #include "chunk.h"
 #include "file.h"
 
+#define BLOCK_XMIT_RUN_EVERY_MS 100
+#define BLOCK_XMIT_CHUNKS_PER_RUN 2
+
 class blockXmit
 {
  public:
@@ -35,6 +38,8 @@ class blockXmit
 
   //file map only ever accessed from main loop on rx
   std::map<uint16_t,File> fileMap;
+
+  std::vector<uint16_t> completedFileMap;
 };
 
 
