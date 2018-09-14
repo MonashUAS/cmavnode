@@ -121,10 +121,13 @@ void CmavServer::sendFile(const Rest::Request& request, Http::ResponseWriter res
 {
   std::cout << "Send File" << std::endl;
 
-  json_api_->sendFile(request.body());
+  bool suc = json_api_->sendFile(request.body());
 
   addCors(response);
-  response.send(Http::Code::Ok);
+  if(suc)
+    response.send(Http::Code::Ok);
+  else
+    response.send(Http::Code::Service_Unavailable);
 }
 
 void CmavServer::addCors(Http::ResponseWriter& response)

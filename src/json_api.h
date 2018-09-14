@@ -32,7 +32,7 @@ public:
     void addLink(std::string json);
     void setMapping(std::string json);
     void setRouting(std::string json);
-    void sendFile(std::string json);
+    bool sendFile(std::string json);
 
 private:
     std::shared_ptr<LinkManager> manager_;

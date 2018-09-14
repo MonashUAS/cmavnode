@@ -17,8 +17,9 @@
 #include "chunk.h"
 #include "file.h"
 
-#define BLOCK_XMIT_RUN_EVERY_MS 100
-#define BLOCK_XMIT_CHUNKS_PER_RUN 2
+#define BLOCK_XMIT_RUN_EVERY_MS 100 // How often block xmit will transmit on the main loop
+#define BLOCK_XMIT_CHUNKS_PER_RUN 2 // Send x chunks on each configured link every run
+#define BLOCK_XMIT_MAX_Q 200 // Soft limit on chunks in queue
 
 class blockXmit
 {
@@ -29,7 +30,7 @@ class blockXmit
   void handleAck(mavlink_message_t &msg);
   void handleChunk(mavlink_message_t &msg,mavlink_message_t &ack);
   bool sendChunk(mavlink_message_t &msg);
-  void sendFile(const std::string file);
+  bool sendFile(const std::string file,uint16_t x, uint16_t y);
 
  private:
   //the chunk queue will be accessed from the web server and the main loop, so we need to protect it

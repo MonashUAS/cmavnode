@@ -10,15 +10,19 @@ blockXmit::~blockXmit()
   std::cout << "Block XMIT destructed" << std::endl;
 }
 
-void blockXmit::sendFile(const std::string file)
+bool blockXmit::sendFile(const std::string file,uint16_t x, uint16_t y)
 {
+  // Obtain lock and check if the queue is within bounds
+  std::lock_guard<std::mutex> guard(qChunkMutex);
+  if(qChunk.size() > BLOCK_XMIT_MAX_Q)
+    return false;
+
+  // Queue within bounds, send the file
   std::cout << "Sending File " << file << std::endl;
   File file_(file); //create a file object
-
-  // lock the chunk queue
-  std::lock_guard<std::mutex> guard(qChunkMutex);
   file_.createChunks(qChunk); //turn it into chunks on the q
   std::cout << "File added queue size is " << qChunk.size() << std::endl;
+  return true;
 }
 
 bool blockXmit::processMsg(mavlink_message_t &msg)
