@@ -18,7 +18,7 @@
 class File
 {
  public:
-  File(std::string filename); //create a file by reading from the disk
+  File(std::string filename, uint16_t x, uint16_t y); //create a file by reading from the disk
   File(chunk firstchunk); //create a file because we have received a chunk from it
 
   void createChunks(std::vector<chunk> &q); //turn a file into chunks

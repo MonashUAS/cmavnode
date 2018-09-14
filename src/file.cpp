@@ -1,6 +1,6 @@
 #include "file.h"
 
-File::File(std::string filename)
+File::File(std::string filename,uint16_t x, uint16_t y)
 {
   filename_ = filename;
   std::ifstream infile(filename, std::ios_base::binary | std::ios::ate);
@@ -13,6 +13,15 @@ File::File(std::string filename)
     }
   else
     std::cout << "Cannot read file FAIL" << std::endl;
+
+  // add the x y info to the front of the buffer
+  u_split splitter;
+  splitter.u16 = x;
+  buffer.insert(buffer.begin(),splitter.u8[0]);
+  buffer.insert(buffer.begin(),splitter.u8[1]);
+  splitter.u16 = y;
+  buffer.insert(buffer.begin(),splitter.u8[0]);
+  buffer.insert(buffer.begin(),splitter.u8[1]);
 
   // populate info fields
   filenumber_ = getFileNumber(filename);
@@ -106,6 +115,26 @@ bool File::addChunk(chunk chunk_)
 
 void File::saveFile()
 {
+
+  // Strip x and y from front of buffer
+  u_split splitter;
+  splitter.u8[1] = buffer.front();
+  buffer.erase(buffer.begin());
+  splitter.u8[0] = buffer.front();
+  buffer.erase(buffer.begin());
+  int y = splitter.u16;
+  splitter.u8[1] = buffer.front();
+  buffer.erase(buffer.begin());
+  splitter.u8[0] = buffer.front();
+  buffer.erase(buffer.begin());
+  int x = splitter.u16;
+
+  std::ofstream myfile;
+  myfile.open ("cmavoutput/" +std::to_string(filenumber_)+".txt");
+  myfile << "x: " << x << "\n";
+  myfile << "y: " << y << "\n";
+  myfile.close();
+
   std::ofstream outfile("cmavoutput/" + filename_, std::ios::out | std::ios::binary);
   outfile.write(buffer.data(), buffer.size());
 }
