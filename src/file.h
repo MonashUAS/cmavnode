@@ -30,7 +30,7 @@ class File
 
   void printTransferTime();
 
-  void saveFile(); //save a received file to the disk
+  void saveFile(std::string dir); //save a received file to the disk
  private:
   // buffer of bytes that holds the file
   std::vector<char> buffer;

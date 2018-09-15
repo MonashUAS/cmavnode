@@ -116,7 +116,7 @@ bool File::addChunk(chunk chunk_)
   return isComplete();
 }
 
-void File::saveFile()
+void File::saveFile(std::string dir)
 {
 
   // Strip x and y from front of buffer
@@ -132,14 +132,19 @@ void File::saveFile()
   buffer.erase(buffer.begin());
   int x = splitter.u16;
 
-  std::ofstream myfile;
-  myfile.open ("cmavoutput/" +filenumberstring_+".txt");
-  myfile << "x: " << x << "\n";
-  myfile << "y: " << y << "\n";
-  myfile.close();
+  if(dir.length() > 0)
+  {
+    std::ofstream myfile;
+    myfile.open (dir+ "/" +filenumberstring_+".txt");
+    myfile << "x: " << x << "\n";
+    myfile << "y: " << y << "\n";
+    myfile.close();
 
-  std::ofstream outfile("cmavoutput/" + filename_, std::ios::out | std::ios::binary);
-  outfile.write(buffer.data(), buffer.size());
+    std::ofstream outfile(dir+"/" + filename_, std::ios::out | std::ios::binary);
+    outfile.write(buffer.data(), buffer.size());
+  }
+  else
+    std::cout << "File received but no rx_dir configured....?" << std::endl;
 }
 
 int File::getFileNumber(std::string filename)

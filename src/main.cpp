@@ -26,7 +26,7 @@
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 5
 
 // Functions in this file
-boost::program_options::options_description add_program_options(bool &verbose, int &headlessport);
+boost::program_options::options_description add_program_options(bool &verbose, int &headlessport, std::string &rx_dir);
 int tryUserOptions(int argc, char** argv, boost::program_options::options_description desc);
 bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing_table_,std::shared_ptr<blockXmit> block_xmit_, bool &verbose);
 void exitGracefully(int a);
@@ -40,11 +40,12 @@ int main(int argc, char** argv)
     // variables to populate from arguments
     bool verbose = false;
     int server_port = -1;
+    std::string rx_dir;
 
     // lock to protect the links vector
     std::mutex links_access_lock;
 
-    boost::program_options::options_description desc = add_program_options(verbose, server_port);
+    boost::program_options::options_description desc = add_program_options(verbose, server_port, rx_dir);
 
     if(tryUserOptions(argc, argv, desc) != 0)
         return 0;
@@ -54,7 +55,7 @@ int main(int argc, char** argv)
 
     // Allocate key structures
     links_t links;
-    auto block_xmit = std::make_shared<blockXmit>();
+    auto block_xmit = std::make_shared<blockXmit>(rx_dir);
     auto link_manager = std::make_shared<LinkManager>(&links,std::ref(links_access_lock));
     auto json_api = std::make_shared<JsonApi>(link_manager,block_xmit,source_map,routing_table,std::ref(links_access_lock));
 
@@ -119,12 +120,13 @@ int main(int argc, char** argv)
     return 0;
 }
 
-boost::program_options::options_description add_program_options(bool &verbose, int &headlessport)
+boost::program_options::options_description add_program_options(bool &verbose, int &headlessport, std::string &rx_dir)
 {
     boost::program_options::options_description desc("Options");
     desc.add_options()
     ("help", "Print help messages")
     ("headless,H", boost::program_options::value<int>(&headlessport), "run cmavnode headless with json server, usage --headless <port>")
+      ("rx_dir,r", boost::program_options::value<std::string>(&rx_dir), "Specify rx directory for file transfer, usage --rx_dir <path>")
     ("verbose,v", boost::program_options::bool_switch(&verbose), "verbose output including dropped packets");
     return desc;
 }

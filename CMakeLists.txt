@@ -13,7 +13,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 set(Boost_USE_STATIC_LIBS ON)
 
-find_package( Boost 1.40 COMPONENTS program_options thread system REQUIRED )
+find_package( Boost 1.40 COMPONENTS program_options filesystem thread system REQUIRED )
 find_package( Threads REQUIRED)
 find_package( Readline REQUIRED)
 

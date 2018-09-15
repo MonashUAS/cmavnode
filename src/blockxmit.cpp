@@ -1,8 +1,20 @@
 #include "blockxmit.h"
 
-blockXmit::blockXmit()
+blockXmit::blockXmit(std::string rx_dir)
 {
   std::cout << "Block XMIT initialised" << std::endl;
+  if(rx_dir.length() > 0)
+  {
+    if(boost::filesystem::is_directory(rx_dir))
+      std::cout << "Directory " << rx_dir << " already exists" << std::endl;
+    else
+    {
+      std::cout << "Directory " << rx_dir << " does not exist" << std::endl;
+      std::cout << "Please create directory" << std::endl;
+      throw std::exception();
+    }
+  }
+    rx_dir_ = rx_dir;
 }
 
 blockXmit::~blockXmit()
@@ -110,7 +122,7 @@ void blockXmit::handleChunk(mavlink_message_t &msg, mavlink_message_t &ack)
     if(fileMap.at(achunk.file_id).addChunk(achunk))
     { //save file to disk and erase it from the map
       fileMap.at(achunk.file_id).printTransferTime();
-      fileMap.at(achunk.file_id).saveFile();
+      fileMap.at(achunk.file_id).saveFile(rx_dir_);
       fileMap.erase(achunk.file_id);
       completedFileMap.push_back(achunk.file_id);
     }

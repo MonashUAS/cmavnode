@@ -125,9 +125,13 @@ void CmavServer::sendFile(const Rest::Request& request, Http::ResponseWriter res
 
   addCors(response);
   if(suc)
+  {
     response.send(Http::Code::Ok);
+  }
   else
+  {
     response.send(Http::Code::Service_Unavailable);
+  }
 }
 
 void CmavServer::addCors(Http::ResponseWriter& response)
