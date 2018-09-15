@@ -41,6 +41,7 @@ class File
   uint16_t rx_count = 0;
 
   uint16_t filenumber_;
+  std::string filenumberstring_;
   std::string filename_;
   uint16_t numchunks_;
   boost::posix_time::ptime first_ts;

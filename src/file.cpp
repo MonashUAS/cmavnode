@@ -32,7 +32,10 @@ File::File(chunk firstchunk)
 {
   // save info from the chunk
   filenumber_ = firstchunk.file_id;
-  filename_ = std::to_string(filenumber_) + ".jpg";
+  filenumberstring_ = std::to_string(filenumber_);
+  filenumberstring_ = std::string(4 - filenumberstring_.length(), '0') + filenumberstring_;
+  filename_ = filenumberstring_ + ".jpg";
+
   numchunks_ = firstchunk.num_chunks;
   first_ts = boost::posix_time::microsec_clock::local_time();
 
@@ -130,7 +133,7 @@ void File::saveFile()
   int x = splitter.u16;
 
   std::ofstream myfile;
-  myfile.open ("cmavoutput/" +std::to_string(filenumber_)+".txt");
+  myfile.open ("cmavoutput/" +filenumberstring_+".txt");
   myfile << "x: " << x << "\n";
   myfile << "y: " << y << "\n";
   myfile.close();
