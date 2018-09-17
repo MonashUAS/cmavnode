@@ -25,7 +25,7 @@ File::File(std::string filename,uint16_t x, uint16_t y)
 
   // populate info fields
   filenumber_ = getFileNumber(filename);
-  numchunks_ = ceil((float)size/(float)BLOCK_XMIT_DATA_BYTES);
+  numchunks_ = ceil((float)buffer.size()/(float)BLOCK_XMIT_DATA_BYTES);
 }
 
 File::File(chunk firstchunk)
