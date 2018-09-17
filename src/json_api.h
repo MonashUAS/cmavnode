@@ -28,6 +28,7 @@ public:
     std::string getMapping() const;
     std::string getRouting() const;
 
+    void parseFile(std::string filename);
     bool removeLink(int link_id);
     void addLink(std::string json);
     void setMapping(std::string json);

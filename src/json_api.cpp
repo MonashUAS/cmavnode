@@ -8,6 +8,44 @@
 
 namespace pt = boost::property_tree;
 
+//parse an entire json file
+void JsonApi::parseFile(std::string filename)
+{
+  pt::ptree root;
+  pt::read_json(filename, root);
+
+  boost::optional< pt::ptree& > links_root = root.get_child_optional("links");
+  boost::optional< pt::ptree& > mapping_root = root.get_child_optional("mapping");
+  boost::optional< pt::ptree& > routing_root = root.get_child_optional("routing_table");
+
+  if(links_root)
+  {
+    pt::ptree links_root_raw = links_root.get();
+    BOOST_FOREACH(pt::ptree::value_type &v, links_root_raw)
+    {
+      std::stringstream ss;
+      pt::write_json(ss,v.second);
+      addLink(ss.str());
+    }
+  }
+
+  if(mapping_root)
+  {
+      pt::ptree mapping_root_raw = mapping_root.get();
+      std::stringstream ss;
+      pt::write_json(ss,mapping_root_raw);
+      setMapping(ss.str());
+  }
+
+  if(routing_root)
+  {
+      pt::ptree routing_root_raw = routing_root.get();
+      std::stringstream ss;
+      pt::write_json(ss,routing_root_raw);
+      setRouting(ss.str());
+  }
+}
+
 std::string JsonApi::getMapping() const
 {
     pt::ptree jsonroot;
@@ -64,7 +102,6 @@ void JsonApi::setMapping(std::string json)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     mapping_->clear(); //empty the mapping
-    std::cout << "Mapping" << std::endl;
     BOOST_FOREACH(pt::ptree::value_type &v, pt) {
         uint8_t src = v.second.get<uint8_t>("src");
         uint8_t dst = v.second.get<uint8_t>("dst");
@@ -97,7 +134,6 @@ void JsonApi::setRouting(std::string json)
   std::lock_guard<std::mutex> lock(links_access_lock_);
 
   routing_->clear(); //empty the mapping
-  std::cout << "Routing" << std::endl;
   BOOST_FOREACH(pt::ptree::value_type &v, pt) {
     std::string nh = v.second.get<std::string>("next_hop");
 
