@@ -21,13 +21,11 @@ CmavServer::~CmavServer()
 {
     endpoint_->shutdown();
     server_thread.join();
-    std::cout << "cmavserver detructed" << std::endl;
 }
 
 
 void CmavServer::serverThread()
 {
-    std::cout << "HTTP Server thread started" << std::endl;
     start();
 }
 
@@ -89,8 +87,6 @@ void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWrit
 
 void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter response)
 {
-    std::cout << "Link add request" << std::endl;
-
     json_api_->addLink(request.body());
 
     addCors(response);
@@ -99,8 +95,6 @@ void CmavServer::addLink(const Rest::Request& request, Http::ResponseWriter resp
 
 void CmavServer::setMapping(const Rest::Request& request, Http::ResponseWriter response)
 {
-    std::cout << "Mapping set request" << std::endl;
-
     json_api_->setMapping(request.body());
 
     addCors(response);
@@ -109,8 +103,6 @@ void CmavServer::setMapping(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::setRouting(const Rest::Request& request, Http::ResponseWriter response)
 {
-  std::cout << "Routing set request" << std::endl;
-
   json_api_->setRouting(request.body());
 
   addCors(response);
@@ -119,8 +111,6 @@ void CmavServer::setRouting(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::sendFile(const Rest::Request& request, Http::ResponseWriter response)
 {
-  std::cout << "Send File" << std::endl;
-
   bool suc = json_api_->sendFile(request.body());
 
   addCors(response);
@@ -168,7 +158,6 @@ void CmavServer::removeLink(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter response)
 {
-    std::cout << "Responding to getlinks" << std::endl;
     std::string linksstring = json_api_->getLinks();
     addCors(response);
     response.send(Http::Code::Ok, linksstring);
@@ -176,7 +165,6 @@ void CmavServer::getLinks(const Rest::Request& request, Http::ResponseWriter res
 
 void CmavServer::getMapping(const Rest::Request& request, Http::ResponseWriter response)
 {
-    std::cout << "Responding to getmapping" << std::endl;
     std::string mappingstring = json_api_->getMapping();
     addCors(response);
     response.send(Http::Code::Ok, mappingstring);
@@ -184,7 +172,6 @@ void CmavServer::getMapping(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::getRouting(const Rest::Request& request, Http::ResponseWriter response)
 {
-  std::cout << "Responding to getrouting" << std::endl;
   std::string routingstring = json_api_->getRouting();
   addCors(response);
   response.send(Http::Code::Ok, routingstring);

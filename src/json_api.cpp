@@ -61,9 +61,7 @@ void JsonApi::setMapping(std::string json)
     read_json(ss, pt);
 
     // obtain lock on the main loop
-    std::cout << "Obtaining lock" << std::endl;
     std::lock_guard<std::mutex> lock(links_access_lock_);
-    std::cout << "Got lock" << std::endl;
 
     mapping_->clear(); //empty the mapping
     std::cout << "Mapping" << std::endl;
@@ -96,9 +94,7 @@ void JsonApi::setRouting(std::string json)
   read_json(ss, pt);
 
   // obtain lock on the main loop
-  std::cout << "Obtaining lock" << std::endl;
   std::lock_guard<std::mutex> lock(links_access_lock_);
-  std::cout << "Got lock" << std::endl;
 
   routing_->clear(); //empty the mapping
   std::cout << "Routing" << std::endl;
@@ -116,12 +112,10 @@ void JsonApi::setRouting(std::string json)
     {
       std::stringstream nhstream(nh); 
       nhstream >> nh_num;
-      std::cout << "Number specified" << std::endl;
     }
     else
     {
       nh_num = manager_->lookupLinkByName(nh);
-      std::cout << "String specified" << std::endl;
     }
     uint8_t dest = v.second.get<uint8_t>("dest");
     std::cout << "dest: " << (int)dest << " next_hop: " << (int)nh_num << std::endl;
@@ -207,7 +201,6 @@ void JsonApi::addLink(std::string json)
 
     if(lo_root)
     {
-        std::cout << "json_api adding link" << std::endl;
         pt::ptree lo_root_raw = lo_root.get();
         options.link_name =             lo_root_raw.get<std::string>("link_name");
         options.blockXmitRx =             lo_root_raw.get<bool>("blockXmitRx");
@@ -223,7 +216,6 @@ void JsonApi::addLink(std::string json)
 
     if(up_root)
     {
-        std::cout << "json_api adding udp" << std::endl;
         pt::ptree up_root_raw = up_root.get();
         udp_properties properties;
 
@@ -274,7 +266,6 @@ void JsonApi::addLink(std::string json)
     }
     else if(sp_root)
     {
-        std::cout << "json_api adding serial" << std::endl;
         pt::ptree sp_root_raw = sp_root.get();
         serial_properties properties;
         properties.port = sp_root_raw.get<std::string>("port");
