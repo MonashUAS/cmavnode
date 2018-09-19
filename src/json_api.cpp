@@ -11,8 +11,16 @@ namespace pt = boost::property_tree;
 //parse an entire json file
 void JsonApi::parseFile(std::string filename)
 {
+  std::ifstream inFile;
+  inFile.open(filename);
+  if (!inFile) {
+    std::cout << "Unable to open file";
+    exit(1); // terminate with error
+  }
   pt::ptree root;
-  pt::read_json(filename, root);
+  pt::read_json(inFile, root);
+
+  inFile.close();
 
   boost::optional< pt::ptree& > links_root = root.get_child_optional("links");
   boost::optional< pt::ptree& > mapping_root = root.get_child_optional("mapping");
