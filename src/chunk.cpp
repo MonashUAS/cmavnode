@@ -46,6 +46,7 @@ void chunk::pack(mavlink_message_t &msg)
       buffer[6+i] = data[i];
     }
 
+  //pack something at the end to stop data being overridden
   buffer[63] = 0xff;
   //now we have our 64 bytes ready
 

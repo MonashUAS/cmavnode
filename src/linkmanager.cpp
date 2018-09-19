@@ -18,6 +18,7 @@ void LinkManager::updateLinksCache()
             serial_cached->properties_ = serialcheck->properties;
             serial_cached->link_id_ = serialcheck->getLinkID();
             serial_cached->link_options_ = serialcheck->info;
+            serial_cached->stats_ = serialcheck->link_stats_;
             links_cached_[serial_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(serial_cached));
         }
         else if(udpcheck)
@@ -26,6 +27,7 @@ void LinkManager::updateLinksCache()
             udp_cached->properties_ = udpcheck->properties;
             udp_cached->link_id_ = udpcheck->getLinkID();
             udp_cached->link_options_ = udpcheck->info;
+            udp_cached->stats_ = udpcheck->link_stats_;
             links_cached_[udp_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(udp_cached));
         }
     }
@@ -48,7 +50,6 @@ int LinkManager::lookupLinkByName(std::string name)
   }
   return -1;
 }
-
 int LinkManager::addSerial(serial_properties properties, link_options options)
 {
     std::lock_guard<std::mutex> lock(links_access_lock_);

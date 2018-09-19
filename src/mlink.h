@@ -78,6 +78,7 @@ struct link_stats
     int corrected_packets = 0;
     boost::posix_time::ptime last_heartbeat = boost::posix_time::microsec_clock::local_time();
     long link_delay = 0;
+  float drate_rx = 0;
 };
 
 struct MlinkCached
@@ -85,6 +86,7 @@ struct MlinkCached
     virtual ~MlinkCached() {}
     int link_id_;
     link_options link_options_;
+  link_stats stats_;
 };
 
 class mlink
@@ -113,7 +115,6 @@ public:
     void updateRouting(mavlink_message_t &msg);
     void onMessageRecv(mavlink_message_t *msg); // returns whether to throw out this message
 
-    void update_datarate(mavlink_message_t *msg, std::vector<std::tuple<boost::posix_time::ptime,int>> &drate_buf, float &drate_to_update);
     //Read and write thread functions. Read thread will call ioservice.run and block
     //Write thread will be in an infinate busy wait loop
     virtual void runWriteThread() {};
@@ -129,11 +130,16 @@ public:
     long totalPacketSent = 0;
 
     // Datarates are in kB/s and are based on the last 10s of traffic
-    float datarate_recv = 0;
 
-    std::vector<std::tuple<boost::posix_time::ptime,int>> datarate_buf_recv;
+
+    std::mutex drate_lock_;
+    static const int drate_period_ms = 500;
+    float datarate_rx = 0;
+    float drate_smooth;
+    long drate_rx_bytes_last_period;
 
     // Track link quality for the link
+    std::mutex stats_lock_;
     link_stats link_stats_;
 
     // track metrics for one system on one link
@@ -165,6 +171,7 @@ protected:
 
     boost::thread read_thread;
     boost::thread write_thread;
+    boost::thread drate_thread;
 
     int link_id;
 
@@ -186,6 +193,8 @@ protected:
     void flush_recently_read();
     void record_packet_stats(mavlink_message_t *msg);
     void handleSiKRadioPacket(mavlink_message_t *msg);
+
+    void drateThread();
 
     // All links have their delay tracked to periodically flush recently_received
     static std::vector<boost::posix_time::time_duration> static_link_delay;

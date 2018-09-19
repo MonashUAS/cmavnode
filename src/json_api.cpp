@@ -46,6 +46,36 @@ void JsonApi::parseFile(std::string filename)
   }
 }
 
+std::string JsonApi::getStats() const
+{
+  links_cached_t cache = manager_->getLinks();
+  pt::ptree jsonroot;
+  pt::ptree statsroot;
+
+  for(auto it : cache)
+  {
+    auto thislink = it.second;
+    int link_id_ = it.first;
+    link_stats stats_ = thislink->stats_;
+
+    pt::ptree thislinkroot;
+    thislinkroot.put("id",link_id_);
+    thislinkroot.put("drate_rx",stats_.drate_rx);
+    thislinkroot.put("local_rssi",stats_.local_rssi);
+    thislinkroot.put("remote_rssi",stats_.remote_rssi);
+
+    statsroot.push_back(std::make_pair("", thislinkroot));
+  }
+
+    jsonroot.add_child("stats",statsroot);
+
+    std::stringstream ss;
+
+    pt::json_parser::write_json(ss,jsonroot);
+
+    return ss.str();
+}
+
 std::string JsonApi::getMapping() const
 {
     pt::ptree jsonroot;

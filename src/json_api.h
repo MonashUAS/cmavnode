@@ -25,6 +25,7 @@ public:
     ~JsonApi() {};
 
     std::string getLinks() const;
+    std::string getStats() const;
     std::string getMapping() const;
     std::string getRouting() const;
 

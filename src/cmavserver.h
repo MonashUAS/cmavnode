@@ -34,7 +34,7 @@ public:
     void getMapping(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void getRouting(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void getLinkById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
-    void getStatsById(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void getStats(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
 
     void addLink(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
     void setMapping(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);

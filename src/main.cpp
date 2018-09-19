@@ -24,6 +24,7 @@
 
 //Periodic function timings
 #define MAIN_LOOP_SLEEP_QUEUE_EMPTY_MS 5
+#define CACHE_UPDATE_EVERY_MS 100
 
 // Functions in this file
 boost::program_options::options_description add_program_options(bool &verbose, int &headlessport, std::string &rx_dir, std::string &startup_config);
@@ -76,6 +77,12 @@ int main(int argc, char** argv)
     // Start the main loop
     while (!exit_main_loop)
     {
+      static boost::posix_time::ptime last_cache_update;
+      boost::posix_time::ptime now_cache = boost::posix_time::microsec_clock::local_time();
+      boost::posix_time::time_duration diff_cache = now_cache - last_cache_update;
+      if(diff_cache.total_milliseconds() > CACHE_UPDATE_EVERY_MS)
+        link_manager->updateLinksCache();
+
         bool should_sleep = false;
 
         { // this scope is to ensure the lock is released before this thread sleeps

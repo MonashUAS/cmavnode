@@ -36,7 +36,7 @@ void CmavServer::setupRoutes()
     Routes::Get(router_, "/mapping", Routes::bind(&CmavServer::getMapping, this));
     Routes::Get(router_, "/routing", Routes::bind(&CmavServer::getRouting, this));
     Routes::Get(router_, "/links/:value", Routes::bind(&CmavServer::getLinkById, this));
-    Routes::Get(router_, "/stats/:value", Routes::bind(&CmavServer::getStatsById, this));
+    Routes::Get(router_, "/stats", Routes::bind(&CmavServer::getStats, this));
 
 
     Routes::Post(router_, "/links", Routes::bind(&CmavServer::addLink, this));
@@ -190,15 +190,9 @@ void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter 
     response.send(Http::Code::Ok, ss.str());
 }
 
-void CmavServer::getStatsById(const Rest::Request& request, Http::ResponseWriter response)
+void CmavServer::getStats(const Rest::Request& request, Http::ResponseWriter response)
 {
-  int value = 0;
-  if (request.hasParam(":value"))
-    {
-      value = request.param(":value").as<int>();
-    }
-  std::stringstream ss;
-  ss << "Got a request to get stats for link " << value;
-
-  response.send(Http::Code::Ok, ss.str());
+  std::string statsstring = json_api_->getStats();
+  addCors(response);
+  response.send(Http::Code::Ok, statsstring);
 }

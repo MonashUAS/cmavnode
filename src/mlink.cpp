@@ -19,6 +19,8 @@ mlink::mlink(int link_id_, link_options info_)
     link_id = link_id_;
     info = info_;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
+
+    drate_thread = boost::thread(&mlink::drateThread, this);
 }
 
 int mlink::getLinkID()
@@ -40,6 +42,23 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
             std::cout << "MLINK: The outgoing queue is full" << std::endl;
         }
     }
+}
+
+void mlink::drateThread()
+{
+  while(!exitFlag)
+  {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(drate_period_ms));
+    {
+    std::lock_guard<std::mutex> lock(drate_lock_);
+    float drate_this_period = (float)drate_rx_bytes_last_period/((float)drate_period_ms/1000.0);
+    static const float alpha = 0.5;
+    drate_smooth = (alpha * drate_this_period) + (1.0 - alpha) * drate_smooth;
+    drate_rx_bytes_last_period = 0;
+    std::lock_guard<std::mutex> lock2(stats_lock_);
+    link_stats_.drate_rx = drate_smooth;
+    }
+  }
 }
 
 bool mlink::qReadIncoming(mavlink_message_t *msg)
@@ -102,6 +121,8 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 
 void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
 {
+
+  std::lock_guard<std::mutex> lock(stats_lock_);
     link_stats_.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
     link_stats_.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
     link_stats_.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
@@ -145,8 +166,10 @@ void mlink::updateRouting(mavlink_message_t &msg)
     stats.last_packet_time = nowTime;
 
     // Track link delay using heartbeats
+
     if (msg.msgid == 0 && newSysID == false)
     {
+      std::lock_guard<std::mutex> lock(stats_lock_);
         boost::posix_time::time_duration delay = nowTime
                 - link_stats_.last_heartbeat
                 - boost::posix_time::time_duration(0,0,1,0);
@@ -154,7 +177,7 @@ void mlink::updateRouting(mavlink_message_t &msg)
         link_stats_.last_heartbeat = nowTime;
 
         // Remove old packets from recently_received
-        std::lock_guard<std::mutex> lock(recently_received_mutex);
+        std::lock_guard<std::mutex> lock2(recently_received_mutex);
         flush_recently_read();
     }
 }
@@ -312,39 +335,6 @@ void mlink::record_packet_stats(mavlink_message_t *msg)
 
     stats.last_packet_sequence = msg->seq;
 
-    update_datarate(msg,datarate_buf_recv,datarate_recv);
-}
-
-void mlink::update_datarate(mavlink_message_t *msg, std::vector<std::tuple<boost::posix_time::ptime,int>> &drate_buf, float &drate_to_update)
-{
-    int size = msg->len;
-    drate_buf.push_back(std::make_tuple(boost::posix_time::microsec_clock::local_time(),size));
-
-    for(int i = 0; i < drate_buf.size(); i++)
-    {
-        boost::posix_time::ptime checktime = std::get<0>(drate_buf.at(i));
-        boost::posix_time::ptime nowtime = boost::posix_time::microsec_clock::local_time();
-        boost::posix_time::time_duration dur = nowtime - checktime;
-        long ms = dur.total_milliseconds();
-        if( ms > 10*1000)
-            drate_buf.erase(drate_buf.begin() + i);
-    }
-
-    int tot_data = 0;
-    boost::posix_time::ptime lastinset = std::get<0>(drate_buf.at(0));
-    // Now the vector is only what we want to calc data only
-    for(int i = 0; i < drate_buf.size(); i++)
-    {
-        tot_data = tot_data + std::get<1>(drate_buf.at(i));
-    }
-
-
-    boost::posix_time::ptime nowtime = boost::posix_time::microsec_clock::local_time();
-    boost::posix_time::time_duration dur = nowtime - lastinset;
-    long ms = dur.total_milliseconds();
-
-    float sec = (float)ms/1000.0;
-
-    float bps = tot_data/sec;
-    drate_to_update = bps/1000;
+    std::lock_guard<std::mutex> lock(drate_lock_);
+    drate_rx_bytes_last_period += msg->len + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 }
