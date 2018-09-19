@@ -133,7 +133,7 @@ public:
 
 
     std::mutex drate_lock_;
-    static const int drate_period_ms = 500;
+    static const int drate_period_ms = 200;
     float datarate_rx = 0;
     float drate_smooth;
     long drate_rx_bytes_last_period;

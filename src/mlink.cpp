@@ -52,7 +52,7 @@ void mlink::drateThread()
     {
     std::lock_guard<std::mutex> lock(drate_lock_);
     float drate_this_period = (float)drate_rx_bytes_last_period/((float)drate_period_ms/1000.0);
-    static const float alpha = 0.5;
+    static const float alpha = 0.2;
     drate_smooth = (alpha * drate_this_period) + (1.0 - alpha) * drate_smooth;
     drate_rx_bytes_last_period = 0;
     std::lock_guard<std::mutex> lock2(stats_lock_);
