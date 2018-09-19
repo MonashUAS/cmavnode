@@ -1,0 +1,94 @@
+{
+    "links": [
+        {
+            "udp_properties": {
+                "host": "10.100.192.10",
+                "hostport": "14556",
+                "bindport": "14555",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "4g",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "serial_properties": {
+                "port": "/dev/ttyAMA0",
+                "baudrate": "115200",
+                "flowcontrol": "false"
+            },
+            "link_options": {
+                "link_name": "px4",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "true"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14560",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "mavros",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+	{
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14591",
+                "bindport": "14590",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "mrbridge",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        }
+    ],
+    "mapping": [
+        {
+            "src": "4",
+            "dst": "1",
+            "bidir": "true"
+        },
+        {
+            "src": "14",
+            "dst": "244",
+            "bidir": "true"
+        }
+    ],
+    "routing_table": [
+        {
+            "dest": "1",
+            "next_hop": "px4"
+        },
+        {
+            "dest": "244",
+            "next_hop": "mrbridge"
+        },
+        {
+            "dest": "14",
+            "next_hop": "px4"
+        },
+        {
+            "dest": "4",
+            "next_hop": "mavros"
+        }
+    ]
+}
+
