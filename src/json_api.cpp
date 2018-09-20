@@ -73,6 +73,16 @@ std::string JsonApi::getStats() const
     thislinkroot.put("local_rssi",stats_.local_rssi);
     thislinkroot.put("remote_rssi",stats_.remote_rssi);
 
+    pt::ptree sysidroot;
+    for (auto const& x : thislink->sysid_stats_)
+    {
+      pt::ptree thisstatroot;
+      thisstatroot.put("",x.first);
+      sysidroot.push_back(std::make_pair("",thisstatroot));
+    }
+    thislinkroot.add_child("sysids",sysidroot);
+
+
     statsroot.push_back(std::make_pair("", thislinkroot));
   }
 

@@ -2,14 +2,32 @@
 import json
 import pprint
 import requests
+import sys
 import time
+
+filterlink = "";
+filter = False
+
+if len(sys.argv) > 1:
+    filter = True
+    filterlink = sys.argv[1]
+    print sys.argv[1]
+
+    print "Only displaying link " + filterlink
+    time.sleep(1);
 
 while True:
     r = requests.get('http://localhost:8000/stats')
     rjson = r.json()
     for stat in rjson["stats"]:
-        if stat["name"] == "SITL":
-            pprint.pprint(float(stat["drate_rx"]))
+        sysstring = ": "
+        for sysid in stat["sysids"]:
+            sysstring = sysstring + sysid + " "
+
+        if stat["name"] == filterlink or not filter:
+            print stat["name"] + ": " + str(round(float(stat["drate_rx"]),2)) + " Bps, sysid" + sysstring
+        #if stat["name"] == "SITL":
+        #    pprint.pprint(float(stat["drate_rx"]))
 
     time.sleep(0.1)
 
