@@ -106,6 +106,10 @@
             "next_hop": "rfd"
         },
         {
+            "dest": "1",
+            "next_hop": "4g"
+        },
+        {
             "dest": "2",
             "next_hop": "rfd"
         },

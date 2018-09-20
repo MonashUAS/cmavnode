@@ -280,8 +280,8 @@ void JsonApi::addLink(std::string json)
         options.link_name =             lo_root_raw.get<std::string>("link_name");
         options.blockXmitRx =             lo_root_raw.get<bool>("blockXmitRx");
         options.blockXmitTx =             lo_root_raw.get<bool>("blockXmitTx");
-        //options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
-        //options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
+        options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
+        options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
     }
     else
     {
