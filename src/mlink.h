@@ -81,12 +81,27 @@ struct link_stats
   float drate_rx = 0;
 };
 
+// track metrics for one system on one link
+struct sysid_stats
+{
+  int num_packets_received = 0;
+  int recent_packets_received = 0;
+  int recent_packets_lost = 0;
+  boost::posix_time::ptime last_packet_time;
+  uint8_t last_packet_sequence = -1;
+  uint8_t out_packet_sequence = 0;
+  int packets_lost = 0;
+  int packets_dropped = 0;
+  float packet_loss_percent = 0;
+};
+
 struct MlinkCached
 {
     virtual ~MlinkCached() {}
     int link_id_;
     link_options link_options_;
   link_stats stats_;
+  std::map<uint8_t, sysid_stats> sysid_stats_;
 };
 
 class mlink
@@ -142,19 +157,6 @@ public:
     std::mutex stats_lock_;
     link_stats link_stats_;
 
-    // track metrics for one system on one link
-    struct sysid_stats
-    {
-        int num_packets_received = 0;
-        int recent_packets_received = 0;
-        int recent_packets_lost = 0;
-        boost::posix_time::ptime last_packet_time;
-        uint8_t last_packet_sequence = -1;
-        uint8_t out_packet_sequence = 0;
-        int packets_lost = 0;
-        int packets_dropped = 0;
-        float packet_loss_percent = 0;
-    };
 
     // Track heartbeat stats for each system ID.
     std::map<uint8_t, sysid_stats> sysID_stats;
