@@ -24,26 +24,26 @@
 
 class blockXmit
 {
- public:
-  blockXmit(std::string rx_dir);
-  ~blockXmit();
-  bool processMsg(mavlink_message_t &msg);
-  void handleAck(mavlink_message_t &msg);
-  void handleChunk(mavlink_message_t &msg,mavlink_message_t &ack);
-  bool sendChunk(mavlink_message_t &msg);
-  bool sendFile(const std::string file,uint16_t x, uint16_t y);
+public:
+    blockXmit(std::string rx_dir);
+    ~blockXmit();
+    bool processMsg(mavlink_message_t &msg);
+    void handleAck(mavlink_message_t &msg);
+    void handleChunk(mavlink_message_t &msg,mavlink_message_t &ack);
+    bool sendChunk(mavlink_message_t &msg);
+    bool sendFile(const std::string file,uint16_t x, uint16_t y);
 
- private:
-  //the chunk queue will be accessed from the web server and the main loop, so we need to protect it
-  std::mutex qChunkMutex;
-  std::vector<chunk> qChunk;
+private:
+    //the chunk queue will be accessed from the web server and the main loop, so we need to protect it
+    std::mutex qChunkMutex;
+    std::vector<chunk> qChunk;
 
-  //file map only ever accessed from main loop on rx
-  std::map<uint16_t,File> fileMap;
+    //file map only ever accessed from main loop on rx
+    std::map<uint16_t,File> fileMap;
 
-  std::vector<uint16_t> completedFileMap;
+    std::vector<uint16_t> completedFileMap;
 
-  std::string rx_dir_;
+    std::string rx_dir_;
 };
 
 

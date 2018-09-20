@@ -46,19 +46,19 @@ void mlink::qAddOutgoing(mavlink_message_t msg)
 
 void mlink::drateThread()
 {
-  while(!exitFlag)
-  {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(drate_period_ms));
+    while(!exitFlag)
     {
-    std::lock_guard<std::mutex> lock(drate_lock_);
-    float drate_this_period = (float)drate_rx_bytes_last_period/((float)drate_period_ms/1000.0);
-    static const float alpha = 0.2;
-    drate_smooth = (alpha * drate_this_period) + (1.0 - alpha) * drate_smooth;
-    drate_rx_bytes_last_period = 0;
-    std::lock_guard<std::mutex> lock2(stats_lock_);
-    link_stats_.drate_rx = drate_smooth;
+        boost::this_thread::sleep(boost::posix_time::milliseconds(drate_period_ms));
+        {
+            std::lock_guard<std::mutex> lock(drate_lock_);
+            float drate_this_period = (float)drate_rx_bytes_last_period/((float)drate_period_ms/1000.0);
+            static const float alpha = 0.2;
+            drate_smooth = (alpha * drate_this_period) + (1.0 - alpha) * drate_smooth;
+            drate_rx_bytes_last_period = 0;
+            std::lock_guard<std::mutex> lock2(stats_lock_);
+            link_stats_.drate_rx = drate_smooth;
+        }
     }
-  }
 }
 
 bool mlink::qReadIncoming(mavlink_message_t *msg)
@@ -122,7 +122,7 @@ void mlink::onMessageRecv(mavlink_message_t *msg)
 void mlink::handleSiKRadioPacket(mavlink_message_t *msg)
 {
 
-  std::lock_guard<std::mutex> lock(stats_lock_);
+    std::lock_guard<std::mutex> lock(stats_lock_);
     link_stats_.local_rssi = _MAV_RETURN_uint8_t(msg,  4);
     link_stats_.remote_rssi = _MAV_RETURN_uint8_t(msg,  5);
     link_stats_.tx_buffer = _MAV_RETURN_uint8_t(msg,  6);
@@ -169,7 +169,7 @@ void mlink::updateRouting(mavlink_message_t &msg)
 
     if (msg.msgid == 0 && newSysID == false)
     {
-      std::lock_guard<std::mutex> lock(stats_lock_);
+        std::lock_guard<std::mutex> lock(stats_lock_);
         boost::posix_time::time_duration delay = nowTime
                 - link_stats_.last_heartbeat
                 - boost::posix_time::time_duration(0,0,1,0);
