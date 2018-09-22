@@ -22,7 +22,7 @@
 class JsonApi
 {
 public:
- JsonApi(std::shared_ptr<LinkManager> manager,std::shared_ptr<blockXmit> blockxmit,source_map_t mapping,routing_table_t routing,std::mutex &links_access_lock) : manager_(manager),block_xmit_(blockxmit), mapping_(mapping), routing_(routing), links_access_lock_(links_access_lock) {};
+    JsonApi(std::shared_ptr<LinkManager> manager,std::shared_ptr<blockXmit> blockxmit,source_map_t mapping,routing_table_t routing,std::mutex &links_access_lock) : manager_(manager),block_xmit_(blockxmit), mapping_(mapping), routing_(routing), links_access_lock_(links_access_lock) {};
     ~JsonApi() {};
 
     std::string getLinks() const;

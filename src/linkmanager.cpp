@@ -44,13 +44,14 @@ links_cached_t LinkManager::getLinks() const
 
 int LinkManager::lookupLinkByName(std::string name)
 {
-  std::lock_guard<std::mutex> lock(links_cache_access_lock_);
-  //look through the cached map to find the matching link
-  for (auto& it: links_cached_) {
-    if(it.second->link_options_.link_name.compare(name) == 0)
-      return it.first;
-  }
-  return -1;
+    std::lock_guard<std::mutex> lock(links_cache_access_lock_);
+    //look through the cached map to find the matching link
+    for (auto& it: links_cached_)
+    {
+        if(it.second->link_options_.link_name.compare(name) == 0)
+            return it.first;
+    }
+    return -1;
 }
 int LinkManager::addSerial(serial_properties properties, link_options options)
 {
@@ -84,12 +85,12 @@ bool LinkManager::removeLink(int link_id)
     for(auto it : *links_)
     {
         if(it.first == link_id)
-            {
-                links_->erase(link_id);
+        {
+            links_->erase(link_id);
 
-                updateLinksCache();
-                return true;
-            }
+            updateLinksCache();
+            return true;
+        }
     }
 
     return false;

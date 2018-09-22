@@ -67,6 +67,11 @@
             "bidir": "true"
         },
         {
+            "src": "1",
+            "dst": "255",
+            "bidir": "true"
+        },
+        {
             "src": "14",
             "dst": "244",
             "bidir": "true"
@@ -84,6 +89,14 @@
         {
             "dest": "14",
             "next_hop": "px4"
+        },
+        {
+            "dest": "255",
+            "next_hop": "4g"
+        },
+        {
+            "dest": "14",
+            "next_hop": "4g"
         },
         {
             "dest": "4",
