@@ -56,8 +56,8 @@ void CmavServer::setupRoutes()
 void CmavServer::initServer()
 {
     auto opts = Http::Endpoint::options()
-        .threads(1)
-        .flags(Tcp::Options::ReuseAddr);
+                .threads(1)
+                .flags(Tcp::Options::ReuseAddr);
     endpoint_->init(opts);
 
     setupRoutes();
@@ -78,8 +78,8 @@ void CmavServer::handleHeartbeat(const Rest::Request& request, Http::ResponseWri
 void CmavServer::respondOptions(const Rest::Request& request, Http::ResponseWriter response)
 {
     addCors(response);
-    response.headers().add<Http::Header::AccessControlAllowMethods>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
-    response.headers().add<Http::Header::Allow>(std::vector<Http::Method>{Http::Method::Delete, Http::Method::Post});
+    response.headers().add<Http::Header::AccessControlAllowMethods>(std::vector<Http::Method> {Http::Method::Delete, Http::Method::Post});
+    response.headers().add<Http::Header::Allow>(std::vector<Http::Method> {Http::Method::Delete, Http::Method::Post});
     response.headers().add<Http::Header::ContentType>(MIME(Application,Json));
     response.headers().add<Http::Header::AccessControlAllowHeaders>("Content-Type");
     response.send(Http::Code::Ok);
@@ -103,25 +103,25 @@ void CmavServer::setMapping(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::setRouting(const Rest::Request& request, Http::ResponseWriter response)
 {
-  json_api_->setRouting(request.body());
+    json_api_->setRouting(request.body());
 
-  addCors(response);
-  response.send(Http::Code::Created);
+    addCors(response);
+    response.send(Http::Code::Created);
 }
 
 void CmavServer::sendFile(const Rest::Request& request, Http::ResponseWriter response)
 {
-  bool suc = json_api_->sendFile(request.body());
+    bool suc = json_api_->sendFile(request.body());
 
-  addCors(response);
-  if(suc)
-  {
-    response.send(Http::Code::Ok);
-  }
-  else
-  {
-    response.send(Http::Code::Service_Unavailable);
-  }
+    addCors(response);
+    if(suc)
+    {
+        response.send(Http::Code::Ok);
+    }
+    else
+    {
+        response.send(Http::Code::Service_Unavailable);
+    }
 }
 
 void CmavServer::addCors(Http::ResponseWriter& response)
@@ -172,9 +172,9 @@ void CmavServer::getMapping(const Rest::Request& request, Http::ResponseWriter r
 
 void CmavServer::getRouting(const Rest::Request& request, Http::ResponseWriter response)
 {
-  std::string routingstring = json_api_->getRouting();
-  addCors(response);
-  response.send(Http::Code::Ok, routingstring);
+    std::string routingstring = json_api_->getRouting();
+    addCors(response);
+    response.send(Http::Code::Ok, routingstring);
 }
 
 void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter response)
@@ -192,7 +192,7 @@ void CmavServer::getLinkById(const Rest::Request& request, Http::ResponseWriter 
 
 void CmavServer::getStats(const Rest::Request& request, Http::ResponseWriter response)
 {
-  std::string statsstring = json_api_->getStats();
-  addCors(response);
-  response.send(Http::Code::Ok, statsstring);
+    std::string statsstring = json_api_->getStats();
+    addCors(response);
+    response.send(Http::Code::Ok, statsstring);
 }

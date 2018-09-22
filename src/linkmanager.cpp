@@ -19,6 +19,7 @@ void LinkManager::updateLinksCache()
             serial_cached->link_id_ = serialcheck->getLinkID();
             serial_cached->link_options_ = serialcheck->info;
             serial_cached->stats_ = serialcheck->link_stats_;
+            serial_cached->sysid_stats_ = serialcheck->sysID_stats;
             links_cached_[serial_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(serial_cached));
         }
         else if(udpcheck)
@@ -28,6 +29,7 @@ void LinkManager::updateLinksCache()
             udp_cached->link_id_ = udpcheck->getLinkID();
             udp_cached->link_options_ = udpcheck->info;
             udp_cached->stats_ = udpcheck->link_stats_;
+            udp_cached->sysid_stats_ = udpcheck->sysID_stats;
             links_cached_[udp_cached->link_id_] = (std::dynamic_pointer_cast<MlinkCached>(udp_cached));
         }
     }
@@ -42,13 +44,14 @@ links_cached_t LinkManager::getLinks() const
 
 int LinkManager::lookupLinkByName(std::string name)
 {
-  std::lock_guard<std::mutex> lock(links_cache_access_lock_);
-  //look through the cached map to find the matching link
-  for (auto& it: links_cached_) {
-    if(it.second->link_options_.link_name.compare(name) == 0)
-      return it.first;
-  }
-  return -1;
+    std::lock_guard<std::mutex> lock(links_cache_access_lock_);
+    //look through the cached map to find the matching link
+    for (auto& it: links_cached_)
+    {
+        if(it.second->link_options_.link_name.compare(name) == 0)
+            return it.first;
+    }
+    return -1;
 }
 int LinkManager::addSerial(serial_properties properties, link_options options)
 {
@@ -82,12 +85,12 @@ bool LinkManager::removeLink(int link_id)
     for(auto it : *links_)
     {
         if(it.first == link_id)
-            {
-                links_->erase(link_id);
+        {
+            links_->erase(link_id);
 
-                updateLinksCache();
-                return true;
-            }
+            updateLinksCache();
+            return true;
+        }
     }
 
     return false;

@@ -11,62 +11,81 @@ namespace pt = boost::property_tree;
 //parse an entire json file
 void JsonApi::parseFile(std::string filename)
 {
-  pt::ptree root;
-  pt::read_json(filename, root);
-
-  boost::optional< pt::ptree& > links_root = root.get_child_optional("links");
-  boost::optional< pt::ptree& > mapping_root = root.get_child_optional("mapping");
-  boost::optional< pt::ptree& > routing_root = root.get_child_optional("routing_table");
-
-  if(links_root)
-  {
-    pt::ptree links_root_raw = links_root.get();
-    BOOST_FOREACH(pt::ptree::value_type &v, links_root_raw)
+    std::ifstream inFile;
+    inFile.open(filename);
+    if (!inFile)
     {
-      std::stringstream ss;
-      pt::write_json(ss,v.second);
-      addLink(ss.str());
+        std::cout << "Unable to open file";
+        exit(1); // terminate with error
     }
-  }
+    pt::ptree root;
+    pt::read_json(inFile, root);
 
-  if(mapping_root)
-  {
-      pt::ptree mapping_root_raw = mapping_root.get();
-      std::stringstream ss;
-      pt::write_json(ss,mapping_root_raw);
-      setMapping(ss.str());
-  }
+    inFile.close();
 
-  if(routing_root)
-  {
-      pt::ptree routing_root_raw = routing_root.get();
-      std::stringstream ss;
-      pt::write_json(ss,routing_root_raw);
-      setRouting(ss.str());
-  }
+    boost::optional< pt::ptree& > links_root = root.get_child_optional("links");
+    boost::optional< pt::ptree& > mapping_root = root.get_child_optional("mapping");
+    boost::optional< pt::ptree& > routing_root = root.get_child_optional("routing_table");
+
+    if(links_root)
+    {
+        pt::ptree links_root_raw = links_root.get();
+        BOOST_FOREACH(pt::ptree::value_type &v, links_root_raw)
+        {
+            std::stringstream ss;
+            pt::write_json(ss,v.second);
+            addLink(ss.str());
+        }
+    }
+
+    if(mapping_root)
+    {
+        pt::ptree mapping_root_raw = mapping_root.get();
+        std::stringstream ss;
+        pt::write_json(ss,mapping_root_raw);
+        setMapping(ss.str());
+    }
+
+    if(routing_root)
+    {
+        pt::ptree routing_root_raw = routing_root.get();
+        std::stringstream ss;
+        pt::write_json(ss,routing_root_raw);
+        setRouting(ss.str());
+    }
 }
 
 std::string JsonApi::getStats() const
 {
-  links_cached_t cache = manager_->getLinks();
-  pt::ptree jsonroot;
-  pt::ptree statsroot;
+    links_cached_t cache = manager_->getLinks();
+    pt::ptree jsonroot;
+    pt::ptree statsroot;
 
-  for(auto it : cache)
-  {
-    auto thislink = it.second;
-    int link_id_ = it.first;
-    link_stats stats_ = thislink->stats_;
+    for(auto it : cache)
+    {
+        auto thislink = it.second;
+        int link_id_ = it.first;
+        link_stats stats_ = thislink->stats_;
 
-    pt::ptree thislinkroot;
-    thislinkroot.put("id",link_id_);
-    thislinkroot.put("name",thislink->link_options_.link_name);
-    thislinkroot.put("drate_rx",stats_.drate_rx);
-    thislinkroot.put("local_rssi",stats_.local_rssi);
-    thislinkroot.put("remote_rssi",stats_.remote_rssi);
+        pt::ptree thislinkroot;
+        thislinkroot.put("id",link_id_);
+        thislinkroot.put("name",thislink->link_options_.link_name);
+        thislinkroot.put("drate_rx",stats_.drate_rx);
+        thislinkroot.put("local_rssi",stats_.local_rssi);
+        thislinkroot.put("remote_rssi",stats_.remote_rssi);
 
-    statsroot.push_back(std::make_pair("", thislinkroot));
-  }
+        pt::ptree sysidroot;
+        for (auto const& x : thislink->sysid_stats_)
+        {
+            pt::ptree thisstatroot;
+            thisstatroot.put("",x.first);
+            sysidroot.push_back(std::make_pair("",thisstatroot));
+        }
+        thislinkroot.add_child("sysids",sysidroot);
+
+
+        statsroot.push_back(std::make_pair("", thislinkroot));
+    }
 
     jsonroot.add_child("stats",statsroot);
 
@@ -102,24 +121,24 @@ std::string JsonApi::getMapping() const
 
 std::string JsonApi::getRouting() const
 {
-  pt::ptree jsonroot;
-  pt::ptree routeroot;
+    pt::ptree jsonroot;
+    pt::ptree routeroot;
 
-  for(auto it : *routing_)
+    for(auto it : *routing_)
     {
-      pt::ptree thisrouteroot;
-      thisrouteroot.put("dest",it.dest);
-      thisrouteroot.put("next_hop",it.next_hop);
+        pt::ptree thisrouteroot;
+        thisrouteroot.put("dest",it.dest);
+        thisrouteroot.put("next_hop",it.next_hop);
 
-      routeroot.push_back(std::make_pair("",thisrouteroot));
+        routeroot.push_back(std::make_pair("",thisrouteroot));
     }
 
-  jsonroot.add_child("routing",routeroot);
-  std::stringstream ss;
+    jsonroot.add_child("routing",routeroot);
+    std::stringstream ss;
 
-  pt::json_parser::write_json(ss,jsonroot);
+    pt::json_parser::write_json(ss,jsonroot);
 
-  return ss.str();
+    return ss.str();
 }
 
 void JsonApi::setMapping(std::string json)
@@ -133,7 +152,8 @@ void JsonApi::setMapping(std::string json)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     mapping_->clear(); //empty the mapping
-    BOOST_FOREACH(pt::ptree::value_type &v, pt) {
+    BOOST_FOREACH(pt::ptree::value_type &v, pt)
+    {
         uint8_t src = v.second.get<uint8_t>("src");
         uint8_t dst = v.second.get<uint8_t>("dst");
         bool bidir = v.second.get<bool>("bidir");
@@ -144,50 +164,51 @@ void JsonApi::setMapping(std::string json)
 
 bool JsonApi::sendFile(std::string json)
 {
-  pt::ptree pt;
-  std::stringstream ss;
-  ss << json;
-  read_json(ss, pt);
+    pt::ptree pt;
+    std::stringstream ss;
+    ss << json;
+    read_json(ss, pt);
 
-  std::string filename = pt.get<std::string>("filename");
-  int x = pt.get<int>("x");
-  int y = pt.get<int>("y");
-  return block_xmit_->sendFile(filename,x,y);
+    std::string filename = pt.get<std::string>("filename");
+    int x = pt.get<int>("x");
+    int y = pt.get<int>("y");
+    return block_xmit_->sendFile(filename,x,y);
 }
 void JsonApi::setRouting(std::string json)
 {
-  pt::ptree pt;
-  std::stringstream ss;
-  ss << json;
-  read_json(ss, pt);
+    pt::ptree pt;
+    std::stringstream ss;
+    ss << json;
+    read_json(ss, pt);
 
-  // obtain lock on the main loop
-  std::lock_guard<std::mutex> lock(links_access_lock_);
+    // obtain lock on the main loop
+    std::lock_guard<std::mutex> lock(links_access_lock_);
 
-  routing_->clear(); //empty the mapping
-  BOOST_FOREACH(pt::ptree::value_type &v, pt) {
-    std::string nh = v.second.get<std::string>("next_hop");
-
-    //Find out if string is a number
-    std::string::const_iterator it = nh.begin();
-    while (it != nh.end() && std::isdigit(*it)) ++it;
-    bool isnumber = !nh.empty() && it == nh.end();
-
-    // Now get numeric value of dest either by lookup or conversion
-    int nh_num = 0; 
-    if(isnumber)
+    routing_->clear(); //empty the mapping
+    BOOST_FOREACH(pt::ptree::value_type &v, pt)
     {
-      std::stringstream nhstream(nh); 
-      nhstream >> nh_num;
+        std::string nh = v.second.get<std::string>("next_hop");
+
+        //Find out if string is a number
+        std::string::const_iterator it = nh.begin();
+        while (it != nh.end() && std::isdigit(*it)) ++it;
+        bool isnumber = !nh.empty() && it == nh.end();
+
+        // Now get numeric value of dest either by lookup or conversion
+        int nh_num = 0;
+        if(isnumber)
+        {
+            std::stringstream nhstream(nh);
+            nhstream >> nh_num;
+        }
+        else
+        {
+            nh_num = manager_->lookupLinkByName(nh);
+        }
+        uint8_t dest = v.second.get<uint8_t>("dest");
+        std::cout << "dest: " << (int)dest << " next_hop: " << (int)nh_num << std::endl;
+        routing_->push_back(route(dest,nh_num));
     }
-    else
-    {
-      nh_num = manager_->lookupLinkByName(nh);
-    }
-    uint8_t dest = v.second.get<uint8_t>("dest");
-    std::cout << "dest: " << (int)dest << " next_hop: " << (int)nh_num << std::endl;
-    routing_->push_back(route(dest,nh_num));
-  }
 }
 
 std::string JsonApi::getLinks() const
@@ -208,7 +229,8 @@ std::string JsonApi::getLinks() const
         pt::ptree thislinkroot;
         thislinkroot.put("id",link_id_);
 
-        if(serialpointer != NULL){
+        if(serialpointer != NULL)
+        {
             serial_properties properties_ = serialpointer->properties_;
             pt::ptree serialroot;
             serialroot.put("port", properties_.port);
@@ -217,7 +239,8 @@ std::string JsonApi::getLinks() const
 
             thislinkroot.add_child("serial_properties", serialroot);
         }
-        else if(udppointer != NULL){
+        else if(udppointer != NULL)
+        {
             udp_properties properties_ = udppointer->properties_;
             pt::ptree udproot;
             udproot.put("host", properties_.host);
@@ -272,8 +295,8 @@ void JsonApi::addLink(std::string json)
         options.link_name =             lo_root_raw.get<std::string>("link_name");
         options.blockXmitRx =             lo_root_raw.get<bool>("blockXmitRx");
         options.blockXmitTx =             lo_root_raw.get<bool>("blockXmitTx");
-        //options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
-        //options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
+        options.reject_repeat_packets = lo_root_raw.get<bool>("reject_repeat_packets");
+        options.SiK_radio =             lo_root_raw.get<bool>("sik_radio");
     }
     else
     {
@@ -320,10 +343,10 @@ void JsonApi::addLink(std::string json)
 
         boost::optional<int> bindport_opt = up_root_raw.get_optional<int>("bindport");
         if(!bindport_opt && properties.udp_type != 1)
-            {
-                std::cout << "Error: No BindPort" << std::endl;
-                return;
-            }
+        {
+            std::cout << "Error: No BindPort" << std::endl;
+            return;
+        }
         else if(!bindport_opt) // Value Doesnt matter
             properties.bindport = -1;
         else //value has been specified
