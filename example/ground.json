@@ -47,6 +47,21 @@
         {
             "udp_properties": {
                 "host": "127.0.0.1",
+                "hostport": "14595",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "supportcontrol",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "127.0.0.1",
                 "hostport": "14550",
                 "bindport": "-1",
                 "udp_type": "1"
@@ -82,6 +97,16 @@
             "bidir": "true"
         },
         {
+            "src": "1",
+            "dst": "250",
+            "bidir": "true"
+        },
+        {
+            "src": "2",
+            "dst": "250",
+            "bidir": "true"
+        },
+        {
             "src": "254",
             "dst": "2",
             "bidir": "true"
@@ -98,8 +123,12 @@
             "next_hop": "mproxy"
         },
         {
-            "dest": "255",
+            "dest": "254",
             "next_hop": "flopslaptop"
+        },
+        {
+            "dest": "250",
+            "next_hop": "supportcontrol"
         },
         {
             "dest": "1",
@@ -120,6 +149,10 @@
         {
             "dest": "244",
             "next_hop": "rfd"
+        },
+        {
+            "dest": "244",
+            "next_hop": "4g"
         }
     ]
 }
