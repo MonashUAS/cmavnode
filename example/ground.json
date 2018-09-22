@@ -120,6 +120,10 @@
         {
             "dest": "244",
             "next_hop": "rfd"
+        },
+        {
+            "dest": "244",
+            "next_hop": "4g"
         }
     ]
 }
