@@ -12,6 +12,7 @@ def lstrip_bom(str_, bom=BOM_UTF8):
     else:
         return str_
 
+time.sleep(2)
 
 with open(sys.argv[1] , 'r') as f:
     data = f.read()
