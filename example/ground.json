@@ -88,6 +88,21 @@
                 "blockXmitRx": "false",
                 "blockXmitTx": "false"
             }
+        },
+        {
+            "udp_properties": {
+                "host": "192.168.1.8",
+                "hostport": "14550",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "flopslaptop2",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
         }
     ],
     "mapping": [
@@ -120,7 +135,7 @@
     "routing_table": [
         {
             "dest": "255",
-            "next_hop": "mproxy"
+            "next_hop": "flopslaptop2"
         },
         {
             "dest": "254",
