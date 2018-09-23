@@ -72,7 +72,7 @@ std::string JsonApi::getStats() const
         thislinkroot.put("name",thislink->link_options_.link_name);
         thislinkroot.put("drate_rx",stats_.drate_rx);
         thislinkroot.put("local_rssi",stats_.local_rssi);
-        thislinkroot.put("remote_rssi",stats_.remote_rssi);
+        thislinkroot.put("local_noise",stats_.local_noise);
 
         pt::ptree sysidroot;
         for (auto const& x : thislink->sysid_stats_)

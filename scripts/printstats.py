@@ -21,11 +21,13 @@ while True:
     rjson = r.json()
     for stat in rjson["stats"]:
         sysstring = ": "
+        noise = stat["local_noise"]
+        rssi = stat["local_rssi"]
         for sysid in stat["sysids"]:
             sysstring = sysstring + sysid + " "
 
         if stat["name"] == filterlink or not filter:
-            print stat["name"] + ": " + str(round(float(stat["drate_rx"]),2)) + " Bps, sysid" + sysstring
+            print stat["name"] + ": " + str(round(float(stat["drate_rx"]),2)) + " bps   S/N: " + str(rssi) + "/" + str(noise) + "   sysid" + sysstring
         #if stat["name"] == "SITL":
         #    pprint.pprint(float(stat["drate_rx"]))
 
