@@ -12,6 +12,7 @@
 std::unordered_map<uint8_t, std::map<uint16_t, boost::posix_time::ptime> > mlink::recently_received;
 std::vector<boost::posix_time::time_duration> mlink::static_link_delay;
 std::mutex mlink::recently_received_mutex;
+std::mutex mlink::sysid_all_links_mutex;
 std::set<uint8_t> mlink::sysIDs_all_links;
 
 mlink::mlink(int link_id_, link_options info_)
@@ -89,6 +90,8 @@ bool mlink::seenSysID(const uint8_t sysid) const
 
 void mlink::onMessageRecv(mavlink_message_t *msg)
 {
+    //lock up the sysID_stats object
+    std::lock_guard<std::mutex> slock_(sysid_lock_);
     updateRouting(*msg);
 
     record_packet_stats(msg);
@@ -153,6 +156,8 @@ void mlink::updateRouting(mavlink_message_t &msg)
     {
         std::cout << "Adding sysID: " << (int)msg.sysid << " to the mapping on link: " << info.link_name << std::endl;
         sysID_stats[msg.sysid].num_packets_received = 0;
+
+        std::lock_guard<std::mutex> lock(sysid_all_links_mutex);
         sysIDs_all_links.insert(sysIDs_all_links.end(), msg.sysid);
         newSysID = true;
         found = sysID_stats.find(msg.sysid);
@@ -184,24 +189,27 @@ void mlink::updateRouting(mavlink_message_t &msg)
 
 void mlink::checkForDeadSysID()
 {
+    // lock up sysid_stats object
+    std::lock_guard<std::mutex> slock_(sysid_lock_);
     //Check that no links have timed out
     //if they have, remove from mapping
 
     //get the time now
     boost::posix_time::ptime nowTime = boost::posix_time::microsec_clock::local_time();
 
-    auto next = sysID_stats.begin();
-    while (next != sysID_stats.end())
+    auto itr = sysID_stats.begin();
+    while (itr != sysID_stats.end())
     {
-        auto iter = next;
-        next++;
-        boost::posix_time::time_duration dur = nowTime - iter->second.last_packet_time;
+        boost::posix_time::time_duration dur = nowTime - itr->second.last_packet_time;
         long time_between_packets = dur.total_milliseconds();
-        if(time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
+        if (time_between_packets > MAV_PACKET_TIMEOUT_MS && totalPacketCount > 0)
         {
-            // Log then erase
-            std::cout << "Removing sysID: " << (int)(iter->first) << " from link: " << info.link_name << " (idle " << (double)time_between_packets/1000 << " s)" << std::endl;
-            sysID_stats.erase(iter);
+            std::cout << "Removing sysID: " << (int)(itr->first) << " from link: " << info.link_name << " (idle "  << (double)time_between_packets/1000 << " s)" << std::endl;
+            itr = sysID_stats.erase(itr);
+        }
+        else
+        {
+            ++itr;
         }
     }
 }
@@ -244,7 +252,10 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
     {
         // Old packet - drop it
         if (sysID_stats.find(msg->sysid) != sysID_stats.end())
+        {
+            std::cout << "incrementing dropped packets" << std::endl;
             ++sysID_stats[msg->sysid].packets_dropped;
+        }
         else
             std::cout << "Failed to find sysid when dropping packet" << std::endl;
         return false;
@@ -253,6 +264,8 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
 
 void mlink::flush_recently_read()
 {
+
+    std::lock_guard<std::mutex> slock_(sysid_all_links_mutex);
     for (auto sysID = sysIDs_all_links.begin(); sysID != sysIDs_all_links.end(); ++sysID)
     {
         auto recent_packet_map = &recently_received[*sysID];
