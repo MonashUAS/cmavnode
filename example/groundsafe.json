@@ -1,0 +1,173 @@
+﻿{
+    "links": [
+        {
+            "udp_properties": {
+                "host": "10.100.192.15",
+                "hostport": "14555",
+                "bindport": "14556",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "4g",
+                "reject_repeat_packets": "true",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "serial_properties": {
+                "port": "/dev/ttyUSB0",
+                "baudrate": "57600",
+                "flowcontrol": "false"
+            },
+            "link_options": {
+                "link_name": "rfd",
+                "reject_repeat_packets": "true",
+                "sik_radio": "true",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14590",
+                "bindport": "14591",
+                "udp_type": "0"
+            },
+            "link_options": {
+                "link_name": "mrbridge",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14595",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "supportcontrol",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "127.0.0.1",
+                "hostport": "14550",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "mproxy",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "192.168.1.6",
+                "hostport": "14550",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "flopslaptop",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        },
+        {
+            "udp_properties": {
+                "host": "192.168.1.8",
+                "hostport": "14550",
+                "bindport": "-1",
+                "udp_type": "1"
+            },
+            "link_options": {
+                "link_name": "flopslaptop2",
+                "reject_repeat_packets": "false",
+                "sik_radio": "false",
+                "blockXmitRx": "false",
+                "blockXmitTx": "false"
+            }
+        }
+    ],
+    "mapping": [
+        {
+            "src": "255",
+            "dst": "1",
+            "bidir": "true"
+        },
+        {
+            "src": "1",
+            "dst": "250",
+            "bidir": "true"
+        },
+        {
+            "src": "2",
+            "dst": "250",
+            "bidir": "true"
+        },
+        {
+            "src": "254",
+            "dst": "2",
+            "bidir": "true"
+        },
+        {
+            "src": "244",
+            "dst": "14",
+            "bidir": "true"
+        }
+    ],
+    "routing_table": [
+        {
+            "dest": "255",
+            "next_hop": "flopslaptop2"
+        },
+        {
+            "dest": "254",
+            "next_hop": "flopslaptop"
+        },
+        {
+            "dest": "250",
+            "next_hop": "supportcontrol"
+        },
+        {
+            "dest": "1",
+            "next_hop": "rfd"
+        },
+        {
+            "dest": "1",
+            "next_hop": "4g"
+        },
+        {
+            "dest": "2",
+            "next_hop": "rfd"
+        },
+        {
+            "dest": "14",
+            "next_hop": "mrbridge"
+        },
+        {
+            "dest": "244",
+            "next_hop": "rfd"
+        },
+        {
+            "dest": "244",
+            "next_hop": "4g"
+        }
+    ]
+}
