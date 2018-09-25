@@ -253,7 +253,7 @@ bool mlink::record_incoming_packet(mavlink_message_t *msg)
         // Old packet - drop it
         if (sysID_stats.find(msg->sysid) != sysID_stats.end())
         {
-            std::cout << "incrementing dropped packets" << std::endl;
+            //std::cout << "incrementing dropped packets" << std::endl;
             ++sysID_stats[msg->sysid].packets_dropped;
         }
         else
