@@ -58,6 +58,12 @@ int LinkManager::addSerial(serial_properties properties, link_options options)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     int link_id_ = newLinkID();
+    if(link_id_ >= 16)
+    {
+        std::cout << "Error: Max links exceeded (16)" << std::endl;
+        return -1;
+    }
+
     (*links_)[link_id_] = (std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
     std::cout << "LinkManager: Serial Link Created on " << properties.port << ":" << properties.baudrate << std::endl;
 
@@ -70,6 +76,12 @@ int LinkManager::addUDP(udp_properties properties,  link_options options)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     int link_id_ = newLinkID();
+    if(link_id_ >= 16)
+    {
+        std::cout << "Error: Max links exceeded (16)" << std::endl;
+        return -1;
+    }
+
     (*links_)[link_id_] = (std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
     std::cout << "LinkManager: UDP Link Created on " << properties.host << ":" << properties.hostport << "->" << properties.bindport << std::endl;
 
