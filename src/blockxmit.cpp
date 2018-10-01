@@ -31,22 +31,6 @@ bool blockXmit::sendFile(const std::string file,uint16_t x, uint16_t y)
     return true;
 }
 
-bool blockXmit::processMsg(mavlink_message_t &msg)
-{
-    /*
-    if(msg.msgid == MAVLINK_MSG_ID_DATA16 && msg.sysid == BLOCK_XMIT_SYSID_RX)
-    {
-      handleAck(msg);
-    }
-    else if(msg.msgid == MAVLINK_MSG_ID_DATA64 && msg.sysid == BLOCK_XMIT_SYSID_TX)
-    {
-      handleChunk(msg);
-    }
-    else
-      return false;
-    */
-}
-
 bool blockXmit::sendChunk(mavlink_message_t &msg)
 {
     // lock the chunk queue
