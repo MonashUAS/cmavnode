@@ -65,7 +65,7 @@ int LinkManager::addSerial(serial_properties properties, link_options options)
     }
 
     (*links_)[link_id_] = (std::shared_ptr<mlink>(new serial(properties,link_id_,options)));
-    std::cout << "LinkManager: Serial Link Created on " << properties.port << ":" << properties.baudrate << std::endl;
+    std::cout << "LinkManager: Serial Link \"" << options.link_name << "\" Created on " << properties.port << ":" << properties.baudrate << std::endl;
 
     updateLinksCache();
     return link_id_;
@@ -83,7 +83,7 @@ int LinkManager::addUDP(udp_properties properties,  link_options options)
     }
 
     (*links_)[link_id_] = (std::shared_ptr<mlink>(new asyncsocket(properties,link_id_,options)));
-    std::cout << "LinkManager: UDP Link Created on " << properties.host << ":" << properties.hostport << "->" << properties.bindport << std::endl;
+    std::cout << "LinkManager: UDP Link \"" << options.link_name << "\" Created on " << properties.host << ":" << properties.hostport << "->" << properties.bindport << std::endl;
 
     updateLinksCache();
     return link_id_;
