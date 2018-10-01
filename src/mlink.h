@@ -158,6 +158,7 @@ public:
     link_stats link_stats_;
 
 
+    std::mutex sysid_lock_;
     // Track heartbeat stats for each system ID.
     std::map<uint8_t, sysid_stats> sysID_stats;
 
@@ -203,6 +204,7 @@ protected:
 
     std::map<uint8_t, uint8_t> new_custom_msg_crcs;
 
+    static std::mutex sysid_all_links_mutex;
     static std::set<uint8_t> sysIDs_all_links;
 };
 
