@@ -68,11 +68,13 @@ int main(int argc, char** argv)
     if(server_port != -1)
         cmav_server = std::make_shared<CmavServer>( server_port, json_api );
 
-    if (links.size() == 0)
-        std::cout << "Warning: cmavnode started with no links" << std::endl;
+    if (links.size() == 0 && server_port == -1)
+    {
+        std::cout << "Error: cmavnode requires a config file or an api port to be specified" << std::endl;
+        return -1;
+    }
 
-    std::cout << "Command line arguments parsed succesfully." << std::endl;
-    std::cout << "Links Initialized, routing loop starting." << std::endl;
+    std::cout << "cmavnode started successfully, routing loop running" << std::endl;
 
     // Start the main loop
     while (!exit_main_loop)
@@ -231,7 +233,5 @@ bool runMainLoop(links_t &links,source_map_t source_map_,routing_table_t routing
 
 void exitGracefully(int a)
 {
-    std::cout << "Exit code " << a << std::endl;
-    std::cout << "SIGINT caught, deconstructing links and exiting" << std::endl;
     exit_main_loop = true;
 }

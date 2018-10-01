@@ -26,7 +26,7 @@ class blockXmit
 {
 public:
     blockXmit(std::string rx_dir);
-    ~blockXmit();
+    ~blockXmit(){};
     bool processMsg(mavlink_message_t &msg);
     void handleAck(mavlink_message_t &msg);
     void handleChunk(mavlink_message_t &msg,mavlink_message_t &ack);

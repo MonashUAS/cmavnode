@@ -2,7 +2,6 @@
 
 blockXmit::blockXmit(std::string rx_dir)
 {
-    std::cout << "Block XMIT initialised" << std::endl;
     if(rx_dir.length() > 0)
     {
         if(boost::filesystem::is_directory(rx_dir))
@@ -15,11 +14,6 @@ blockXmit::blockXmit(std::string rx_dir)
         }
     }
     rx_dir_ = rx_dir;
-}
-
-blockXmit::~blockXmit()
-{
-    std::cout << "Block XMIT destructed" << std::endl;
 }
 
 bool blockXmit::sendFile(const std::string file,uint16_t x, uint16_t y)
