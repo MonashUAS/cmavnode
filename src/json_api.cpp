@@ -152,6 +152,8 @@ void JsonApi::setMapping(std::string json)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     mapping_->clear(); //empty the mapping
+
+    std::cout << "Received new mapping table" << std::endl;
     BOOST_FOREACH(pt::ptree::value_type &v, pt)
     {
         uint8_t src = v.second.get<uint8_t>("src");
@@ -185,6 +187,7 @@ void JsonApi::setRouting(std::string json)
     std::lock_guard<std::mutex> lock(links_access_lock_);
 
     routing_->clear(); //empty the mapping
+    std::cout << "Received new routing table" << std::endl;
     BOOST_FOREACH(pt::ptree::value_type &v, pt)
     {
         std::string nh = v.second.get<std::string>("next_hop");
