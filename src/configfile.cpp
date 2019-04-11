@@ -186,6 +186,9 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
 
     // Identify SiK radio links
     _configFile->boolValue(thisSection, "sik_radio", &_info->SiK_radio);
+
+    // Enable sleep mode for the link
+    _configFile->boolValue(thisSection, "sleep", &_info->sleep_enabled);
 }
 
 std::string trim(std::string const& source, char const* delims = " \t\r\n")

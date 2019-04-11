@@ -17,6 +17,8 @@ std::set<uint8_t> mlink::sysIDs_all_links;
 mlink::mlink(link_info info_)
 {
     info = info_;
+    // No clients at this moment
+    sleep = true;
     static_link_delay.push_back(boost::posix_time::time_duration(0,0,0,0));
 
     //if we are simulating init the random generator
