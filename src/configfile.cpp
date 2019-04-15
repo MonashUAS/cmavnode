@@ -1,6 +1,7 @@
 #include "configfile.h"
 
 #include <fstream>
+#include "../include/mavlink2/mavlink_get_info.h"
 
 int readConfigFile(std::string &filename, std::vector<std::shared_ptr<mlink> > &links)
 {
@@ -186,6 +187,72 @@ void readLinkInfo(ConfigFile* _configFile, std::string thisSection, link_info* _
 
     // Identify SiK radio links
     _configFile->boolValue(thisSection, "sik_radio", &_info->SiK_radio);
+
+    std::string filter_string;
+    if (_configFile->strValue(thisSection, "filter", &filter_string))
+    {
+        // Find the filter type separator
+        size_t filter_type_separator = filter_string.find_first_of(':');
+
+        // Filter type seporator has been found
+        if (filter_type_separator != std::string::npos)
+        {
+            const std::unordered_map<std::string, link_filter_type> filter_type_map = 
+            {
+                { "DROP", link_filter_type::DROP },
+                { "ACCEPT", link_filter_type::ACCEPT },
+            };
+
+            // Extract the filter type string
+            std::string filter_type_str = filter_string.substr(0, filter_type_separator);
+
+            // Find the binding in the map
+            auto filter_type_iter = filter_type_map.find(filter_type_str);
+
+            // It's a valid filter type
+            if (filter_type_iter != filter_type_map.end())
+            {
+                // Extract the filter messages string
+                std::string filter_messages_str = filter_string.substr(filter_type_separator + 1);
+
+                std::vector<std::string> messages_strs;
+
+                boost::split(messages_strs, filter_messages_str, boost::is_any_of(","));
+
+                // Filter is not empty
+                if (messages_strs[0].length())
+                {
+                    _info->filter_type = filter_type_iter->second;
+
+                    const mavlink_message_info_t *message_info;
+
+                    // For every message name
+                    for (const std::string &filter_message_str : messages_strs) {
+                        // Find the MAVLink message information
+                        message_info = mavlink_get_message_info_by_name(filter_message_str.c_str());
+
+                        // Valid message name
+                        if (message_info)
+                            _info->filter_messages.insert(message_info->msgid);
+                        // Invalid message name
+                        else
+                        std::cout << "Failed to add message \"" << filter_message_str << "\" to the filter. Unknown message!"
+                            << std::endl; 
+                    } 
+                }
+                // Empty filter
+                else
+                    std::cout << "Failed to load filter for \"" << _info->link_name << "\". No messages!" << std::endl;
+            }
+            // Unknown filter type
+            else 
+                std::cout << "Failed to load filter for \"" << _info->link_name << "\". Uknown filter type \"" <<
+                    filter_type_str << "\"!" << std::endl;
+        }
+        // No filter message type
+        else
+            std::cout << "Failed to load filter for \"" << _info->link_name << "\". No filter type found!" << std::endl;
+    }
 }
 
 std::string trim(std::string const& source, char const* delims = " \t\r\n")

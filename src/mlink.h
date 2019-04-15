@@ -20,6 +20,7 @@
 #include <iostream>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <vector>
 #include <utility>
@@ -55,6 +56,13 @@ struct queue_counter
     }
 };
 
+enum class link_filter_type
+{
+    NONE,
+    DROP, // Drop only messages listed in a filter
+    ACCEPT  // Accept only messages listed in a filter
+};
+
 struct link_info
 {
     std::string link_name;
@@ -64,6 +72,8 @@ struct link_info
     int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
     bool reject_repeat_packets = false;
     bool SiK_radio = false;
+    link_filter_type filter_type = link_filter_type::NONE;
+    std::unordered_set<uint8_t> filter_messages;
 };
 
 class mlink
