@@ -28,7 +28,7 @@ file(GLOB cmavnode_SRC
 add_executable(cmavnode ${cmavnode_SRC})
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG " -ggdb")
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wno-address-of-packed-member")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wno-address-of-packed-member -DMAVLINK_USE_MESSAGE_INFO")
 
 TARGET_LINK_LIBRARIES(cmavnode ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${READLINE_LIBRARY})
 
