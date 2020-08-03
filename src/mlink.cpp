@@ -49,10 +49,10 @@ void mlink::drateThread()
 {
     while(!exitFlag)
     {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(drate_period_ms));
+        boost::this_thread::sleep(boost::posix_time::milliseconds(DRATE_PERIOD_MS));
         {
             std::lock_guard<std::mutex> lock(drate_lock_);
-            float drate_this_period = (float)drate_rx_bytes_last_period/((float)drate_period_ms/1000.0);
+            float drate_this_period = (float)drate_rx_bytes_last_period/((float)DRATE_PERIOD_MS/1000.0);
             static const float alpha = 0.2;
             drate_smooth = (alpha * drate_this_period) + (1.0 - alpha) * drate_smooth;
             drate_rx_bytes_last_period = 0;

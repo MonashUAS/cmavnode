@@ -34,6 +34,7 @@
 #define OUT_QUEUE_EMPTY_SLEEP 10
 #define MAV_INCOMING_BUFFER_LENGTH 2041
 #define MAV_PACKET_TIMEOUT_MS 10000
+#define DRATE_PERIOD_MS 200
 
 struct queue_counter
 {
@@ -148,7 +149,6 @@ public:
 
 
     std::mutex drate_lock_;
-    static const int drate_period_ms = 200;
     float datarate_rx = 0;
     float drate_smooth;
     long drate_rx_bytes_last_period;
