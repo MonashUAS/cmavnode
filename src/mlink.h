@@ -64,6 +64,7 @@ struct link_info
     int sim_packet_loss = 0; //0-100, amount of packets that should be dropped
     bool reject_repeat_packets = false;
     bool SiK_radio = false;
+    bool sleep_enabled = false;
 };
 
 class mlink
@@ -107,6 +108,9 @@ public:
     bool is_kill = false;
     long totalPacketCount = 0;
     long totalPacketSent = 0;
+
+    // No activity on the endpoint
+    bool sleep;
 
     // Track link quality for the link
     struct link_quality_stats

@@ -156,6 +156,10 @@ bool should_forward_message(mavlink_message_t &msg, std::shared_ptr<mlink> *inco
         return false;
     }
 
+    // Sleep mode enabled for this link and the link is sleeping
+    if (((*outgoing_link)->info.sleep_enabled) && ((*outgoing_link)->sleep))
+        return false;
+
     // Don't forward SiK radio info
     if ((*incoming_link)->info.SiK_radio && msg.sysid == 51)
     {
@@ -219,6 +223,23 @@ void runMainLoop(std::vector<std::shared_ptr<mlink> > *links, bool &verbose)
     {
         // Clear out dead links
         (*incoming_link)->checkForDeadSysID();
+
+        // Sleep mode enabled for this link
+        if ((*incoming_link)->info.sleep_enabled)
+        {
+            // There are clients on the link, sleep mode enabled
+            if ((*incoming_link)->sysID_stats.size() && ((*incoming_link)->sleep))
+            {
+                std::cout << "Sleep mode disabled on link: " << (*incoming_link)->info.link_name << std::endl;
+                (*incoming_link)->sleep = false;
+            }
+            // There are no clients on the link, sleep mode disabled
+            else if (!(*incoming_link)->sysID_stats.size() && !((*incoming_link)->sleep))
+            {
+                std::cout << "Sleep mode enabled on link: " << (*incoming_link)->info.link_name << std::endl;
+                (*incoming_link)->sleep = true;
+            }
+        }
 
         // Try to read from the buffer for this link
         while ((*incoming_link)->qReadIncoming(&msg))
