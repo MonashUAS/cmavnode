@@ -103,6 +103,9 @@ The following flags can be applied to any type of link and are optional
         output_only_from=1,2,3 #only sends packets from sysID's 1, 2, and 3 on this link
         reject_repeat_packets=true #enables detection and removal of duplicate packets from different links
         sik_radio=true #enable this to be able to see radio stats (rssi, noise etc) on the console interface
+        sleep=true #dont output to this link unless packets have been recently received (reduce wasted traffic on LTE/Satcomm)
+        filter=DROP:HEARTBEART #exclusive ouput message filter, dont output heartbeat packets on this link
+        filter=ACCEPT:HEARTBEAT,GLOBAL_POSITION_INT #inclusive output message filter, only output heartbeat and global position int messages on this link
 
 
 ## Licence
